@@ -104,6 +104,9 @@ func result(a quota.Account) supply.Result {
 		}
 	}
 	r.BalanceOnly = len(windows) == 0 && (len(a.Balances) > 0 || hasGroupBalances(a))
+	if r.Outcome == supply.OutcomeOK {
+		r.Inventory = inventory(a)
+	}
 	return r
 }
 

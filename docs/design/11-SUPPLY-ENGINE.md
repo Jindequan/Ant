@@ -495,7 +495,9 @@ Phase 1's `accounts.json` import:
 Phase 2 progress (one commit per step): **1. discovery and scheduling — done 2026-10-08**
 ([evidence](../evidence/WORK/SUPPLY-ENGINE/README.md); `Service.refresh`'s read loop is gone, the
 engine schedules and records reads; until the import step only found credentials are recorded);
-2. reconciler + `Account` → `Inventory` (replaces `mergeSame`/`hideFailedWays`); 3. per-site
+**2. reconciler + `Account` → `Inventory` — done 2026-10-08** (store merges only on
+provider-reported identities; adapter meters are `unmodeled`/`quota.adapter.*` and never verified
+facts; `mergeSame`/`hideFailedWays` remain page presentation until step 4); 3. per-site
 browser opt-in (R6); 4. page session on `/v1` (R8); 5. `accounts.json` import (§5).
 
 Migration numbering and table count (`store/sqlite/migrate.go`, `expectedTableCount = 36` today):

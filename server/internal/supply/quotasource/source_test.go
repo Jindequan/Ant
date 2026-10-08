@@ -140,4 +140,13 @@ func TestThePageShowsWhatTheEngineRead(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM collector_runs WHERE outcome='ok'`).Scan(&runs); err != nil || runs != 1 {
 		t.Fatalf("runs = %d, %v", runs, err)
 	}
+	// the balance is a reading of the account's prepaid package, exact to the cent
+	var remaining int64
+	var evidence, kind, identity string
+	err = db.QueryRow(`SELECT r.remaining_units, r.evidence_json, p.kind, a.provider_identity FROM supply_readings r
+		JOIN supply_resources s USING(namespace,resource_id) JOIN supply_packages p USING(namespace,package_id)
+		JOIN supply_accounts a USING(namespace,account_id)`).Scan(&remaining, &evidence, &kind, &identity)
+	if err != nil || remaining != 23_400_000 || kind != "prepaid" || !strings.Contains(evidence, `"granted":"10.00"`) || !strings.HasPrefix(identity, "credential:") {
+		t.Fatalf("reading: %d %s %s %s %v", remaining, evidence, kind, identity, err)
+	}
 }

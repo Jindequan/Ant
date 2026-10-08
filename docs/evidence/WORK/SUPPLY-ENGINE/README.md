@@ -40,3 +40,40 @@ upgrade to v6 (versions 1–6, 41 tables, `supply_inventory` gone, other rows ke
 `GET /api/quota` and `POST /api/quota/refresh` answer with zero accounts, no errors logged.
 
 **Gates.** `make check` (32 packages), `test-contract`, `test-integration`, `test-fault` pass.
+
+## Step 2: reconciler and Account → Inventory (2026-10-08)
+
+**What changed.** A good read now carries an `Inventory`; the engine records it, the run's end and
+the credential's status in one transaction (`supply/reconcile.go`). Accounts are stored under the
+provider-reported identity, or under `credential:<id>` when there is none, so credentials merge
+only on what the provider said. Packages, resources and physical keys get stable ids (a re-read
+updates rows); a reading is appended only when its value changes; a reading not newer than the
+stored one is skipped and noted on an `ok` run; if recording fails, the run is still closed as an
+`error` saying why, and stored facts are untouched. Declared packages never get readings (§3.6).
+
+`quotasource/inventory.go` converts quota's `Account`: one package per mode (plus one per group),
+`observed` when the reader read the provider, `declared` when the card came from the mode's rule.
+Windows and balances become meters at one fixed precision (10⁻⁶, part of identity); balance
+strings are converted exactly, never through floating point; negative balances are kept.
+
+**Honest limits of adapter facts.** Quota reports windows by name, not as `domain.WindowRule`, so
+adapter meters have window kind `unmodeled` and semantics `quota.adapter.*`. They are history and
+display data; phase 5's fact source will expose only native (phase 4) templates, never these.
+
+**Identity finding.** Two shipped quota identities are not provider-reported: Z.ai's is inferred
+from coincident reset times, Claude's is the constant `claude-plan`. Design §2.6 forbids merging on
+inference, so the store does not use them (only Bailian/Alibaba Cloud and Copilot identities are
+trusted). The page still groups those cards as before; that is display, not a stored fact.
+
+**Plan change.** `mergeSame`/`hideFailedWays` stay as page presentation until the page reads supply
+projections (with the `/v1` session, step 4); the store-side merge is the reconciler's.
+
+**Tests.** `supply/reconcile_test.go`: merge only on reported identity (3 credentials → 2
+accounts, shared meter, no duplicate reading); append-on-change and never-read-declared; same-ms
+skip noted on an ok run; a failed recording closes its run as an error with stored facts intact;
+physical key ignores namespace and Ant ids. `quotasource/inventory_test.go`: exact decimals
+(incl. rounding and rejects), identity allowlist, window/percent/model-scope/group conversion,
+rule-only → declared, negative balance. The end-to-end test now checks the stored DeepSeek reading
+(23.40 CNY = 23 400 000 units, granted/topped-up in evidence, credential-scoped account).
+
+**Gates.** `make check`, `test-contract`, `test-integration`, `test-fault` pass.

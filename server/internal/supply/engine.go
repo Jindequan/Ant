@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"math"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,6 +52,7 @@ type Result struct {
 	Detail      string
 	NextReset   *domain.Millis // the earliest window reset the provider reported
 	BalanceOnly bool           // the account holds balances and no windows
+	Inventory   *Inventory     // what the account holds; recorded when the read is ok
 }
 
 // Source finds credentials and reads them. The engine never sees secrets
@@ -92,6 +95,7 @@ type slot struct {
 	createdAt  domain.Millis
 	status     string // as last written to supply_credentials
 	verifiedAt *domain.Millis
+	accountID  domain.ID // the account the last good read resolved to
 	due        domain.Millis
 	failures   int
 	queued     bool          // the loop has started a read that hasn't begun
@@ -185,7 +189,7 @@ func (e *Engine) Discover(ctx context.Context) error {
 func (e *Engine) credentialRecord(s *slot, detail string) store.SupplyCredentialRecord {
 	return store.SupplyCredentialRecord{Namespace: e.ns, CredentialID: s.cred.ID, ProviderID: s.cred.ProviderID,
 		Kind: s.cred.Kind, Origin: s.cred.Origin, Strategy: s.cred.Strategy, LocatorJSON: s.cred.Locator,
-		Status: s.status, StatusDetail: clip(detail), VerifiedAt: s.verifiedAt, CreatedAt: s.createdAt}
+		AccountID: s.accountID, Status: s.status, StatusDetail: clip(detail), VerifiedAt: s.verifiedAt, CreatedAt: s.createdAt}
 }
 
 // RunNow reads the given credentials (all of them, after a fresh discovery,
@@ -264,7 +268,7 @@ func (e *Engine) run(ctx context.Context, id domain.ID, fromLoop bool) {
 
 	recorded := cred.Origin == OriginFound
 	start := e.clock.Now()
-	runID := newRunID()
+	runID := newID("run-")
 	if recorded {
 		err := e.write(ctx, "supply-run-start", func(tx store.SupplyWriterTx) error {
 			return tx.StartCollectorRun(store.CollectorRunRecord{Namespace: e.ns, RunID: runID, CredentialID: cred.ID, Capability: "inventory", StartedAt: start})
@@ -294,15 +298,47 @@ func (e *Engine) run(ctx context.Context, id domain.ID, fromLoop bool) {
 	e.mu.Unlock()
 
 	if recorded {
-		err := e.write(context.WithoutCancel(ctx), "supply-run-finish", func(tx store.SupplyWriterTx) error {
-			if err := tx.FinishCollectorRun(e.ns, runID, end, r.Outcome, clip(r.Detail)); err != nil {
+		e.finish(ctx, s, cred, r, rec, runID, end)
+	}
+}
+
+// finish records a run's end in one transaction: for a good read its
+// inventory (reconcile), then the run's outcome and the credential's status.
+// If that fails, the run is still closed, as an error that says why.
+func (e *Engine) finish(ctx context.Context, s *slot, cred Credential, r Result, rec store.SupplyCredentialRecord, runID domain.ID, end domain.Millis) {
+	ctx = context.WithoutCancel(ctx)
+	var accountID domain.ID
+	err := e.write(ctx, "supply-run-finish", func(tx store.SupplyWriterTx) error {
+		detail := r.Detail
+		if r.Outcome == OutcomeOK && r.Inventory != nil {
+			id, skipped, err := e.reconcile(tx, cred, *r.Inventory, runID, end)
+			if err != nil {
 				return err
 			}
-			return tx.UpsertSupplyCredential(rec)
-		})
-		if err != nil {
-			e.log.Warn("supply: recording run end failed", "credential", cred.ID, "err", err)
+			accountID, rec.AccountID = id, id
+			if skipped > 0 {
+				detail = strings.TrimSpace(detail + " " + strconv.Itoa(skipped) + " reading(s) not newer than the stored ones: skipped")
+			}
 		}
+		if err := tx.FinishCollectorRun(e.ns, runID, end, r.Outcome, clip(detail)); err != nil {
+			return err
+		}
+		return tx.UpsertSupplyCredential(rec)
+	})
+	if err == nil {
+		if accountID != "" {
+			e.mu.Lock()
+			s.accountID = accountID
+			e.mu.Unlock()
+		}
+		return
+	}
+	e.log.Warn("supply: recording the read failed", "credential", cred.ID, "err", err)
+	err = e.write(ctx, "supply-run-fail", func(tx store.SupplyWriterTx) error {
+		return tx.FinishCollectorRun(e.ns, runID, end, OutcomeError, clip("the read could not be recorded: "+err.Error()))
+	})
+	if err != nil {
+		e.log.Warn("supply: closing the run failed", "credential", cred.ID, "err", err)
 	}
 }
 
@@ -403,10 +439,10 @@ func (e *Engine) write(ctx context.Context, id string, fn func(store.SupplyWrite
 	}})
 }
 
-func newRunID() domain.ID {
+func newID(prefix string) domain.ID {
 	b := make([]byte, 12)
 	_, _ = rand.Read(b)
-	return domain.ID("run-" + hex.EncodeToString(b))
+	return domain.ID(prefix + hex.EncodeToString(b))
 }
 
 func clip(s string) string {
