@@ -91,7 +91,7 @@ func TestZAIFoundInZCodeAndClaudeSettingsIsOneAccount(t *testing.T) {
 		"builtin:zai":{"name":"Z.ai - API Key","options":{"apiKey":"abc.secret","baseURL":"https://api.z.ai/api/anthropic"}},
 		"builtin:bigmodel":{"name":"Bigmodel","options":{"apiKey":"","baseURL":"https://open.bigmodel.cn/api/anthropic"}}`)
 	writeFile(t, l.path(".claude", "settings.json"), `{"env":{"ANTHROPIC_BASE_URL":"https://api.z.ai/api/anthropic","ANTHROPIC_AUTH_TOKEN":"abc.secret"}}`)
-	s := NewService(l, NewStore(""), Options{})
+	s := newTestService(l, NewStore(""))
 	conns, err := s.connections()
 	if err != nil {
 		t.Fatal(err)
@@ -144,7 +144,7 @@ func TestTwoZAIKeysOfOnePlanAreOneAccount(t *testing.T) {
 	zcodeConfig(t, l, `
 		"builtin:zai-coding-plan":{"name":"Z.ai - Coding Plan","options":{"apiKey":"key-one","baseURL":"https://api.z.ai/api/anthropic"}},
 		"builtin:zai":{"name":"Z.ai - API Key","options":{"apiKey":"key-two","baseURL":"https://api.z.ai/api/anthropic"}}`)
-	s := NewService(l, NewStore(l.AccountsFile()), Options{})
+	s := newTestService(l, NewStore(l.AccountsFile()))
 	snap := s.Refresh(context.Background())
 	if len(snap.Accounts) != 1 || len(snap.Accounts[0].Keys) != 2 || snap.Accounts[0].Source != "ZCode · 2 keys" {
 		t.Fatalf("accounts = %+v", snap.Accounts)
@@ -473,7 +473,7 @@ func TestAddEditAndRemoveAccountsOnThePage(t *testing.T) {
 	l.URLs["deepseek.balance"] = srv.URL
 	zcodeConfig(t, l, `"x":{"name":"DeepSeek","options":{"apiKey":"sk-found","baseURL":"https://api.deepseek.com"}}`)
 	store := NewStore(l.AccountsFile())
-	s := NewService(l, store, Options{})
+	s := newTestService(l, store)
 	h := s.Handler()
 	s.Refresh(context.Background())
 

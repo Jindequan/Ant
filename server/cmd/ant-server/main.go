@@ -1,28 +1,12 @@
 // ant-server composition root. It wires local bootstrap, optional authenticated
-// configuration routes, health/readiness, and graceful shutdown. No provider
-// call is made by startup or configuration routes. This binary must never
-// outlive its bounded goroutines.
+// configuration routes, health/readiness, the supply engine and the page, and
+// graceful shutdown. Startup makes no execution or billable provider call; the
+// supply engine's read-only usage/balance reads of found and added accounts
+// start with it (ruling R4; none in -demo). This binary must never outlive its
+// bounded goroutines.
 package main
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"errors"
-	"flag"
-	"fmt"
-	"io"
-	"log/slog"
-	"net"
-	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
-	"time"
-
 	"ant/server/internal/api"
 	"ant/server/internal/application"
 	"ant/server/internal/domain"
@@ -38,6 +22,20 @@ import (
 	"ant/server/internal/store/sqlite"
 	"ant/server/internal/transport"
 	"ant/server/internal/webui"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"flag"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -50,6 +48,7 @@ func main() {
 func run() error {
 	var (
 		addr                  string
+		supplyNamespace       string
 		dsn                   string
 		bootstrapAdmin        bool
 		bootstrapNamespace    string
@@ -62,6 +61,7 @@ func run() error {
 		restoreFrom           string
 	)
 	flag.StringVar(&addr, "addr", "127.0.0.1:8080", "listen address")
+	flag.StringVar(&supplyNamespace, "supply-namespace", "local", "namespace the supply engine records this machine's accounts in")
 	flag.StringVar(&dsn, "db", "", "sqlite database path (required)")
 	flag.BoolVar(&bootstrapAdmin, "bootstrap-admin", false, "create the one-time local administrator token, print once, and exit")
 	flag.StringVar(&bootstrapNamespace, "bootstrap-namespace", "", "namespace granted to the one-time bootstrap administrator")
@@ -73,6 +73,9 @@ func run() error {
 	flag.StringVar(&backupTo, "backup-to", "", "write a verified SQLite snapshot to this new path, then exit")
 	flag.StringVar(&restoreFrom, "restore-from", "", "install a verified SQLite snapshot with dispatch closed and audited, then exit")
 	flag.Parse()
+	if strings.TrimSpace(supplyNamespace) == "" {
+		return errors.New("-supply-namespace must not be empty")
+	}
 	if generateSecretKey {
 		if secretMasterKeyFile == "" {
 			return errors.New("-secret-master-key-file is required with -generate-secret-master-key")
@@ -383,14 +386,9 @@ func run() error {
 	if localTestProviderHandler != nil {
 		mux.Handle("/v1/localtest/chat/completions", localTestProviderHandler)
 	}
-	// Quota: every provider read from the sign-ins on this machine, and the
-	// page that shows them. Both answer only on loopback host names.
-	quotaLocal := quota.DefaultLocal()
-	quotaStore := quota.NewStore(quotaLocal.AccountsFile())
-	if demo {
-		quotaStore = quota.NewStore("") // in memory
-	}
-	quotaService := quota.NewService(quotaLocal, quotaStore, quota.Options{Demo: demo})
+	// The page and the supply engine behind it: every account read from the
+	// sign-ins on this machine. The page answers only on loopback.
+	quotaService, supplyEngine := newQuotaPage(demo, st, clock, domain.ID(supplyNamespace), logger)
 	mux.Handle("/api/", quotaService.Handler())
 	mux.Handle("/", quota.LocalOnly(api.PageHandler(webui.Files())))
 
@@ -414,6 +412,9 @@ func run() error {
 		supervisor.Start()
 	}
 	quotaService.Start(ctx)
+	if supplyEngine != nil {
+		supplyEngine.Start(ctx)
+	}
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
 	logger.Info("http ready", "addr", addr)
@@ -428,6 +429,9 @@ func run() error {
 		}
 		stop()
 		quotaService.Wait()
+		if supplyEngine != nil {
+			supplyEngine.Wait()
+		}
 		if supervisor != nil {
 			if closeErr := supervisor.Close(shutdownCtx); closeErr != nil {
 				logger.Error("execution supervisor shutdown", "err", closeErr)
@@ -452,6 +456,9 @@ func run() error {
 		_ = srv.Close()
 	}
 	quotaService.Wait()
+	if supplyEngine != nil {
+		supplyEngine.Wait()
+	}
 	if supervisor != nil {
 		if err := supervisor.Close(shutdownCtx); err != nil {
 			logger.Error("execution supervisor shutdown", "err", err)
@@ -469,117 +476,10 @@ func run() error {
 	return nil
 }
 
-func backupSourcePath(dsn string) (string, error) {
-	if !strings.HasPrefix(dsn, "file:") {
-		return dsn, nil
-	}
-	path := strings.TrimPrefix(dsn, "file:")
-	path = strings.SplitN(path, "?", 2)[0]
-	if strings.HasPrefix(path, "//") && !strings.HasPrefix(path, "///") {
-		host, rest, found := strings.Cut(strings.TrimPrefix(path, "//"), "/")
-		if !found || (host != "" && host != "localhost") {
-			return "", errors.New("backup source must use a local SQLite file path")
-		}
-		path = "/" + rest
-	}
-	decoded, err := url.PathUnescape(path)
-	if err != nil {
-		return "", fmt.Errorf("decode backup source database path: %w", err)
-	}
-	if decoded == "" || decoded == ":memory:" {
-		return "", errors.New("backup source must be a file-backed SQLite database")
-	}
-	return decoded, nil
-}
-
 func newRuntimeID() (domain.ID, error) {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
 		return "", err
 	}
 	return domain.ID("runtime-" + hex.EncodeToString(raw[:])), nil
-}
-
-func loadMasterKey(path string) ([]byte, error) {
-	if err := requirePrivateKeyDirectory(path); err != nil {
-		return nil, err
-	}
-	info, err := os.Lstat(path)
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() || info.Mode().Perm() != 0o600 {
-		return nil, errors.New("master key must be a regular file with mode 0600")
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	openedInfo, err := file.Stat()
-	if err != nil || !os.SameFile(info, openedInfo) || !openedInfo.Mode().IsRegular() || openedInfo.Mode().Perm() != 0o600 {
-		return nil, errors.New("master key file changed while opening")
-	}
-	key, err := io.ReadAll(io.LimitReader(file, 33))
-	if err != nil {
-		return nil, err
-	}
-	if len(key) != 32 {
-		for i := range key {
-			key[i] = 0
-		}
-		return nil, errors.New("master key must contain exactly 32 raw bytes")
-	}
-	return key, nil
-}
-
-func generateMasterKey(path string) error {
-	if err := requirePrivateKeyDirectory(path); err != nil {
-		return err
-	}
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return fmt.Errorf("create master key file: %w", err)
-	}
-	if err := file.Chmod(0o600); err != nil {
-		_ = file.Close()
-		_ = os.Remove(path)
-		return fmt.Errorf("set master key permissions: %w", err)
-	}
-	ok := false
-	defer func() {
-		_ = file.Close()
-		if !ok {
-			_ = os.Remove(path)
-		}
-	}()
-	var key [32]byte
-	if _, err := rand.Read(key[:]); err != nil {
-		return fmt.Errorf("generate master key: %w", err)
-	}
-	if _, err := file.Write(key[:]); err != nil {
-		return fmt.Errorf("write master key: %w", err)
-	}
-	for i := range key {
-		key[i] = 0
-	}
-	if err := file.Sync(); err != nil {
-		return fmt.Errorf("sync master key: %w", err)
-	}
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close master key: %w", err)
-	}
-	ok = true
-	return nil
-}
-
-func requirePrivateKeyDirectory(path string) error {
-	info, err := os.Stat(filepath.Dir(path))
-	if err != nil {
-		return fmt.Errorf("inspect master key directory: %w", err)
-	}
-	if !info.IsDir() || info.Mode().Perm()&0o077 != 0 {
-		return errors.New("master key directory must be a directory with no group or world permissions")
-	}
-	return nil
 }

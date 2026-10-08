@@ -105,7 +105,7 @@ func TestKeysAreFoundInOpenCodeAndSplitByProvider(t *testing.T) {
 		"a":{"name":"Z.ai","options":{"apiKey":"glm.global","baseURL":"https://api.z.ai/api/anthropic"}},
 		"b":{"name":"MiniMax","options":{"apiKey":"sk-cp-1","baseURL":"https://api.minimaxi.com/anthropic"}},
 		"c":{"name":"MiniMax PAYG","options":{"apiKey":"sk-api-1","baseURL":"https://api.minimaxi.com/anthropic"}}`)
-	s := NewService(l, NewStore(""), Options{})
+	s := newTestService(l, NewStore(""))
 	conns, err := s.connections()
 	if err != nil {
 		t.Fatal(err)

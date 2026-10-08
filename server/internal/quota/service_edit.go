@@ -118,6 +118,7 @@ func (s *Service) add(in accountInput) (Connection, error) {
 }
 
 func (s *Service) update(id string, in accountInput) (Connection, error) {
+	s.sync()
 	s.mu.Lock()
 	c, ok := s.conns[id]
 	s.mu.Unlock()
@@ -219,6 +220,7 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way string) (Conne
 
 // remove removes an account and every sign-in merged into it.
 func (s *Service) remove(id string) error {
+	s.sync()
 	s.mu.Lock()
 	ids := []string{id}
 	for _, a := range s.snap.Accounts {
@@ -267,6 +269,7 @@ func (s *Service) foundOnMachine(id string) bool {
 }
 
 func (s *Service) view(id string) (accountView, bool) {
+	s.sync()
 	s.mu.Lock()
 	c, ok := s.conns[id]
 	s.mu.Unlock()

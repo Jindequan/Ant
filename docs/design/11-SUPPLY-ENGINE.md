@@ -492,6 +492,12 @@ Phase 1's `accounts.json` import:
 | 5. Verified facts | the `FactSource` (snapshot facts, §2.2.1) behind `ResolveScopeFact`/`ResolveDimensionalFact`; adopt-from-supply drafts pin a snapshot `factId`; pool proposal → config draft; `RecordObservation` feed for configured resources | — |
 | 6. History | burn rate, "lasts until", forecast on the timeline (reads `supply_readings`) | — |
 
+Phase 2 progress (one commit per step): **1. discovery and scheduling — done 2026-10-08**
+([evidence](../evidence/WORK/SUPPLY-ENGINE/README.md); `Service.refresh`'s read loop is gone, the
+engine schedules and records reads; until the import step only found credentials are recorded);
+2. reconciler + `Account` → `Inventory` (replaces `mergeSame`/`hideFailedWays`); 3. per-site
+browser opt-in (R6); 4. page session on `/v1` (R8); 5. `accounts.json` import (§5).
+
 Migration numbering and table count (`store/sqlite/migrate.go`, `expectedTableCount = 36` today):
 if ENG-03 is confirmed, `005_drop_supply_inventory.sql` (36 → 35) precedes `006_supply_store.sql`
 (+6 → 41), and phase 3's migration adds 3 (→ 44). If ENG-03 is deferred: 36 → 42 → 45. One batch

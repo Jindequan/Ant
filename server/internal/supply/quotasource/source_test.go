@@ -1,0 +1,143 @@
+package quotasource
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"ant/server/internal/domain"
+	"ant/server/internal/quota"
+	"ant/server/internal/runtime"
+	"ant/server/internal/store/sqlite"
+	"ant/server/internal/supply"
+)
+
+// Every value a connection may carry as a secret stays out of the locator.
+func TestCredentialLocatorNeverHoldsASecret(t *testing.T) {
+	secrets := map[string]string{"apiKey": "SECRET-1", "cookie": "SECRET-2", "token": "SECRET-3", "session": "SECRET-4",
+		"secretAccessKey": "SECRET-5", "accessKeySecret": "SECRET-6", "refreshToken": "SECRET-7", "sts": "SECRET-8",
+		"sessionToken": "SECRET-9", "accessKeyId": "SECRET-10"}
+	values := map[string]string{"authPath": "/home/u/.codex/auth.json", "region": "cn-beijing"}
+	for k, v := range secrets {
+		values[k] = v
+	}
+	c := credential(quota.Connection{ID: "x", Provider: "deepseek", Mode: "api", Way: "api", Origin: quota.OriginFound, Source: "ZCode", Values: values})
+	if strings.Contains(string(c.Locator), "SECRET") {
+		t.Fatalf("locator carries a secret: %s", c.Locator)
+	}
+	var loc map[string]string
+	if err := json.Unmarshal(c.Locator, &loc); err != nil || loc["authPath"] != "/home/u/.codex/auth.json" || loc["source"] != "ZCode" || loc["mode"] != "api" {
+		t.Fatalf("locator = %s, %v", c.Locator, err)
+	}
+}
+
+func TestCredentialKinds(t *testing.T) {
+	cases := map[string]quota.Connection{
+		"api_key":       {Provider: "deepseek", Values: map[string]string{"apiKey": "k"}},
+		"oauth":         {Provider: "chatgpt", Values: map[string]string{"authPath": "p"}},
+		"session":       {Provider: "kling", Way: "browser"},
+		"sts":           {Provider: "volcengine", Values: map[string]string{"veConfig": "p"}},
+		"console_token": {Provider: "aliyun", Values: map[string]string{"token": "t"}},
+		"none":          {Provider: "figma"},
+	}
+	for want, c := range cases {
+		if got := kind(c); got != want {
+			t.Errorf("%s: kind = %s", c.Provider, got)
+		}
+	}
+	if got := kind(quota.Connection{Provider: "copilot", Values: map[string]string{"login": "u", "token": "t"}}); got != "oauth" {
+		t.Errorf("copilot's app token: kind = %s, want oauth", got)
+	}
+}
+
+func TestResultTellsTheScheduler(t *testing.T) {
+	soon, later := time.Unix(2000, 0), time.Unix(3000, 0)
+	r := result(quota.Account{Status: quota.StatusOK, Windows: []quota.Window{{ResetsAt: &later}, {ResetsAt: &soon, ResetEstimated: true}},
+		Groups: []quota.Group{{Windows: []quota.Window{{ResetsAt: &soon}}}}})
+	if r.Outcome != supply.OutcomeOK || r.NextReset == nil || *r.NextReset != domain.Millis(soon.UnixMilli()) || r.BalanceOnly {
+		t.Fatalf("result = %+v", r)
+	}
+	if r := result(quota.Account{Status: quota.StatusOK, Balances: []quota.Balance{{Currency: "CNY", Amount: "1"}}}); !r.BalanceOnly || r.NextReset != nil {
+		t.Fatalf("balance account = %+v", r)
+	}
+	if r := result(quota.Account{Status: quota.StatusSignedOut, Message: "sign in again"}); r.Outcome != supply.OutcomeSignedOut || r.Detail != "sign in again" {
+		t.Fatalf("signed out = %+v", r)
+	}
+}
+
+type loopbackOnly struct{}
+
+func (loopbackOnly) RoundTrip(r *http.Request) (*http.Response, error) {
+	if h := r.URL.Hostname(); h != "127.0.0.1" && h != "localhost" {
+		return nil, errors.New("tests don't call " + h)
+	}
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+// The page shows what the engine read, and the engine records it: one
+// found DeepSeek key, read through the real quota reader.
+func TestThePageShowsWhatTheEngineRead(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Header.Get("Authorization") != "Bearer sk-test" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		_, _ = w.Write([]byte(`{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"23.40","granted_balance":"10.00","topped_up_balance":"13.40"}]}`))
+	}))
+	defer srv.Close()
+	env := map[string]string{"DEEPSEEK_API_KEY": "sk-test"}
+	local := quota.Local{Home: t.TempDir(), Getenv: func(k string) string { return env[k] },
+		HTTP: &http.Client{Timeout: 5 * time.Second, Transport: loopbackOnly{}}, Now: time.Now,
+		URLs: map[string]string{"deepseek.balance": srv.URL}}
+	var providers []quota.Provider
+	for _, p := range quota.Providers() {
+		if p.ID == "deepseek" { // the others would look at this machine's real sign-ins
+			providers = append(providers, p)
+		}
+	}
+	accounts := quota.NewStore("")
+	src := New(local, accounts, providers)
+
+	path := filepath.Join(t.TempDir(), "ant.db")
+	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close(context.Background()) }()
+	if err := sqlite.Migrate(context.Background(), st); err != nil {
+		t.Fatal(err)
+	}
+	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+	page := quota.NewService(local, accounts, quota.Options{Reader: Reader{Source: src, Engine: engine}})
+
+	snap := page.Refresh(context.Background())
+	if len(snap.Accounts) != 1 || snap.Accounts[0].Status != quota.StatusOK || snap.Accounts[0].Balances[0].Amount != "23.40" || calls != 1 {
+		t.Fatalf("snapshot = %+v (provider calls %d)", snap, calls)
+	}
+
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var status, locator string
+	if err := db.QueryRow(`SELECT status, locator_json FROM supply_credentials WHERE provider_id='deepseek' AND origin='found'`).Scan(&status, &locator); err != nil {
+		t.Fatal(err)
+	}
+	if status != "ok" || strings.Contains(locator, "sk-test") || !strings.Contains(locator, `"source":"$DEEPSEEK_API_KEY"`) {
+		t.Fatalf("credential row: status %q locator %s", status, locator)
+	}
+	var runs int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM collector_runs WHERE outcome='ok'`).Scan(&runs); err != nil || runs != 1 {
+		t.Fatalf("runs = %d, %v", runs, err)
+	}
+}

@@ -109,12 +109,13 @@ func TestVolcengineSignsInWithTheDeviceFlowAndReadsTheCodingPlan(t *testing.T) {
 func TestRenewedCredentialsAreKept(t *testing.T) {
 	l := testLocal(t, nil)
 	store := NewStore(l.AccountsFile())
-	s := NewService(l, store, Options{})
-	conns := []Connection{{ID: "v", Provider: "volcengine", Mode: "coding-plan", Origin: OriginAdded, Values: map[string]string{"refreshToken": "rt1", "other": "x"}}}
-	accounts := []Account{{ID: "v", Renewed: map[string]string{"refreshToken": "rt2"}}}
-	s.keepRenewed(conns, accounts)
+	c := Connection{ID: "v", Provider: "volcengine", Mode: "coding-plan", Origin: OriginAdded, Values: map[string]string{"refreshToken": "rt1", "other": "x"}}
+	a := Account{ID: "v", Renewed: map[string]string{"refreshToken": "rt2"}}
+	if err := KeepRenewed(store, c, &a); err != nil {
+		t.Fatal(err)
+	}
 	d, _ := store.Data()
-	if len(d.Accounts) != 1 || d.Accounts[0].Values["refreshToken"] != "rt2" || d.Accounts[0].Values["other"] != "x" || accounts[0].Renewed != nil {
+	if len(d.Accounts) != 1 || d.Accounts[0].Values["refreshToken"] != "rt2" || d.Accounts[0].Values["other"] != "x" || a.Renewed != nil {
 		t.Fatalf("stored = %+v", d)
 	}
 }

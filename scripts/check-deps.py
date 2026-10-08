@@ -41,6 +41,13 @@ ALLOWED_INTERNAL = {
     ],
     "ant/server/internal/providers/localtest": ["ant/server/internal/providers/localtest", "ant/server/internal/domain", "ant/server/internal/providers/chatcompletions"],
     "ant/server/internal/providers/catalog": ["ant/server/internal/providers/catalog", "ant/server/internal/config", "ant/server/internal/domain"],
+    # Design 11 supply engine. The engine sees only the store port and domain
+    # types: no provider package, no quota, no network, no SQL. quotasource is
+    # the phase-2 adapter onto today's quota readers and is the only package
+    # allowed to join the two; it goes with internal/quota in phase 4. (More
+    # specific prefixes first: the first match wins.)
+    "ant/server/internal/supply/quotasource": ["ant/server/internal/supply", "ant/server/internal/quota", "ant/server/internal/domain"],
+    "ant/server/internal/supply": ["ant/server/internal/supply", "ant/server/internal/domain", "ant/server/internal/store"],
     # test-only contract package may import anything internal
     "ant/server/internal/contracttest": None,  # None = unrestricted
 }

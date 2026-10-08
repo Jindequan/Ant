@@ -1,0 +1,417 @@
+// Package supply is the supply engine of design 11: it discovers the
+// credentials on this machine, decides when each is read, runs the reads,
+// and records them in the supply store, which it alone writes. What a read
+// returns, and how a provider is reached, belongs to the Source.
+package supply
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"log/slog"
+	"math"
+	"sync"
+	"time"
+
+	"ant/server/internal/domain"
+	"ant/server/internal/store"
+)
+
+// Outcomes of one collection; they match collector_runs.outcome.
+const (
+	OutcomeOK        = "ok"
+	OutcomeSignedOut = "signed_out"
+	OutcomeError     = "error"
+)
+
+// Origins of a credential; they match supply_credentials.origin.
+const (
+	OriginFound = "found"
+	OriginAdded = "added"
+)
+
+// detailLimit caps run and status detail (design 11 §3.3, size caps).
+const detailLimit = 512
+
+// Credential is one way to read one provider account, as the engine
+// schedules it. Locator says where a found secret lives; it never holds one.
+type Credential struct {
+	ID         domain.ID
+	ProviderID domain.ID
+	Kind       string // api_key | oauth | session | sts | console_token | none
+	Origin     string // found | added
+	Strategy   string
+	Locator    []byte // JSON
+}
+
+// Result is what one collection tells the scheduler.
+type Result struct {
+	Outcome     string
+	Detail      string
+	NextReset   *domain.Millis // the earliest window reset the provider reported
+	BalanceOnly bool           // the account holds balances and no windows
+}
+
+// Source finds credentials and reads them. The engine never sees secrets
+// or provider replies.
+type Source interface {
+	Discover(ctx context.Context) ([]Credential, error)
+	Collect(ctx context.Context, c Credential) Result
+}
+
+type Clock interface{ Now() domain.Millis }
+
+// Engine schedules reads: one at a time per credential, at most
+// Policy.MaxInFlight at once, each credential at its own cadence.
+//
+// Until the accounts.json import (design 11 §5), only found credentials are
+// recorded in the store; added ones are read but not persisted, because
+// their secrets still live in accounts.json and supply_credentials accepts
+// an added credential only with an encrypted secret reference.
+type Engine struct {
+	ns     domain.ID
+	st     store.Store
+	src    Source
+	clock  Clock
+	policy Policy
+	log    *slog.Logger
+	sem    chan struct{}
+	wake   chan struct{}
+	wg     sync.WaitGroup
+
+	mu           sync.Mutex
+	slots        map[domain.ID]*slot
+	order        []domain.ID
+	discoveredAt domain.Millis
+	discovering  chan struct{} // non-nil while discovery runs
+	inFlight     int
+}
+
+type slot struct {
+	cred       Credential
+	createdAt  domain.Millis
+	status     string // as last written to supply_credentials
+	verifiedAt *domain.Millis
+	due        domain.Millis
+	failures   int
+	queued     bool          // the loop has started a read that hasn't begun
+	flight     chan struct{} // closed when the running read ends
+}
+
+func NewEngine(ns domain.ID, st store.Store, src Source, clock Clock, policy Policy, log *slog.Logger) *Engine {
+	if log == nil {
+		log = slog.New(slog.DiscardHandler)
+	}
+	return &Engine{ns: ns, st: st, src: src, clock: clock, policy: policy, log: log,
+		sem: make(chan struct{}, max(policy.MaxInFlight, 1)), wake: make(chan struct{}, 1), slots: map[domain.ID]*slot{}}
+}
+
+// Running reports whether discovery or any read is under way.
+func (e *Engine) Running() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.inFlight > 0 || e.discovering != nil
+}
+
+// Discover asks the source for the current credentials, keeps each known
+// one's schedule, schedules new ones now, and records found ones. Calls
+// that overlap share one discovery.
+func (e *Engine) Discover(ctx context.Context) error {
+	e.mu.Lock()
+	if ch := e.discovering; ch != nil {
+		e.mu.Unlock()
+		select {
+		case <-ch:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	ch := make(chan struct{})
+	e.discovering = ch
+	e.mu.Unlock()
+	defer func() {
+		e.mu.Lock()
+		e.discovering = nil
+		e.mu.Unlock()
+		close(ch)
+		e.poke()
+	}()
+
+	creds, err := e.src.Discover(ctx)
+	if err != nil {
+		return err // keep the previous set
+	}
+	now := e.clock.Now()
+	e.mu.Lock()
+	slots := make(map[domain.ID]*slot, len(creds))
+	order := make([]domain.ID, 0, len(creds))
+	var found []store.SupplyCredentialRecord
+	for _, c := range creds {
+		if _, dup := slots[c.ID]; dup {
+			continue
+		}
+		s, ok := e.slots[c.ID]
+		if !ok {
+			s = &slot{createdAt: now, status: "unverified", due: now}
+		}
+		s.cred = c
+		slots[c.ID], order = s, append(order, c.ID)
+		if c.Origin == OriginFound {
+			found = append(found, e.credentialRecord(s, ""))
+		}
+	}
+	e.slots, e.order, e.discoveredAt = slots, order, now
+	e.mu.Unlock()
+
+	if len(found) > 0 {
+		err = e.write(ctx, "supply-discover", func(tx store.SupplyWriterTx) error {
+			for _, r := range found {
+				if err := tx.UpsertSupplyCredential(r); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			e.log.Warn("supply: recording discovered credentials failed", "err", err)
+		}
+	}
+	return nil
+}
+
+// credentialRecord is s as a supply_credentials row; call with e.mu held or
+// on a slot no one else touches.
+func (e *Engine) credentialRecord(s *slot, detail string) store.SupplyCredentialRecord {
+	return store.SupplyCredentialRecord{Namespace: e.ns, CredentialID: s.cred.ID, ProviderID: s.cred.ProviderID,
+		Kind: s.cred.Kind, Origin: s.cred.Origin, Strategy: s.cred.Strategy, LocatorJSON: s.cred.Locator,
+		Status: s.status, StatusDetail: clip(detail), VerifiedAt: s.verifiedAt, CreatedAt: s.createdAt}
+}
+
+// RunNow reads the given credentials (all of them, after a fresh discovery,
+// when ids is empty) and returns when those reads have ended. A credential
+// already being read is not read twice: the call waits for that read.
+func (e *Engine) RunNow(ctx context.Context, ids []domain.ID) error {
+	if len(ids) == 0 || e.anyUnknown(ids) {
+		if err := e.Discover(ctx); err != nil {
+			e.log.Warn("supply: discovery failed", "err", err)
+		}
+	}
+	if len(ids) == 0 {
+		e.mu.Lock()
+		ids = append([]domain.ID(nil), e.order...)
+		e.mu.Unlock()
+	}
+	var wg sync.WaitGroup
+	for _, id := range ids {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e.run(ctx, id, false)
+		}()
+	}
+	wg.Wait()
+	return ctx.Err()
+}
+
+func (e *Engine) anyUnknown(ids []domain.ID) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, id := range ids {
+		if _, ok := e.slots[id]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
+// run reads one credential. fromLoop runs are skipped when someone else has
+// read the credential since the loop queued it.
+func (e *Engine) run(ctx context.Context, id domain.ID, fromLoop bool) {
+	e.mu.Lock()
+	s, ok := e.slots[id]
+	if !ok || (fromLoop && !s.queued) {
+		e.mu.Unlock()
+		return
+	}
+	s.queued = false
+	if ch := s.flight; ch != nil {
+		e.mu.Unlock()
+		select {
+		case <-ch:
+		case <-ctx.Done():
+		}
+		return
+	}
+	ch := make(chan struct{})
+	s.flight, e.inFlight = ch, e.inFlight+1
+	cred := s.cred
+	e.mu.Unlock()
+	defer func() {
+		e.mu.Lock()
+		s.flight, e.inFlight = nil, e.inFlight-1
+		e.mu.Unlock()
+		close(ch)
+		e.poke()
+	}()
+
+	select {
+	case e.sem <- struct{}{}:
+	case <-ctx.Done():
+		return
+	}
+	defer func() { <-e.sem }()
+
+	recorded := cred.Origin == OriginFound
+	start := e.clock.Now()
+	runID := newRunID()
+	if recorded {
+		err := e.write(ctx, "supply-run-start", func(tx store.SupplyWriterTx) error {
+			return tx.StartCollectorRun(store.CollectorRunRecord{Namespace: e.ns, RunID: runID, CredentialID: cred.ID, Capability: "inventory", StartedAt: start})
+		})
+		if err != nil {
+			e.log.Warn("supply: recording run start failed", "credential", cred.ID, "err", err)
+			recorded = false
+		}
+	}
+
+	rctx, cancel := context.WithTimeout(ctx, e.policy.ReadTimeout)
+	r := e.src.Collect(rctx, cred)
+	cancel()
+	if r.Outcome != OutcomeOK && r.Outcome != OutcomeSignedOut {
+		r.Outcome = OutcomeError
+	}
+	end := max(e.clock.Now(), start)
+
+	e.mu.Lock()
+	if r.Outcome == OutcomeOK {
+		s.failures, s.verifiedAt = 0, &end
+	} else {
+		s.failures++
+	}
+	s.status, s.due = r.Outcome, e.policy.NextDue(end, r, s.failures)
+	rec := e.credentialRecord(s, r.Detail)
+	e.mu.Unlock()
+
+	if recorded {
+		err := e.write(context.WithoutCancel(ctx), "supply-run-finish", func(tx store.SupplyWriterTx) error {
+			if err := tx.FinishCollectorRun(e.ns, runID, end, r.Outcome, clip(r.Detail)); err != nil {
+				return err
+			}
+			return tx.UpsertSupplyCredential(rec)
+		})
+		if err != nil {
+			e.log.Warn("supply: recording run end failed", "credential", cred.ID, "err", err)
+		}
+	}
+}
+
+// Start reads every credential when it is due, and rediscovers every
+// Policy.Rediscover, until ctx ends. Wait blocks until the loop and its
+// reads have returned.
+func (e *Engine) Start(ctx context.Context) {
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		if err := e.Discover(ctx); err != nil {
+			e.log.Warn("supply: discovery failed", "err", err)
+		}
+		for {
+			due := e.queueDue()
+			for _, id := range due {
+				e.wg.Add(1)
+				go func() {
+					defer e.wg.Done()
+					e.run(ctx, id, true)
+				}()
+			}
+			timer := time.NewTimer(e.untilNext())
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-e.wake:
+			case <-timer.C:
+			}
+			timer.Stop()
+			e.mu.Lock()
+			rediscover := e.clock.Now() >= e.discoveredAt+ms(e.policy.Rediscover)
+			e.mu.Unlock()
+			if rediscover {
+				if err := e.Discover(ctx); err != nil {
+					e.log.Warn("supply: discovery failed", "err", err)
+					e.mu.Lock()
+					e.discoveredAt = e.clock.Now() // retry at the next interval, not in a loop
+					e.mu.Unlock()
+				}
+			}
+		}
+	}()
+}
+
+func (e *Engine) Wait() { e.wg.Wait() }
+
+// queueDue marks every idle credential that is due as queued and returns them.
+func (e *Engine) queueDue() []domain.ID {
+	now := e.clock.Now()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	var out []domain.ID
+	for _, id := range e.order {
+		s := e.slots[id]
+		if s.flight == nil && !s.queued && s.due <= now {
+			s.queued, s.due = true, math.MaxInt64
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// untilNext is the wait until the next due read or rediscovery.
+func (e *Engine) untilNext() time.Duration {
+	now := e.clock.Now()
+	e.mu.Lock()
+	next := e.discoveredAt + ms(e.policy.Rediscover)
+	for _, s := range e.slots {
+		if s.flight == nil && !s.queued && s.due < next {
+			next = s.due
+		}
+	}
+	e.mu.Unlock()
+	if next <= now {
+		return 0
+	}
+	return time.Duration(next-now) * time.Millisecond
+}
+
+func (e *Engine) poke() {
+	select {
+	case e.wake <- struct{}{}:
+	default:
+	}
+}
+
+var errNoSupplyStore = store.ErrUnavailable
+
+func (e *Engine) write(ctx context.Context, id string, fn func(store.SupplyWriterTx) error) error {
+	return e.st.SubmitWrite(ctx, store.WriteCommand{ID: id, Run: func(tx store.WriterTx) error {
+		stx, ok := tx.(store.SupplyWriterTx)
+		if !ok {
+			return errNoSupplyStore
+		}
+		return fn(stx)
+	}})
+}
+
+func newRunID() domain.ID {
+	b := make([]byte, 12)
+	_, _ = rand.Read(b)
+	return domain.ID("run-" + hex.EncodeToString(b))
+}
+
+func clip(s string) string {
+	if r := []rune(s); len(r) > detailLimit {
+		return string(r[:detailLimit])
+	}
+	return s
+}

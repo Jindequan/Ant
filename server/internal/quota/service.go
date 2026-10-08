@@ -15,14 +15,32 @@ type Snapshot struct {
 	Demo        bool      `json:"demo,omitempty"`
 }
 
-// Service finds every account (on the machine and in the Store), reads each
-// by its mode's rule, and keeps the latest snapshot. It refreshes on start,
-// every Interval and when asked; one refresh runs at a time and each read
-// gets ReadTimeout.
+// Reading is the latest read of every connection, as whoever schedules the
+// reads holds it.
+type Reading struct {
+	Conns       []Connection
+	Accounts    []Account // one per connection read so far
+	RefreshedAt time.Time
+	Running     bool
+}
+
+// Reader schedules and runs the reads: the supply engine (design 11), through
+// its quota source. Refresh returns when the reads of only (every
+// connection, when empty) have ended.
+type Reader interface {
+	Latest() Reading
+	Refresh(ctx context.Context, only []string)
+}
+
+// Service is the page's view of every account: it finds what to show
+// through its Reader, keeps what the user adds or hides in the Store, and
+// merges readings of one provider account into one card. In demo mode it
+// reads nothing and shows sample accounts.
 type Service struct {
 	local       Local
 	providers   []Provider
 	store       *Store
+	reader      Reader
 	interval    time.Duration
 	readTimeout time.Duration
 	demo        bool
@@ -38,8 +56,9 @@ type Service struct {
 
 // Options tune a Service; zero values take defaults.
 type Options struct {
-	Interval    time.Duration // default 10 minutes
-	ReadTimeout time.Duration // default 20 seconds
+	Reader      Reader        // required unless Demo
+	Interval    time.Duration // demo refresh; default 10 minutes
+	ReadTimeout time.Duration // a page-triggered refresh waits this plus 5s; default 20 seconds
 	Demo        bool          // sample accounts; reads nothing, keeps additions in memory
 }
 
@@ -50,13 +69,17 @@ func NewService(local Local, store *Store, opt Options) *Service {
 	if opt.ReadTimeout <= 0 {
 		opt.ReadTimeout = 20 * time.Second
 	}
-	return &Service{local: local, providers: Providers(), store: store, interval: opt.Interval,
+	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, interval: opt.Interval,
 		readTimeout: opt.ReadTimeout, demo: opt.Demo, conns: map[string]Connection{}}
 }
 
-// Start refreshes now and every interval until ctx ends. Wait blocks until
-// the loop has returned.
+// Start refreshes the demo accounts now and every interval until ctx ends;
+// outside demo mode the Reader schedules reads and Start does nothing. Wait
+// blocks until the loop has returned.
 func (s *Service) Start(ctx context.Context) {
+	if !s.demo {
+		return
+	}
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
@@ -76,6 +99,7 @@ func (s *Service) Start(ctx context.Context) {
 func (s *Service) Wait() { s.wg.Wait() }
 
 func (s *Service) Snapshot() Snapshot {
+	s.sync()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := s.snap
@@ -85,10 +109,19 @@ func (s *Service) Snapshot() Snapshot {
 	return out
 }
 
-// connections is every account: found on the machine, then the Store's,
-// which replace found ones with the same id; hidden ones are left out.
 func (s *Service) connections() ([]Connection, error) {
-	d, err := s.store.Data()
+	return connections(s.local, s.store, s.providers, s.demo)
+}
+
+// Connections is every account to read: found on the machine, then the
+// Store's, which replace found ones with the same id; hidden ones are left
+// out.
+func Connections(local Local, store *Store, providers []Provider) ([]Connection, error) {
+	return connections(local, store, providers, false)
+}
+
+func connections(local Local, store *Store, providers []Provider, demo bool) ([]Connection, error) {
+	d, err := store.Data()
 	if err != nil {
 		return nil, err
 	}
@@ -100,18 +133,18 @@ func (s *Service) connections() ([]Connection, error) {
 		}
 		byID[c.ID] = c
 	}
-	if s.demo {
+	if demo {
 		for _, c := range demoConnections() {
 			put(c)
 		}
 	} else {
-		for _, p := range s.providers {
+		for _, p := range providers {
 			for _, m := range p.Modes {
 				for _, w := range m.allWays() {
 					if w.Discover == nil {
 						continue
 					}
-					for _, c := range w.Discover(s.local) {
+					for _, c := range w.Discover(local) {
 						if prev, ok := byID[c.ID]; ok && prev.Origin == OriginFound {
 							continue // the same sign-in found twice: keep the first place
 						}
@@ -193,93 +226,84 @@ func (s *Service) Refresh(ctx context.Context) Snapshot { return s.refresh(ctx, 
 // refresh reads the accounts; with only set, it reads just those ids and
 // keeps the last read of the rest.
 func (s *Service) refresh(ctx context.Context, only map[string]bool) Snapshot {
+	if !s.demo {
+		ids := make([]string, 0, len(only))
+		for id := range only {
+			ids = append(ids, id)
+		}
+		s.reader.Refresh(ctx, ids)
+		return s.Snapshot()
+	}
 	s.refreshMu.Lock()
 	defer s.refreshMu.Unlock()
-	s.mu.Lock()
-	s.running = true
-	prev := map[string]Account{}
-	for _, a := range s.snap.Accounts {
-		prev[a.ID] = a
-	}
-	s.mu.Unlock()
-
 	conns, err := s.connections()
 	var accounts []Account
 	if err != nil {
 		accounts = []Account{{ID: "store", Provider: "ant", Name: "Ant", Status: StatusError, Message: err.Error(), ReadAt: s.local.Now()}}
-	} else if s.demo {
-		accounts = demoAccounts(conns, s.local.Now())
 	} else {
-		accounts = make([]Account, len(conns))
-		var wg sync.WaitGroup
-		for i, c := range conns {
-			if only != nil && !only[c.ID] {
-				if a, ok := prev[c.ID]; ok {
-					accounts[i] = a
-					continue
-				}
-			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				rctx, cancel := context.WithTimeout(ctx, s.readTimeout)
-				defer cancel()
-				accounts[i] = s.read(rctx, c)
-			}()
-		}
-		wg.Wait()
-		s.keepRenewed(conns, accounts)
-		accounts = mergeSame(accounts)
+		accounts = demoAccounts(conns, s.local.Now())
 	}
-	sortAccounts(accounts)
-
-	s.mu.Lock()
-	s.snap = Snapshot{RefreshedAt: time.Now().UTC(), Accounts: accounts}
-	s.conns = map[string]Connection{}
-	for _, c := range conns {
-		s.conns[c.ID] = c
-	}
-	s.running = false
-	s.mu.Unlock()
+	s.publish(conns, accounts, time.Now().UTC())
 	return s.Snapshot()
 }
 
-func (s *Service) read(ctx context.Context, c Connection) Account {
-	p, ok := providerByID(s.providers, c.Provider)
+// sync publishes the Reader's latest reads; demo accounts are published by
+// refresh.
+func (s *Service) sync() {
+	if s.demo {
+		return
+	}
+	r := s.reader.Latest()
+	s.publish(r.Conns, r.Accounts, r.RefreshedAt)
+	s.mu.Lock()
+	s.running = r.Running
+	s.mu.Unlock()
+}
+
+func (s *Service) publish(conns []Connection, accounts []Account, at time.Time) {
+	accounts = mergeSame(slices.Clone(accounts))
+	sortAccounts(accounts)
+	byID := make(map[string]Connection, len(conns))
+	for _, c := range conns {
+		byID[c.ID] = c
+	}
+	s.mu.Lock()
+	s.snap = Snapshot{RefreshedAt: at, Accounts: accounts}
+	s.conns = byID
+	s.mu.Unlock()
+}
+
+// Read reads one connection by its mode's rule.
+func Read(ctx context.Context, providers []Provider, local Local, c Connection) Account {
+	p, ok := providerByID(providers, c.Provider)
 	m, okMode := p.mode(c.Mode)
 	m = m.withWay(c.Way)
 	if !ok || !okMode || m.Read == nil {
 		return Account{ID: c.ID, Provider: c.Provider, Name: c.Provider, Status: StatusError, Origin: c.Origin,
-			Message: "Ant no longer knows this kind of account. Remove it.", ReadAt: s.local.Now()}
+			Message: "Ant no longer knows this kind of account. Remove it.", ReadAt: local.Now()}
 	}
-	return m.Read(ctx, s.local, c)
+	return m.Read(ctx, local, c)
 }
 
-// keepRenewed saves what readers renewed into their accounts' stored values,
-// so a rotated refresh token isn't lost.
-func (s *Service) keepRenewed(conns []Connection, accounts []Account) {
-	byID := map[string]Connection{}
-	for _, c := range conns {
-		byID[c.ID] = c
+// KeepRenewed saves what a reader renewed into the connection's stored
+// values, so a rotated refresh token isn't lost, and clears it from a.
+// Readers renew only sign-ins Ant made itself (design 11 §3.8).
+func KeepRenewed(store *Store, c Connection, a *Account) error {
+	r := a.Renewed
+	a.Renewed = nil
+	if len(r) == 0 || a.ID != c.ID {
+		return nil
 	}
-	for i := range accounts {
-		r := accounts[i].Renewed
-		c, ok := byID[accounts[i].ID]
-		if len(r) == 0 || !ok {
-			continue
-		}
-		v := map[string]string{}
-		for k, x := range c.Values {
-			v[k] = x
-		}
-		for k, x := range r {
-			v[k] = x
-		}
-		c.Values = v
-		if c.Origin == OriginFound {
-			c.Origin = OriginAdded
-		}
-		_ = s.store.Put(c)
-		accounts[i].Renewed = nil
+	v := map[string]string{}
+	for k, x := range c.Values {
+		v[k] = x
 	}
+	for k, x := range r {
+		v[k] = x
+	}
+	c.Values = v
+	if c.Origin == OriginFound {
+		c.Origin = OriginAdded
+	}
+	return store.Put(c)
 }

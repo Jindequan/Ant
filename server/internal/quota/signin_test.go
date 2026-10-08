@@ -88,7 +88,7 @@ func TestSigningInKeepsTheSessionAndReadsWithIt(t *testing.T) {
 	}
 	t.Cleanup(func() { signInRunner = old })
 	store := NewStore(l.AccountsFile())
-	s := NewService(l, store, Options{})
+	s := newTestService(l, store)
 	code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"suno","mode":"account"}`, nil)
 	if code != 200 {
 		t.Fatalf("%d %v", code, out)
@@ -133,7 +133,7 @@ func TestOneAlibabaSignInConnectsEachInstance(t *testing.T) {
 		return nil
 	}
 	store := NewStore(l.AccountsFile())
-	s := NewService(l, store, Options{})
+	s := newTestService(l, store)
 	code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"payg"}`, nil)
 	if code != 200 {
 		t.Fatalf("%d %v", code, out)
