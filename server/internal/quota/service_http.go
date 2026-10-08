@@ -76,6 +76,18 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("POST /api/signin/cancel", s.change(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"open": CancelSignIn()})
 	}))
+	mux.HandleFunc("POST /api/browser", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Provider string `json:"provider"`
+			Mode     string `json:"mode"`
+			Way      string `json:"way"`
+			Allow    bool   `json:"allow"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		s.respond(w, r, "*"+in.Provider, s.allowBrowser(in.Provider, in.Mode, in.Way, in.Allow))
+	}))
 	mux.HandleFunc("DELETE /api/accounts/{id}", s.change(func(w http.ResponseWriter, r *http.Request) {
 		s.respond(w, r, "", s.remove(r.PathValue("id")))
 	}))

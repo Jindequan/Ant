@@ -13,6 +13,8 @@ type Snapshot struct {
 	Refreshing  bool      `json:"refreshing"`
 	Accounts    []Account `json:"accounts"`
 	Demo        bool      `json:"demo,omitempty"`
+	// BrowserSites: the sites the user allowed Ant to read from their browsers.
+	BrowserSites []string `json:"browserSites"`
 }
 
 // Reading is the latest read of every connection, as whoever schedules the
@@ -106,6 +108,10 @@ func (s *Service) Snapshot() Snapshot {
 	out.Accounts = slices.Clone(s.snap.Accounts)
 	out.Refreshing = s.running
 	out.Demo = s.demo
+	out.BrowserSites = []string{}
+	if d, err := s.store.Data(); err == nil && d.BrowserSites != nil {
+		out.BrowserSites = d.BrowserSites
+	}
 	return out
 }
 

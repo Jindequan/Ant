@@ -27,7 +27,7 @@ func mimoProvider() Provider {
 	ways := func(mode string, read func(context.Context, Local, Connection) Account) []Way {
 		return []Way{
 			{ID: "browser", Name: "Your browser", Hint: "Ant reads the MiMo sign-in of Chrome, Edge, Brave, Arc or Firefox on this Mac. Sign in to platform.xiaomimimo.com there.",
-				Fields: []Field{}, Discover: discoverMiMo(mode), Read: read},
+				Fields: []Field{}, Discover: discoverMiMo(mode), Read: read, BrowserDomain: "xiaomimimo.com"},
 			{ID: "sign-in", Name: "Sign in to Xiaomi MiMo", Hint: "Sign in to the Xiaomi MiMo platform in the window Ant opens. One sign-in connects the Token Plan and the balance; Ant never sees your password.",
 				Fields: []Field{}, SignIn: mimoSignIn, Read: read},
 			{ID: "cookie", Name: "Paste the cookie", Key: "cookie", Read: read,

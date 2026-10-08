@@ -23,6 +23,9 @@ type storeData struct {
 	Version  int          `json:"version"`
 	Accounts []Connection `json:"accounts"`
 	Hidden   []string     `json:"hidden,omitempty"` // ids of found accounts the user removed
+	// BrowserSites are the sites whose sign-in the user allowed Ant to read
+	// from their everyday browsers (ruling R6: per-site opt-in).
+	BrowserSites []string `json:"browserSites,omitempty"`
 }
 
 func NewStore(path string) *Store { return &Store{path: path} }
@@ -118,8 +121,31 @@ func (s *Store) Remove(id string, found bool) error {
 	return s.save(d)
 }
 
+// BrowserAllowed reports whether the user allowed reading domain's sign-in
+// from their everyday browsers. Any doubt is a no.
+func (s *Store) BrowserAllowed(domain string) bool {
+	d, err := s.Data()
+	return err == nil && slices.Contains(d.BrowserSites, domain)
+}
+
+// SetBrowserSite allows or stops reading domain's sign-in from the
+// everyday browsers.
+func (s *Store) SetBrowserSite(domain string, allow bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.load()
+	if err != nil {
+		return err
+	}
+	d.BrowserSites = slices.DeleteFunc(d.BrowserSites, func(x string) bool { return x == domain })
+	if allow {
+		d.BrowserSites = append(d.BrowserSites, domain)
+	}
+	return s.save(d)
+}
+
 func cloneData(d storeData) storeData {
-	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden)}
+	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites)}
 	for _, c := range d.Accounts {
 		v := map[string]string{}
 		for k, x := range c.Values {

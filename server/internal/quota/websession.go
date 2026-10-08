@@ -39,7 +39,7 @@ func newWebSite(provider, name, domain, host, marker, signInURL, pasteHelp strin
 // ways are the site's three ways for one mode.
 func (w *webSite) ways(mode string, read func(context.Context, Local, Connection) Account) []Way {
 	return []Way{
-		{ID: "browser", Name: "Your browser", Fields: []Field{}, Discover: w.discover(mode), Read: read,
+		{ID: "browser", Name: "Your browser", Fields: []Field{}, Discover: w.discover(mode), Read: read, BrowserDomain: w.domain,
 			Hint: "Ant reads the " + w.name + " sign-in of Chrome, Edge, Brave, Arc, Firefox or Safari on this Mac. Sign in to " + w.domain + " there. (Safari needs Full Disk Access for the app that runs Ant.)"},
 		{ID: "sign-in", Name: "Sign in to " + w.name, Fields: []Field{}, SignIn: w.signIn, Read: read,
 			Hint: "Sign in to " + w.name + " in the window Ant opens; Google sign-in works too. Ant keeps the session; it never sees your password."},

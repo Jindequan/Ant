@@ -584,7 +584,7 @@ function provider(id) { return state.providers.find((p) => p.id === id); }
 function asWay(m, wayID) {
   if (!m) return m;
   const w = m.ways.find((x) => x.id === wayID) || m.ways[0];
-  return { ...m, way: w.id, wayName: m.ways.length > 1 ? w.name : "", fields: w.fields || [], signIn: w.signIn, connect: w.hint || m.connect };
+  return { ...m, way: w.id, wayName: m.ways.length > 1 ? w.name : "", fields: w.fields || [], signIn: w.signIn, browserDomain: w.browserDomain, connect: w.hint || m.connect };
 }
 function modeOf(a) { return asWay(provider(a.provider)?.modes.find((m) => m.id === a.mode), a.way); }
 
@@ -622,6 +622,7 @@ function stepModes(p) {
 
 // how a way connects, in a word
 function wayTag(w) {
+  if (w.browserDomain) return (state.snap?.browserSites || []).includes(w.browserDomain) ? "Allowed" : "Asks first";
   if (w.signIn) return "Sign in";
   if (!(w.fields || []).length) return "Uses another app";
   if (w.fields.some((f) => f.id.toLowerCase().includes("cookie"))) return "Paste";
@@ -688,6 +689,7 @@ function stepForm(p, m, view, back) {
     body.dataset.id = view?.id || "";
     return;
   }
+  if (m.browserDomain) return stepBrowser(p, m, rule, back);
   if (!m.fields.length) {
     showStep(p.name, `${rule}<div class="connect">${esc(m.connect || "")
       .replace(/codex login/g, "<code>codex login</code>")}</div>
@@ -758,6 +760,43 @@ async function save() {
     error.hidden = false;
     button.disabled = false;
     button.textContent = editing ? "Save" : "Add and read";
+  }
+}
+
+// stepBrowser asks before Ant reads a site's sign-in from the everyday
+// browsers (ruling R6): nothing is read for a site the user didn't allow.
+function stepBrowser(p, m, rule, back) {
+  const d = m.browserDomain;
+  const allowed = (state.snap?.browserSites || []).includes(d);
+  const text = allowed
+    ? `Ant reads your <b>${esc(d)}</b> sign-in from your browsers. If nothing shows up, sign in to ${esc(d)} in Chrome, Edge, Brave, Arc, Firefox or Safari, then refresh.`
+    : `Ant will look for your <b>${esc(d)}</b> sign-in in Chrome, Edge, Brave, Arc, Firefox and Safari on this Mac, for ${esc(d)} only. Your Mac may ask once to let Ant read the browser's saved sign-ins.`;
+  showStep(`${p.name} · ${m.wayName || "Your browser"}`, `${rule}<p class="sheet-lead">${text}</p>
+    <p class="form-error" id="form-error" role="alert" hidden></p>
+    <div class="sheet-actions">${allowed ? `<button type="button" class="btn danger" data-browser="off">Stop reading</button>` : ""}
+    <div class="right">${allowed ? `<button type="button" class="btn primary" data-refresh-close>Refresh</button>`
+      : `<button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-browser="on">Allow and read</button>`}</div></div>`, back);
+  const body = $("sheet-body");
+  body.dataset.provider = p.id;
+  body.dataset.mode = m.id;
+  body.dataset.way = m.way || "";
+}
+
+async function setBrowser(allow) {
+  const body = $("sheet-body");
+  const button = body.querySelector(`[data-browser="${allow ? "on" : "off"}"]`);
+  button.disabled = true;
+  button.textContent = allow ? "Reading…" : "Stopping…";
+  try {
+    state.snap = await api("POST", "/api/browser", { provider: body.dataset.provider, mode: body.dataset.mode, way: body.dataset.way, allow });
+    sheet.close();
+    render();
+  } catch (e) {
+    const error = $("form-error");
+    error.textContent = e.message;
+    error.hidden = false;
+    button.disabled = false;
+    button.textContent = allow ? "Allow and read" : "Stop reading";
   }
 }
 
@@ -838,6 +877,7 @@ $("sheet-body").addEventListener("click", (e) => {
   } else if (t.hasAttribute("data-cancel")) sheet.close();
   else if (t.hasAttribute("data-remove")) remove();
   else if (t.hasAttribute("data-refresh-close")) { sheet.close(); refresh(); }
+  else if (t.dataset.browser) setBrowser(t.dataset.browser === "on");
   else if (t.hasAttribute("data-signin")) signIn(body.dataset.provider, body.dataset.mode, body.dataset.way);
   else if (t.hasAttribute("data-signin-finish")) { t.disabled = true; t.textContent = "Reading your session…"; api("POST", "/api/signin/finish").catch(() => {}); }
   else if (t.hasAttribute("data-signin-cancel")) api("POST", "/api/signin/cancel").catch(() => {});

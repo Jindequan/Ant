@@ -239,12 +239,48 @@ func (s *Service) remove(id string) error {
 		return inputError("no such account")
 	}
 	for k, c := range conns {
+		// A sign-in read from the browser goes by taking back the
+		// permission: Ant stops opening the browser for that site, and
+		// allowing it again brings the account back.
+		if d := s.browserDomain(c.Provider, c.Mode, c.Way); d != "" && c.Origin == OriginFound {
+			if err := s.store.SetBrowserSite(d, false); err != nil {
+				return err
+			}
+			continue
+		}
 		// hide it too when the machine would find it again
 		if err := s.store.Remove(k, c.Origin == OriginFound || s.foundOnMachine(k)); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// browserDomain is the site a way reads from the everyday browsers, or "".
+func (s *Service) browserDomain(provider, mode, way string) string {
+	p, ok := providerByID(s.providers, provider)
+	if !ok {
+		return ""
+	}
+	m, ok := p.mode(mode)
+	if !ok {
+		return ""
+	}
+	for _, w := range m.allWays() {
+		if w.ID == way {
+			return w.BrowserDomain
+		}
+	}
+	return ""
+}
+
+// allowBrowser lets Ant read (or stops it reading) the site of a browser way.
+func (s *Service) allowBrowser(provider, mode, way string, allow bool) error {
+	d := s.browserDomain(provider, mode, way)
+	if d == "" {
+		return inputError("that way doesn't read a browser")
+	}
+	return s.store.SetBrowserSite(d, allow)
 }
 
 func (s *Service) foundOnMachine(id string) bool {

@@ -60,6 +60,8 @@ func testLocal(t *testing.T, env map[string]string) Local {
 		HTTP:   &http.Client{Timeout: 5 * time.Second, Transport: localOnly{}},
 		Now:    func() time.Time { return testNow },
 		URLs:   map[string]string{},
+		// tests that read browser stores model a user who allowed every site
+		Browser: func(string) bool { return true },
 	}
 }
 

@@ -77,3 +77,31 @@ rule-only → declared, negative balance. The end-to-end test now checks the sto
 (23.40 CNY = 23 400 000 units, granted/topped-up in evidence, credential-scoped account).
 
 **Gates.** `make check`, `test-contract`, `test-integration`, `test-fault` pass.
+
+## Step 3: per-site browser opt-in, ruling R6 (2026-10-08)
+
+**Rule.** Ant opens no everyday-browser cookie store (Chromium family, Firefox, Safari) and asks
+the Keychain for nothing for a site the user hasn't allowed. The gate is at the single choke point
+(`findBrowserSession`/`findBrowserCookie`); `Local.Browser` is nil-means-none, and the server wires
+it to the user's list. Ant's own sign-in window is not gated: the user signed in there for Ant.
+
+**On the page.** A site's "Your browser" way (Kling, Leonardo, SeaArt, Stable Diffusion Online,
+Manus, Perplexity, MiMo, Suno) is the consent: one sentence naming the site and the browsers, and
+**Allow and read**. Removing such an account takes the permission back instead of hiding it, so
+allowing again brings it back. The server resolves the site from provider/mode/way; the page
+cannot name an arbitrary domain.
+
+**Where the permission lives.** With the page's other choices in `accounts.json`
+(`browserSites`) until the import step moves those choices to the database; design 11 §8 R6 said
+`supply_credentials`, which cannot hold a permission for a site whose credential hasn't been found
+yet (finding it is what the permission allows).
+
+**Not covered.** Alibaba Cloud's sign-in way also used to pick up an everyday-browser aliyun.com
+session; it is now gated too and has no allow button, because its own sign-in (Bailian's console
+login) works without reading the browser.
+
+**Tests.** `TestBrowserIsNotOpenedWithoutPermission` (no store opened, no Keychain call, no browser
+account found), `TestAllowingAndStoppingABrowserSite` (refuses a non-browser way; allowing finds
+the account; removing revokes and doesn't hide). Existing browser tests run with every site
+allowed. Page checked in demo mode: Add account → Kling AI → Your browser shows the permission
+step; Allow and read saves `klingai.com` and closes.

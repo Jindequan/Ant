@@ -62,12 +62,15 @@ type Way struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	// Hint says what the way uses, or how to make it findable.
-	Hint     string                                           `json:"hint,omitempty"`
-	Fields   []Field                                          `json:"fields"`
-	SignIn   *SignIn                                          `json:"signIn,omitempty"`
-	Key      string                                           `json:"-"`
-	Discover func(Local) []Connection                         `json:"-"`
-	Read     func(context.Context, Local, Connection) Account `json:"-"`
+	Hint   string  `json:"hint,omitempty"`
+	Fields []Field `json:"fields"`
+	SignIn *SignIn `json:"signIn,omitempty"`
+	// BrowserDomain: the way reads this site's sign-in from the everyday
+	// browsers, which the user must allow first (R6).
+	BrowserDomain string                                           `json:"browserDomain,omitempty"`
+	Key           string                                           `json:"-"`
+	Discover      func(Local) []Connection                         `json:"-"`
+	Read          func(context.Context, Local, Connection) Account `json:"-"`
 }
 
 // allWays is the mode's ways, or its one way.

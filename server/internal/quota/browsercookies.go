@@ -83,6 +83,9 @@ func chromiumKey(service string) ([]byte, error) {
 // findBrowserCookie looks in every browser profile for the cookie name on
 // a host ending in domain and returns the most recently used one.
 func (l Local) findBrowserCookie(ctx context.Context, domain, name string) (browserCookie, error) {
+	if !l.browserAllowed(domain) {
+		return browserCookie{}, errNoCookie
+	}
 	var found []browserCookie
 	var lastErr error
 	support := l.path("Library", "Application Support")
@@ -160,6 +163,9 @@ func (s browserSession) header(host string) string {
 // in with several cookies, some HttpOnly; the marker only says a sign-in
 // is there.
 func (l Local) findBrowserSession(ctx context.Context, domain, marker string) (browserSession, error) {
+	if !l.browserAllowed(domain) {
+		return browserSession{}, errNoCookie
+	}
 	type profile struct {
 		file, keychain, source string
 		firefox                bool

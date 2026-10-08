@@ -21,6 +21,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 		return quota.NewService(local, quota.NewStore(""), quota.Options{Demo: true}), nil // additions kept in memory
 	}
 	accounts := quota.NewStore(local.AccountsFile())
+	local.Browser = accounts.BrowserAllowed // only sites the user allowed (R6)
 	src := quotasource.New(local, accounts, quota.Providers())
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
 	return quota.NewService(local, accounts, quota.Options{Reader: quotasource.Reader{Source: src, Engine: engine}}), engine

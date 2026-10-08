@@ -35,7 +35,7 @@ func sunoProvider() Provider {
 		Rule: "Free: 50 credits a day (a song costs 10), reset at UTC midnight and lost if unused. Paid plans get monthly credits instead.",
 		Ways: []Way{
 			{ID: "browser", Name: "Your browser", Hint: "Ant reads the Suno sign-in of Chrome, Edge, Brave, Arc or Firefox on this Mac. Sign in to suno.com there.",
-				Fields: []Field{}, Discover: discoverSuno, Read: readSuno},
+				Fields: []Field{}, Discover: discoverSuno, Read: readSuno, BrowserDomain: "suno.com"},
 			{ID: "sign-in", Name: "Sign in to Suno", Hint: "Sign in to Suno in the window Ant opens. Ant keeps the session; it never sees your password.",
 				Fields: []Field{}, SignIn: sunoSignIn, Read: readSuno},
 			{ID: "cookie", Name: "Paste the cookie", Key: "cookie", Read: readSuno,

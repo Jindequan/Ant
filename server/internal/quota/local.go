@@ -25,7 +25,13 @@ type Local struct {
 	// URLs replaces provider addresses by name ("zai.global", "suno.auth"…);
 	// only tests set it.
 	URLs map[string]string
+	// Browser says whether the user allowed reading a site's sign-in from
+	// their everyday browsers (R6). nil allows none: no browser cookie store
+	// is opened for a site the user didn't allow.
+	Browser func(domain string) bool
 }
+
+func (l Local) browserAllowed(domain string) bool { return l.Browser != nil && l.Browser(domain) }
 
 func (l Local) url(name, def string) string {
 	if v, ok := l.URLs[name]; ok {
