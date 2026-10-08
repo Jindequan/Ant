@@ -11,20 +11,6 @@ import (
 	"ant/server/internal/supply"
 )
 
-func TestDecimalUnitsIsExact(t *testing.T) {
-	cases := map[string]int64{"23.40": 23_400_000, "0": 0, "-1.5": -1_500_000, "0.0000004": 0, "0.0000005": 1, "12": 12_000_000, "999999999999.999999": 999_999_999_999_999_999}
-	for in, want := range cases {
-		if got := decimalUnits(in); got == nil || int64(*got) != want {
-			t.Errorf("%s → %v, want %d", in, got, want)
-		}
-	}
-	for _, bad := range []string{"", "abc", "1.2.3", "1e5", ".5", "1234567890123.0"} {
-		if got := decimalUnits(bad); got != nil {
-			t.Errorf("%q → %d, want nil", bad, *got)
-		}
-	}
-}
-
 func TestStoreMergesOnlyReportedIdentities(t *testing.T) {
 	for provider, want := range map[string]string{"aliyun": "inst-1", "copilot": "copilot:u", "zai": "", "claude": ""} {
 		a := quota.Account{Provider: provider, Identity: map[string]string{"aliyun": "inst-1", "copilot": "copilot:u", "zai": "cn:pro:123,456", "claude": "claude-plan"}[provider]}

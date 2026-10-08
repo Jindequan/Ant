@@ -4,8 +4,11 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // keyServer answers path for the bearer key "k", and 401 otherwise.
@@ -33,22 +36,31 @@ func conn(provider, mode string, values map[string]string) Connection {
 	return Connection{ID: provider, Provider: provider, Mode: mode, Values: v}
 }
 
+// The module's canonical replies (providers/kimi/testdata), read through
+// quota's readers: the same files, so a change to one shows in both.
 func TestKimiCodeWindowsAndMoonshotBalance(t *testing.T) {
+	kimiFixture := func(name string) string {
+		b, err := os.ReadFile(filepath.Join("..", "providers", "kimi", "testdata", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
 	srv := keyServer(t, map[string]string{
-		"/coding/v1/usages": `{"usage":{"limit":"100","used":"25","resetTime":"2026-10-12T00:00:00Z"},
-			"limits":[{"window":{"duration":300,"timeUnit":"TIME_UNIT_MINUTE"},"detail":{"limit":"20","remaining":"15","resetTime":"2026-10-07T20:00:00Z"}}]}`,
-		"/v1/users/me/balance": `{"code":0,"data":{"available_balance":49.58,"voucher_balance":46.58,"cash_balance":3}}`,
+		"/coding/v1/usages":    kimiFixture("usages.json"),
+		"/v1/users/me/balance": kimiFixture("balance.json"),
 	})
 	defer srv.Close()
 	l := testLocal(t, nil)
 	l.URLs["kimi.code"], l.URLs["kimi.api"] = srv.URL+"/coding/v1/usages", srv.URL
 	a := readKimiCode(context.Background(), l, conn("kimi", "code", nil))
 	if a.Status != StatusOK || len(a.Windows) != 2 || a.Windows[0].Name != "5 hours" || *a.Windows[0].UsedPercent != 25 ||
-		a.Windows[1].Name != "Week" || a.Windows[1].ResetsAt == nil {
+		a.Windows[1].Name != "Week" || a.Windows[1].ResetsAt == nil || !a.Windows[1].ResetsAt.Equal(time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC)) {
 		t.Fatalf("kimi code = %+v", a)
 	}
 	a = readMoonshotBalance(context.Background(), l, conn("kimi", "api", map[string]string{"region": "cn"}))
-	if a.Status != StatusOK || a.Balances[0] != (Balance{Currency: "CNY", Amount: "49.58", Granted: "46.58", ToppedUp: "3.00"}) {
+	// exact: the official example's five decimals survive (no float rounding)
+	if a.Status != StatusOK || a.Message != "" || a.Balances[0] != (Balance{Currency: "CNY", Amount: "49.58894", Granted: "46.58893", ToppedUp: "3.00001"}) {
 		t.Fatalf("moonshot = %+v", a)
 	}
 	a = readMoonshotBalance(context.Background(), l, Connection{Values: map[string]string{"apiKey": "bad"}})

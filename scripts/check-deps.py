@@ -44,6 +44,7 @@ ALLOWED_INTERNAL = {
     # through domain/observed.Fetch (net/http stays forbidden), no store, no
     # supply engine, no quota.
     "ant/server/internal/providers/zai": ["ant/server/internal/providers/zai", "ant/server/internal/providers/catalog", "ant/server/internal/domain", "ant/server/internal/jsonx"],
+    "ant/server/internal/providers/kimi": ["ant/server/internal/providers/kimi", "ant/server/internal/providers/catalog", "ant/server/internal/domain", "ant/server/internal/jsonx"],
     "ant/server/internal/providers/deepseek": ["ant/server/internal/providers/deepseek", "ant/server/internal/providers/catalog", "ant/server/internal/providers/chatcompletions", "ant/server/internal/adapters", "ant/server/internal/domain", "ant/server/internal/jsonx"],
     "ant/server/internal/providers/catalog": ["ant/server/internal/providers/catalog", "ant/server/internal/config", "ant/server/internal/domain"],
     # Design 11 supply engine. The engine sees only the store port and domain

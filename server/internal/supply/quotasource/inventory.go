@@ -9,6 +9,7 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/domain/observed"
+	"ant/server/internal/providers/catalog"
 	"ant/server/internal/quota"
 )
 
@@ -120,7 +121,9 @@ func balanceMeter(b quota.Balance) observed.ResourceReading {
 	r := observed.ResourceReading{TemplateRef: "balance/" + slug(name), Label: firstOf(b.Label, "Balance"), MetricID: "balance", Unit: b.Currency, Currency: b.Currency,
 		QuantumExp: quantumExp, SemanticsRef: semanticsBalance, SemanticsRevision: semanticsRev,
 		WindowJSON: []byte(`{"kind":"lifetime"}`), ScopeJSON: scope(""), ResetBasis: "none"}
-	r.Remaining = decimalUnits(b.Amount)
+	if u, ok := catalog.ParseDecimal(b.Amount); ok {
+		r.Remaining = &u
+	}
 	r.Evidence = mustJSON(struct {
 		Label    string `json:"label,omitempty"`
 		Amount   string `json:"amount"`
@@ -147,42 +150,6 @@ func units(f *float64) *domain.Units {
 	}
 	u := domain.Units(math.Round(*f * 1e6))
 	return &u
-}
-
-// decimalUnits converts an exact decimal string ("23.40", "-1.5") to
-// quantumExp without going through floating point; extra digits round half
-// away from zero. Malformed input gives nil.
-func decimalUnits(s string) *domain.Units {
-	s = strings.TrimSpace(s)
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-	whole, frac, _ := strings.Cut(s, ".")
-	if whole == "" || len(whole) > 12 || !digits(whole) || !digits(frac) {
-		return nil
-	}
-	round := len(frac) > 6 && frac[6] >= '5'
-	frac = (frac + "000000")[:6]
-	var v int64
-	for _, c := range whole + frac {
-		v = v*10 + int64(c-'0')
-	}
-	if round {
-		v++
-	}
-	if neg {
-		v = -v
-	}
-	u := domain.Units(v)
-	return &u
-}
-
-func digits(s string) bool {
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-	return true
 }
 
 func slug(s string) string {

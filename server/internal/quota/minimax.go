@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // MiniMax's Token Plan (Coding Plan) is a subscription on its own sk-cp-
@@ -124,7 +126,7 @@ func parseMiniMaxRemains(b []byte) ([]Window, error) {
 				w.Name = "Week"
 			case x.start > 0 && x.end > x.start:
 				s, e := at(x.start), at(x.end)
-				w.Name = durationName(e.Sub(*s))
+				w.Name = catalog.WindowName(e.Sub(*s))
 			default:
 				w.Name = "Allowance"
 			}

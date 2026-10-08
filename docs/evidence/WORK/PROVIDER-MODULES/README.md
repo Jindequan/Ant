@@ -115,3 +115,38 @@ order); (4) one plan-name helper, no request without a key (L3, L4); (5) the car
 card through filters (checked in demo: closes when a search hides the card, stays when it doesn't),
 DemoSource tests including "has no network field", the table-count test renamed, and the
 quotasource/provider-package rule explained in `check-deps.py` (L6, L8, L9, L10).
+
+## Design 13 phase A: Kimi as the third module (2026-10-08)
+
+**A1** (`15bb7c3`, the base of the acceptance range): products and regions in the module contract.
+
+**A2 — `providers/kimi`.** One module, two products, two regions:
+
+| Session | Reads (GET, Bearer key) | Holds | Offers at |
+|---|---|---|---|
+| `code` | `api.kimi.com/coding/v1/usages` (observed), `/coding/v1/models` | subscription `kimi/code`: `window/short` (`-2`, `-3` if reported), `window/week`, percent | `https://api.kimi.com/coding/v1`, drawing every window |
+| `api`, region `cn` | `api.moonshot.cn/v1/users/me/balance`, `/v1/models` | prepaid `kimi/balance-cn`: `balance/cny` at 10^-6 | `https://api.moonshot.cn/v1`, drawing `balance/cny` |
+| `api`, region `ai` | `api.moonshot.ai/…` | prepaid `kimi/balance-ai`: `balance/usd` | `https://api.moonshot.ai/v1`, drawing `balance/usd` |
+
+- Exact money: the balance is read from the JSON number's text, never floating point; the
+  official example `49.58894 / 46.58893 / 3.00001` keeps every digit (quota used to show
+  `49.58 / 46.58 / 3.00`). `catalog.ParseDecimal` (moved from the adapter) is the one exact
+  parser; amounts with exponents are refused.
+- Arrears (cash < 0) and used up (available ≤ 0 → not usable, "balance too low to call" in the
+  preview) are notes from one function, used by the module and by quota.
+- A key without a platform is sent nowhere (keys don't work across `.cn` and `.ai`); no key sends
+  nothing; 401/403 → signed out for both products.
+- Quota's two Kimi readers now call the module's parsers; the window-naming rule MiniMax shares
+  moved to `catalog.WindowName`.
+- Fixtures `providers/kimi/testdata/{usages,balance,arrears,empty}.json`, read by the module's
+  tests and by quota's. **Mutation check:** `remaining 15→10` in `usages.json` and
+  `49.58894→49.58895` in `balance.json` failed `TestCodeWindows`, `TestBalanceByRegion`,
+  `TestParseBalanceRejects` (module) and `TestKimiCodeWindowsAndMoonshotBalance` (quota);
+  restored, both green.
+
+**Gate note (A2).** The first full gate run failed in `make test-contract`:
+`TestReorderPoolUpdatesLiveAndCompiledPriorityAtomically` (`internal/application`) — "store:
+command exceeded budget: context deadline exceeded", the same store write budget under concurrent
+`-race` load as the ledger test in M-3. Nothing in A2 touches the application, config or store
+packages. Re-run alone with `-race -count=10`: 10/10 pass; full gates re-run from the start before
+committing. Added to the M-3 follow-up: the store budget under gate load, not one test.

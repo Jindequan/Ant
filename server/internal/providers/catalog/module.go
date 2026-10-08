@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
+	"time"
 
+	"ant/server/internal/domain"
 	"ant/server/internal/domain/observed"
 )
 
@@ -163,4 +166,56 @@ func PlanName(s string) string {
 		return ""
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// ParseDecimal converts an exact decimal string ("23.40", "-1.5", "3") to
+// units at 10^-6, never through floating point; digits past the sixth round
+// half away from zero. ok is false for anything else (exponents, signs
+// other than a leading "-", more than 12 whole digits).
+func ParseDecimal(s string) (domain.Units, bool) {
+	s = strings.TrimSpace(s)
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	whole, frac, _ := strings.Cut(s, ".")
+	if whole == "" || len(whole) > 12 || !allDigits(whole) || !allDigits(frac) {
+		return 0, false
+	}
+	round := len(frac) > 6 && frac[6] >= '5'
+	frac = (frac + "000000")[:6]
+	var v int64
+	for _, c := range whole + frac {
+		v = v*10 + int64(c-'0')
+	}
+	if round {
+		v++
+	}
+	if neg {
+		v = -v
+	}
+	return domain.Units(v), true
+}
+
+func allDigits(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// WindowName names a usage window by its length: "5 hours", "7 days",
+// "Week".
+func WindowName(d time.Duration) string {
+	switch {
+	case d == 7*24*time.Hour:
+		return "Week"
+	case d > 24*time.Hour && d%(24*time.Hour) == 0:
+		return fmt.Sprintf("%d days", d/(24*time.Hour))
+	case d >= time.Hour && d%time.Hour == 0:
+		return fmt.Sprintf("%d hours", d/time.Hour)
+	case d > 0:
+		return fmt.Sprintf("%d minutes", d/time.Minute)
+	}
+	return "Allowance"
 }

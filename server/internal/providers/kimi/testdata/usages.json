@@ -1,0 +1,2 @@
+{"usage":{"limit":"100","used":"25","resetTime":"2026-10-12T00:00:00Z"},
+ "limits":[{"window":{"duration":300,"timeUnit":"TIME_UNIT_MINUTE"},"detail":{"limit":"20","remaining":"15","resetTime":"2026-10-07T20:00:00Z"}}]}

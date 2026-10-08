@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"ant/server/internal/domain/observed"
 	"ant/server/internal/providers/catalog"
@@ -102,6 +103,29 @@ func TestOffersFollowProductAndRegion(t *testing.T) {
 	} {
 		if got := bases(*session); got != want {
 			t.Errorf("%+v: %s, want %s", *session, got, want)
+		}
+	}
+}
+
+func TestParseDecimalIsExact(t *testing.T) {
+	cases := map[string]int64{"23.40": 23_400_000, "0": 0, "-1.5": -1_500_000, "0.0000004": 0, "0.0000005": 1, "12": 12_000_000, "49.58894": 49_588_940, "999999999999.999999": 999_999_999_999_999_999}
+	for in, want := range cases {
+		if got, ok := catalog.ParseDecimal(in); !ok || int64(got) != want {
+			t.Errorf("%s → %d %v, want %d", in, got, ok, want)
+		}
+	}
+	for _, bad := range []string{"", "abc", "1.2.3", "1e5", ".5", "+1", "1234567890123.0", "--1"} {
+		if got, ok := catalog.ParseDecimal(bad); ok {
+			t.Errorf("%q → %d, want refused", bad, got)
+		}
+	}
+}
+
+func TestWindowName(t *testing.T) {
+	for d, want := range map[time.Duration]string{5 * time.Hour: "5 hours", 7 * 24 * time.Hour: "Week", 30 * 24 * time.Hour: "30 days",
+		24 * time.Hour: "24 hours", 90 * time.Minute: "90 minutes", 0: "Allowance"} {
+		if got := catalog.WindowName(d); got != want {
+			t.Errorf("WindowName(%v) = %q, want %q", d, got, want)
 		}
 	}
 }
