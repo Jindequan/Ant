@@ -347,11 +347,13 @@ const (
 	currentTableCount    = 41
 )
 
-// dropSupplyStore removes the v6 supply-store tables (children first), so a
-// current database can be rolled back to look like an older version.
+// dropSupplyStore removes everything v6 created (children first, then its
+// index on secret_refs), so a current database can be rolled back to look
+// like an older version.
 func dropSupplyStore(t *testing.T, db *sql.DB) {
 	t.Helper()
 	for _, table := range []string{"supply_readings", "collector_runs", "supply_credentials", "supply_resources", "supply_packages", "supply_accounts"} {
 		execOK(t, db, "DROP TABLE "+table)
 	}
+	execOK(t, db, "DROP INDEX IF EXISTS secret_refs_namespace_ref")
 }

@@ -1,17 +1,23 @@
 -- Supply store, design 11 V0.2.1 §2.4 (phase 1). Observed, provider-verified
 -- facts. Sole writer: the supply engine. Configuration activation and the
 -- ledger never write these tables; the supply engine never writes theirs.
+
+-- A credential may only reference a secret of its own namespace. secret_ref is
+-- already secret_refs' primary key, so this index adds no new constraint on
+-- existing rows; it only lets the composite foreign key below bind namespace.
+CREATE UNIQUE INDEX secret_refs_namespace_ref ON secret_refs(namespace, secret_ref);
 CREATE TABLE supply_credentials (
   namespace TEXT NOT NULL, credential_id TEXT NOT NULL, provider_id TEXT NOT NULL,
   kind TEXT NOT NULL CHECK(kind IN('api_key','oauth','session','sts','console_token','none')),
   origin TEXT NOT NULL CHECK(origin IN('found','added')),
   strategy TEXT NOT NULL CHECK(length(strategy) BETWEEN 1 AND 64),
   locator_json TEXT NOT NULL CHECK(json_valid(locator_json)),
-  secret_ref TEXT REFERENCES secret_refs(secret_ref),
+  secret_ref TEXT,
   account_id TEXT,
   status TEXT NOT NULL CHECK(status IN('unverified','ok','signed_out','error','hidden','needs_key')),
   status_detail TEXT NOT NULL DEFAULT '', verified_at INTEGER, created_at INTEGER NOT NULL,
   PRIMARY KEY(namespace, credential_id),
+  FOREIGN KEY(namespace, secret_ref) REFERENCES secret_refs(namespace, secret_ref),
   -- found secrets stay where they live; added ones are encrypted or still need a key
   CHECK(origin = 'added' OR secret_ref IS NULL),
   CHECK(origin = 'found' OR kind = 'none' OR secret_ref IS NOT NULL OR status = 'needs_key'),
@@ -35,7 +41,7 @@ CREATE TABLE supply_packages (
   FOREIGN KEY(namespace, account_id) REFERENCES supply_accounts(namespace, account_id)
 ) STRICT;
 CREATE TABLE supply_resources (
-  namespace TEXT NOT NULL, resource_id TEXT NOT NULL, physical_key TEXT NOT NULL UNIQUE,
+  namespace TEXT NOT NULL, resource_id TEXT NOT NULL, physical_key TEXT NOT NULL,
   package_id TEXT NOT NULL, template_ref TEXT NOT NULL,
   metric_id TEXT NOT NULL, unit TEXT NOT NULL, quantum_exp INTEGER NOT NULL, currency TEXT NOT NULL DEFAULT '',
   semantics_ref TEXT NOT NULL, semantics_revision TEXT NOT NULL,
@@ -43,6 +49,9 @@ CREATE TABLE supply_resources (
   scope_json TEXT NOT NULL CHECK(json_valid(scope_json)),
   updated_at INTEGER NOT NULL,
   PRIMARY KEY(namespace, resource_id),
+  -- the key's value is derived globally (provider, identity, templates, scope);
+  -- each namespace stores its own observation of it (design 11 §2.2)
+  UNIQUE(namespace, physical_key),
   FOREIGN KEY(namespace, package_id) REFERENCES supply_packages(namespace, package_id)
 ) STRICT;
 CREATE TABLE collector_runs (

@@ -4,9 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"ant/server/internal/domain"
 	"ant/server/internal/store"
+
+	drv "modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // Supply store statements (design 11 V0.2.1 §2.4, migration 006).
@@ -97,7 +101,7 @@ func (w *writerTx) UpsertSupplyAccount(r store.SupplyAccountRecord) (domain.ID, 
 VALUES(?,?,?,?,?,?) ON CONFLICT(namespace,provider_id,provider_identity) DO UPDATE SET display_name=excluded.display_name, updated_at=excluded.updated_at`,
 		string(r.Namespace), string(r.AccountID), string(r.ProviderID), r.ProviderIdentity, r.DisplayName, int64(r.UpdatedAt))
 	if err != nil {
-		return "", err
+		return "", supplyError(err)
 	}
 	var id string
 	err = w.tx.QueryRowContext(w.ctx, `SELECT account_id FROM supply_accounts WHERE namespace=? AND provider_id=? AND provider_identity=?`,
@@ -125,18 +129,35 @@ VALUES(?,?,?,?,?,?,?,?,?,?,?,CAST(? AS TEXT),CAST(? AS TEXT),?) ON CONFLICT(name
  WHERE supply_resources.physical_key=excluded.physical_key AND supply_resources.package_id=excluded.package_id
    AND supply_resources.metric_id=excluded.metric_id AND supply_resources.unit=excluded.unit
    AND supply_resources.quantum_exp=excluded.quantum_exp AND supply_resources.currency=excluded.currency
-   AND supply_resources.semantics_ref=excluded.semantics_ref
+   AND supply_resources.template_ref=excluded.template_ref AND supply_resources.semantics_ref=excluded.semantics_ref
    AND supply_resources.window_json=excluded.window_json AND supply_resources.scope_json=excluded.scope_json`,
 		string(r.Namespace), string(r.ResourceID), string(r.PhysicalKey), string(r.PackageID), r.TemplateRef, string(r.MetricID), r.Unit,
 		r.QuantumExp, r.Currency, string(r.SemanticsRef), string(r.SemanticsRevision), jsonParam(r.WindowJSON), jsonParam(r.ScopeJSON), int64(r.UpdatedAt))
 	return identityApplied(result, err)
 }
 
+// supplyError maps the constraint failures a supply write can hit to typed
+// errors; CHECK failures (invalid enum or shape) stay driver errors because
+// they are programming errors, not data conflicts.
+func supplyError(err error) error {
+	var serr *drv.Error
+	if err == nil || !errors.As(err, &serr) {
+		return err
+	}
+	switch serr.Code() {
+	case sqlite3.SQLITE_CONSTRAINT_UNIQUE, sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
+		return fmt.Errorf("%w: %v", store.ErrSupplyIdentityConflict, err)
+	case sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY:
+		return fmt.Errorf("%w: %v", store.ErrSupplyMissingReference, err)
+	}
+	return err
+}
+
 // identityApplied turns an upsert whose identity guard refused the update
 // (zero rows affected) into ErrSupplyIdentityConflict.
 func identityApplied(result sql.Result, err error) error {
 	if err != nil {
-		return err
+		return supplyError(err)
 	}
 	n, err := result.RowsAffected()
 	if err != nil {
@@ -175,7 +196,7 @@ func (r *readerTx) ListSupplyResources(ns domain.ID) ([]store.SupplyResourceReco
 func (w *writerTx) StartCollectorRun(r store.CollectorRunRecord) error {
 	_, err := w.tx.ExecContext(w.ctx, `INSERT INTO collector_runs(namespace,run_id,credential_id,capability,started_at,detail) VALUES(?,?,?,?,?,?)`,
 		string(r.Namespace), string(r.RunID), string(r.CredentialID), r.Capability, int64(r.StartedAt), r.Detail)
-	return err
+	return supplyError(err)
 }
 
 func (w *writerTx) FinishCollectorRun(ns, runID domain.ID, finishedAt domain.Millis, outcome, detail string) error {
@@ -184,11 +205,12 @@ func (w *writerTx) FinishCollectorRun(ns, runID domain.ID, finishedAt domain.Mil
 	if err != nil {
 		return err
 	}
-	if n, err := result.RowsAffected(); err != nil || n != 1 {
-		if err == nil {
-			err = errors.New("sqlite: collector run is not open")
-		}
+	n, err := result.RowsAffected()
+	if err != nil {
 		return err
+	}
+	if n != 1 {
+		return store.ErrCollectorRunNotOpen
 	}
 	return nil
 }
@@ -206,9 +228,11 @@ func scanSupplyReading(row interface{ Scan(...any) error }) (store.SupplyReading
 	return r, err
 }
 
+// latestSupplyReading needs no tiebreaker: the append rule makes observed_at
+// unique per resource, so the index alone orders the result.
 func latestSupplyReading(ctx context.Context, q queryer, ns, resourceID domain.ID) (store.SupplyReadingRecord, bool, error) {
 	r, err := scanSupplyReading(q.QueryRowContext(ctx, `SELECT `+supplyReadingColumns+` FROM supply_readings
-WHERE namespace=? AND resource_id=? ORDER BY observed_at DESC, reading_id DESC LIMIT 1`, string(ns), string(resourceID)))
+WHERE namespace=? AND resource_id=? ORDER BY observed_at DESC LIMIT 1`, string(ns), string(resourceID)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return store.SupplyReadingRecord{}, false, nil
 	}
@@ -248,7 +272,10 @@ func (w *writerTx) AppendSupplyReadingIfChanged(r store.SupplyReadingRecord) (bo
 	_, err = w.tx.ExecContext(w.ctx, `INSERT INTO supply_readings(`+supplyReadingColumns+`) VALUES(?,?,?,?,?,?,?,?,?,?,?,CAST(? AS TEXT))`,
 		string(r.Namespace), string(r.ReadingID), string(r.ResourceID), int64(r.ObservedAt), nullableMillis(r.WindowStart), nullableMillis(r.WindowEnd),
 		r.ResetBasis, nullableUnits(r.Limit), nullableUnits(r.Used), nullableUnits(r.Remaining), string(r.RunID), jsonParam(r.EvidenceJSON))
-	return err == nil, err
+	if err != nil {
+		return false, supplyError(err)
+	}
+	return true, nil
 }
 
 // sameReadingValue compares what a reading says, not when or how it was read

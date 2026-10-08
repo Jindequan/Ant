@@ -11,12 +11,22 @@ import (
 // the ledger never write these rows, and the supply engine never writes theirs.
 
 var (
-	// ErrSupplyIdentityConflict: an upsert would change an immutable identity
-	// (a resource's physical key or dimensions, a package's account/template).
+	// ErrSupplyIdentityConflict: a write would change an immutable identity
+	// (a resource's physical key or dimensions, a package's account/template,
+	// a credential's provider/origin) or reuse an id or unique key held by
+	// another row of the namespace.
 	ErrSupplyIdentityConflict = errors.New("store: supply row would change an immutable identity")
-	// ErrSupplyReadingOutOfOrder: a reading is not newer than the latest one
-	// already appended for its resource.
-	ErrSupplyReadingOutOfOrder = errors.New("store: supply reading is older than the latest reading")
+	// ErrSupplyMissingReference: a row names a parent (account, package,
+	// resource, run, credential, or a secret of the same namespace) that does
+	// not exist.
+	ErrSupplyMissingReference = errors.New("store: supply row references a missing row")
+	// ErrSupplyReadingOutOfOrder: a reading's observed_at is not strictly
+	// newer than the latest reading of its resource (same millisecond or
+	// older, including a replay of the latest reading).
+	ErrSupplyReadingOutOfOrder = errors.New("store: supply reading is not newer than the latest reading")
+	// ErrCollectorRunNotOpen: the run does not exist, is already finished,
+	// or would finish before it started.
+	ErrCollectorRunNotOpen = errors.New("store: collector run is not open")
 )
 
 // SupplyCredentialRecord is one way Ant authenticates to a provider. A found
