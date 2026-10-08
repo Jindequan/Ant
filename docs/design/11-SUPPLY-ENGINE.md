@@ -1,6 +1,6 @@
 # Supply engine: what you hold, what it serves, what's left
 
-Version: V0.2.1 draft, 2026-10-08 (V0.2 + [consolidated review](../REVIEW-CONSOLIDATED-2026-10-08.md)). Status: **proposal; no code until rulings R1–R3 (§8) are made.**
+Version: V0.2.1, 2026-10-08, rulings R1–R8 adopted (V0.2 + [consolidated review](../REVIEW-CONSOLIDATED-2026-10-08.md)). Status: **ruled; implementation by phase (§6).**
 Basis: [Architecture](01-ARCHITECTURE.md), [Storage](02-STORAGE.md),
 [Resource algorithms](04-RESOURCE-ALGORITHMS.md), [Runtime and adapters](05-RUNTIME-AND-ADAPTERS.md),
 [Pools and config](07-POOLS-AND-CONFIG.md) (Q1 v3, frozen), [QUOTA](../QUOTA.md).
@@ -549,7 +549,7 @@ carries one coordinated plan; numbers are assigned when the batch starts, not he
 4. **Web-only resources** (Kling, SeaArt, Suno, Figma…) are packages and resources with `web-only`
    access paths: shown, tracked and on the timeline, never executable (§3.7).
 
-## 8. Open rulings (owner: the user; no phase-1 code before R1–R3; R8 before the page moves to `/v1`)
+## 8. Rulings (made by the user 2026-10-08: every proposal below adopted as written)
 
 | ID | Question | Proposal | Reviewer (consolidated §3) |
 |---|---|---|---|

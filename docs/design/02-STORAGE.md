@@ -116,13 +116,17 @@ operation_events are inserted by the Ledger with a per-operation incrementing se
 The initial schema creates 34 tables; the v2 incremental migration adds secret_refs. Existing historical resources must never be dropped and recreated; pool/offer/resource use archiving and disabling; unreleased encumbrances do not vanish when moved out of a pool. The new migration is an initial attachment for the empty database of a not-yet-released system and does not assume a V0.6 business database already exists on site; if the implementer actually finds an old database already running, they must migrate incrementally and preserve history — using this script to wipe the database is forbidden.
 
 
-## Configure-first supply inventory (migration v4)
+## Schema history after v3
 
-The [supply inventory correction](../implementation/SUPPLY-INVENTORY.md) adds
-`supply_inventory(namespace PK, version, definition_json, updated_at)`. The
-existing serialized writer and snapshot reader expose an additive typed Store
-capability. CAS, command receipt and audit commit together. It stores declared
-accounts/packages/resources and proposed pool order without changing executable
-config v1, ledgers or prior drafts. The embedded/canonical v4 scripts must match;
-a v3 upgrade preserves existing records. A newer-than-v4 database still requires
-a matching newer binary. The current complete schema contains 36 user tables.
+- **v4** added `supply_inventory` for the configure-first inventory correction; that direction was
+  rejected by the user (2026-10-07).
+- **v5** drops `supply_inventory` and its rows (ENG-03, ruling R7, 2026-10-08). v4 stays in history
+  so v3 databases upgrade through it.
+- **v6** adds the supply store of [design 11](11-SUPPLY-ENGINE.md) §2.4: `supply_credentials`,
+  `supply_accounts`, `supply_packages`, `supply_resources`, `collector_runs` and the append-only
+  `supply_readings` (update/delete triggers, like `resource_events`). Sole writer: the supply engine;
+  configuration activation and the ledger never write these tables. A typed capability
+  (`store.SupplyWriterTx`/`SupplyReaderTx`) follows the existing additive-capability pattern.
+
+The current complete schema contains 41 user tables. A database newer than v6 requires a matching
+newer binary. Embedded and canonical migration copies must match (integration test).

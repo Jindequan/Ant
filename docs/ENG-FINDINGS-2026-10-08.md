@@ -289,8 +289,10 @@ it here.
 - **Do not revive the rejected wizard/inventory direction** in any form — user rulings of 2026-10-07,
   verbatim in [USER-ORIGINAL-REQUIREMENTS](USER-ORIGINAL-REQUIREMENTS.md) §二.4–5 ("what a shit! do
   you know what should you build??", "ridiculous form and stupid config progressing").
-- **No real providers, real credentials, or outbound calls**: IN-01–04 user inputs are still missing
-  (STATUS.md input table); no egress without authorization; fixture/loopback only.
+- **No billable or execution egress**: IN-01–04 user inputs are still missing (STATUS.md input
+  table); no execution calls to real providers without authorization; fixture/loopback only for
+  execution. *Corrected 2026-10-08 by user ruling R4:* read-only, credentialed usage/balance reads
+  (the user-directed quota reader, [QUOTA](QUOTA.md)) are product behavior and outside this guard.
 - **Do not rewrite or re-sign historical acceptance records or manifests** as part of these fixes;
   any drift goes through `make verify-manifest` review per R14/B6.
 - **No speculative abstraction**: fix what the findings require; new abstractions wait for a second

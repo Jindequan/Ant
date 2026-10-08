@@ -378,11 +378,6 @@ func run() error {
 		_, _ = w.Write([]byte(`{"status":"ready"}`))
 	})
 	if businessHandler != nil {
-		inventory, err := application.NewInventoryService(st, clock)
-		if err != nil {
-			return fmt.Errorf("initialize inventory: %w", err)
-		}
-		mux.Handle("/v1/inventory", api.AuthMiddleware(authProvider, api.LogRequest(logger, api.InventoryHandler(inventory))))
 		mux.Handle("/v1/", businessHandler)
 	}
 	if localTestProviderHandler != nil {

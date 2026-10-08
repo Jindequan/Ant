@@ -27,6 +27,12 @@ var decisionTraceSQL string
 //go:embed 004_supply_inventory.sql
 var supplyInventorySQL string
 
+//go:embed 005_drop_supply_inventory.sql
+var dropSupplyInventorySQL string
+
+//go:embed 006_supply_store.sql
+var supplyStoreSQL string
+
 // SchemaSQL returns the embedded initial schema script (used by tests to
 // assert the embedded copy matches the canonical file).
 func SchemaSQL() string { return schemaSQL }
@@ -34,9 +40,10 @@ func SchemaSQL() string { return schemaSQL }
 const (
 	// schemaVersion is the version this package applies; it must never
 	// decrease relative to server/migrations.
-	schemaVersion = 4
-	// 34 initial tables plus the namespace-owned secret-reference index.
-	expectedTableCount = 36
+	schemaVersion = 6
+	// 34 initial tables, secret_refs (v2), supply_inventory added (v4) and
+	// dropped (v5), and the six supply-store tables (v6).
+	expectedTableCount = 41
 	// migrationLockWait bounds the BEGIN IMMEDIATE wait during migration.
 	// The configured busy timeout (10ms) is far too short for the losing
 	// side of an initializer race: it must wait out the winner's whole DDL
@@ -110,7 +117,7 @@ func (s *Store) migrateScript(ctx context.Context, script string) error {
 			"PRAGMA busy_timeout = "+strconv.FormatInt(s.cfg.BusyTimeout.Milliseconds(), 10))
 	}()
 
-	return s.applyMigration(ctx, conn, []migration{{version: 1, script: script}, {version: 2, script: secretOwnershipSQL}, {version: 3, script: decisionTraceSQL}, {version: 4, script: supplyInventorySQL}})
+	return s.applyMigration(ctx, conn, []migration{{version: 1, script: script}, {version: 2, script: secretOwnershipSQL}, {version: 3, script: decisionTraceSQL}, {version: 4, script: supplyInventorySQL}, {version: 5, script: dropSupplyInventorySQL}, {version: 6, script: supplyStoreSQL}})
 }
 
 type migration struct {
@@ -201,7 +208,7 @@ func schemaVersionOf(ctx context.Context, q interface {
 }
 
 // verifyTables fails the migration unless the expected table set materialized
-// (34 initial tables plus the v2 secret ownership table).
+// (see expectedTableCount).
 func verifyTables(ctx context.Context, conn *sql.Conn) error {
 	var tables int
 	if err := conn.QueryRowContext(ctx,

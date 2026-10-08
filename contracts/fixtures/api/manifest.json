@@ -1,6 +1,6 @@
 {
   "description": "K6/R05 authoritative fixture manifest. Every fixture declares the expected verdict at each verification layer; contract tests on both sides enforce these verdicts against the same files. Layers: schema = OpenAPI/JSON Schema value validation (executable constraints only); codec = strict JSON decode into the Go wire type (unknown fields, duplicate keys, trailing data, canonical quantities); guard = hand-written union/semantic rules (Go internal/api + web validate.ts, same rules); web = ajv schema + web semantic validator. 'accept' at schema layer with 'reject' at semantic layer is normal: referential and business rules are server-authoritative semantics, not schema shapes.",
-  "version": "1.1.21",
+  "version": "1.1.22",
   "configFixtures": [
     {
       "file": "config-document-valid.json",

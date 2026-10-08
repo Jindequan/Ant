@@ -1,5 +1,7 @@
 # Supply inventory correction — 2026-10-07
 
+> **Retired 2026-10-08** (ENG-03, user ruling R7): `/v1/inventory`, `domain/supply` and the `supply_inventory` table were removed; migration v5 drops the table and its data. Kept as history of the rejected direction. Current supply design: [design 11](../design/11-SUPPLY-ENGINE.md).
+
 **Later user ruling: rejected as the product direction.** Individual provider subscription/quota/time/switching behavior must lead the design; the universal package wizard cannot be revived as the corrected main flow. See [Magpie research and proposed plan](../research/MAGPIE-AND-ANT.md). Technical verification below is historical, not product acceptance.
 
 This implements the configure-first ruling and the user's rejection of the raw draft editor. Latest rejection, verbatim: “I don't know the result you have implement, what logic it is! rediculous form and stupid config progressing”. It refines the business setup already authorized by the user. Preserve existing executable configuration and drafts; add a non-executable supply inventory rather than silently rewriting them. This document refines DESIGN §13; it is not a second requirements authority.

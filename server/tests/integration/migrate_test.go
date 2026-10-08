@@ -14,7 +14,7 @@ import (
 	"ant/server/internal/store/sqlite"
 )
 
-func TestMigrateFreshDatabaseCreates36Tables(t *testing.T) {
+func TestMigrateFreshDatabaseCreates41Tables(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ant.db")
 	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
 	if err != nil {
@@ -27,8 +27,8 @@ func TestMigrateFreshDatabaseCreates36Tables(t *testing.T) {
 	}
 	db := openRawDB(t, path)
 	got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-	if got != 36 {
-		t.Fatalf("table count = %d, want 36", got)
+	if got != currentTableCount {
+		t.Fatalf("table count = %d, want %d", got, currentTableCount)
 	}
 }
 
@@ -50,8 +50,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations WHERE version = 2"); got != 1 {
 		t.Fatalf("version rows for v2 = %d, want 1 (second Migrate must be a no-op)", got)
 	}
-	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != 36 {
-		t.Fatalf("table count = %d, want 36", got)
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != currentTableCount {
+		t.Fatalf("table count = %d, want %d", got, currentTableCount)
 	}
 }
 
@@ -79,11 +79,11 @@ func TestMigrateConcurrentAppliesExactlyOnce(t *testing.T) {
 		}
 	}
 	db := openRawDB(t, path)
-	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != 4 {
-		t.Fatalf("schema_migrations rows = %d, want exactly four migrations", got)
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != currentSchemaVersion {
+		t.Fatalf("schema_migrations rows = %d, want exactly %d migrations", got, currentSchemaVersion)
 	}
-	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != 36 {
-		t.Fatalf("table count = %d, want 36", got)
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != currentTableCount {
+		t.Fatalf("table count = %d, want %d", got, currentTableCount)
 	}
 }
 
@@ -95,14 +95,14 @@ func TestMigrateRejectsFutureSchema(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "future.db")
 
-	// Hand-build a future version 4 database: only the version table with one v4
-	// row, plus a marker table a v1 binary knows nothing about.
+	// Hand-build a future-version database: only the version table with one
+	// row newer than this binary, plus a marker table it knows nothing about.
 	future, err := sql.Open("sqlite", "file:"+path)
 	if err != nil {
 		t.Fatalf("open future db: %v", err)
 	}
 	execOK(t, future, "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL) STRICT")
-	execOK(t, future, "INSERT INTO schema_migrations(version, applied_at) VALUES(5, 42)")
+	execOK(t, future, "INSERT INTO schema_migrations(version, applied_at) VALUES(7, 42)")
 	execOK(t, future, "CREATE TABLE future_binary_table(x INTEGER)")
 	if err := future.Close(); err != nil {
 		t.Fatalf("close future db: %v", err)
@@ -123,38 +123,38 @@ func TestMigrateRejectsFutureSchema(t *testing.T) {
 		t.Fatalf("error %q does not carry the upgrade path", migrateErr)
 	}
 
-	// Untouched: still exactly one v4 row, marker table intact, and no v1
+	// Untouched: still exactly one future row, marker table intact, and no v1
 	// DDL applied (exactly the two hand-built user tables remain).
 	db := openRawDB(t, path)
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != 1 {
 		t.Fatalf("schema_migrations rows = %d, want 1 (Migrate must not write to a future-version database)", got)
 	}
-	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != 5 {
-		t.Fatalf("max schema version = %d, want 5 (no downgrade, no extra rows)", got)
+	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != 7 {
+		t.Fatalf("max schema version = %d, want 7 (no downgrade, no extra rows)", got)
 	}
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != 2 {
 		t.Fatalf("user tables = %d, want 2 (schema_migrations + future_binary_table; no v1 DDL ran)", got)
 	}
 }
 
-// TestMigrateRejectsFutureVersionOverExistingV4 verifies a v4 database that
-// later gains a v5 row is refused, with existing data intact.
-func TestMigrateRejectsFutureVersionOverExistingV4(t *testing.T) {
+// TestMigrateRejectsFutureVersionOverExistingCurrent verifies a current
+// database that later gains a newer version row is refused, data intact.
+func TestMigrateRejectsFutureVersionOverExistingCurrent(t *testing.T) {
 	ctx := context.Background()
-	st, path := openTestStore(t, testConfig()) // migrated to v4
+	st, path := openTestStore(t, testConfig()) // migrated to the current version
 
 	db := openRawDB(t, path)
-	execOK(t, db, "INSERT INTO schema_migrations(version, applied_at) VALUES(5, 1)")
+	execOK(t, db, "INSERT INTO schema_migrations(version, applied_at) VALUES(7, 1)")
 
 	err := sqlite.Migrate(ctx, st)
 	if err == nil || !strings.Contains(err.Error(), "upgrade required") {
-		t.Fatalf("Migrate over a v4-marked database = %v, want an upgrade-required refusal", err)
+		t.Fatalf("Migrate over a future-marked database = %v, want an upgrade-required refusal", err)
 	}
-	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != 5 {
-		t.Fatalf("schema_migrations rows = %d, want v1+v2+v3+v4+v5 rows (nothing added)", got)
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != currentSchemaVersion+1 {
+		t.Fatalf("schema_migrations rows = %d, want v1..v%d plus v7 (nothing added)", got, currentSchemaVersion)
 	}
-	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != 36 {
-		t.Fatalf("table count = %d, want 36 (schema unchanged by the refusal)", got)
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != currentTableCount {
+		t.Fatalf("table count = %d, want %d (schema unchanged by the refusal)", got, currentTableCount)
 	}
 }
 
@@ -165,13 +165,13 @@ func TestMigrateUpgradesVersionOneDatabase(t *testing.T) {
 	execOK(t, db, "DROP INDEX secret_refs_owner")
 	execOK(t, db, "DROP TABLE secret_refs")
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
-	execOK(t, db, "DROP TABLE supply_inventory")
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4)")
+	dropSupplyStore(t, db)
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4,5,6)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
-		t.Fatalf("upgrade v1 to v4: %v", err)
+		t.Fatalf("upgrade v1 to current: %v", err)
 	}
-	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != 4 {
-		t.Fatalf("schema version = %d, want 4", got)
+	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != currentSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", got, currentSchemaVersion)
 	}
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='secret_refs'"); got != 1 {
 		t.Fatalf("secret_refs table count = %d, want 1", got)
@@ -183,13 +183,13 @@ func TestMigrateUpgradesVersionTwoDatabase(t *testing.T) {
 	st, path := openTestStore(t, testConfig())
 	db := openRawDB(t, path)
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
-	execOK(t, db, "DROP TABLE supply_inventory")
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4)")
+	dropSupplyStore(t, db)
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4,5,6)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
-		t.Fatalf("upgrade v2 to v4: %v", err)
+		t.Fatalf("upgrade v2 to current: %v", err)
 	}
-	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != 4 {
-		t.Fatalf("schema version = %d, want 4", got)
+	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != currentSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", got, currentSchemaVersion)
 	}
 	columns := queryInt(t, db, `SELECT COUNT(*) FROM pragma_table_info('decision_records') WHERE name='trace_json'`)
 	if columns != 1 {
@@ -277,12 +277,12 @@ func TestStrictTablesRejectWrongTypes(t *testing.T) {
 	}
 }
 
-func TestSupplyInventoryMigrationPreservesVersionThreeData(t *testing.T) {
+func TestMigrateUpgradesVersionThreeThroughInventoryAndDrop(t *testing.T) {
 	ctx := context.Background()
 	st, path := openTestStore(t, testConfig())
 	db := openRawDB(t, path)
-	execOK(t, db, "DROP TABLE supply_inventory")
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version=4")
+	dropSupplyStore(t, db)
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (4,5,6)")
 	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('preserved','{"existing":"untouched"}',1)`)
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatal(err)
@@ -291,15 +291,66 @@ func TestSupplyInventoryMigrationPreservesVersionThreeData(t *testing.T) {
 	if err := db.QueryRow("SELECT definition_json FROM config_revisions WHERE revision='preserved'").Scan(&definition); err != nil || definition != `{"existing":"untouched"}` {
 		t.Fatalf("legacy data changed: %q %v", definition, err)
 	}
-	if queryInt(t, db, "SELECT MAX(version) FROM schema_migrations") != 4 {
-		t.Fatal("version not advanced")
+	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != currentSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", got, currentSchemaVersion)
 	}
-	canonical, err := os.ReadFile("../../migrations/004_supply_inventory.sql")
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE name='supply_inventory'"); got != 0 {
+		t.Fatal("supply_inventory survived the upgrade")
+	}
+}
+
+// A v4 database holding rejected-inventory rows upgrades with the table
+// dropped (ruling R7, one-way) and every other table's data intact.
+func TestMigrateDropsSupplyInventoryFromVersionFour(t *testing.T) {
+	ctx := context.Background()
+	st, path := openTestStore(t, testConfig())
+	db := openRawDB(t, path)
+	dropSupplyStore(t, db)
+	v4, err := os.ReadFile("../../migrations/004_supply_inventory.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
-	embedded, err := os.ReadFile("../../internal/store/sqlite/004_supply_inventory.sql")
-	if err != nil || !bytes.Equal(canonical, embedded) {
-		t.Fatal("migration copies diverged")
+	execOK(t, db, string(v4))
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (5,6)")
+	execOK(t, db, `INSERT INTO supply_inventory(namespace,version,definition_json,updated_at) VALUES('ns',1,'{}',1)`)
+	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('kept','{}',1)`)
+	if err := sqlite.Migrate(ctx, st); err != nil {
+		t.Fatalf("upgrade v4 to current: %v", err)
+	}
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE name='supply_inventory'"); got != 0 {
+		t.Fatal("supply_inventory survived the upgrade")
+	}
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM config_revisions WHERE revision='kept'"); got != 1 {
+		t.Fatal("unrelated data lost")
+	}
+	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != currentTableCount {
+		t.Fatalf("table count = %d, want %d", got, currentTableCount)
+	}
+}
+
+func TestLaterMigrationCopiesMatchCanonicalFiles(t *testing.T) {
+	for _, name := range []string{"004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql"} {
+		canonical, err := os.ReadFile("../../migrations/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		embedded, err := os.ReadFile("../../internal/store/sqlite/" + name)
+		if err != nil || !bytes.Equal(canonical, embedded) {
+			t.Fatalf("%s: migration copies diverged", name)
+		}
+	}
+}
+
+const (
+	currentSchemaVersion = 6
+	currentTableCount    = 41
+)
+
+// dropSupplyStore removes the v6 supply-store tables (children first), so a
+// current database can be rolled back to look like an older version.
+func dropSupplyStore(t *testing.T, db *sql.DB) {
+	t.Helper()
+	for _, table := range []string{"supply_readings", "collector_runs", "supply_credentials", "supply_resources", "supply_packages", "supply_accounts"} {
+		execOK(t, db, "DROP TABLE "+table)
 	}
 }

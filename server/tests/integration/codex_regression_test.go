@@ -299,7 +299,8 @@ func TestCodexRegressionRetryBudget(t *testing.T) {
 func TestCodexRegressionFutureSchema(t *testing.T) {
 	st, path := openTestStore(t, sqlite.Config{})
 	db := openRawDB(t, path)
-	execOK(t, db, "INSERT INTO schema_migrations(version,applied_at) VALUES(5,1)")
+	// one past the newest version this binary knows
+	execOK(t, db, fmt.Sprintf("INSERT INTO schema_migrations(version,applied_at) VALUES(%d,1)", currentSchemaVersion+1))
 	if err := sqlite.Migrate(context.Background(), st); err == nil {
 		t.Fatal("future schema version must be rejected with an upgrade path")
 	}
