@@ -7,7 +7,7 @@ func TestPricesAreCheckedAndKept(t *testing.T) {
 	store := NewStore(l.AccountsFile())
 	h := newTestService(l, store).Handler()
 	for body, want := range map[string]int{
-		`{"amount":"20","currency":"usd","period":"month"}`: 200,
+		`{"amount":"20","currency":"usd","period":"month"}`:     200,
 		`{"amount":"19.999","currency":"USD","period":"month"}`: 400,
 		`{"amount":"0","currency":"USD","period":"month"}`:      400,
 		`{"amount":"20","currency":"dollars","period":"month"}`: 400,
