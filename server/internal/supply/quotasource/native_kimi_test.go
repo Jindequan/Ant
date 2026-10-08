@@ -8,7 +8,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,11 +28,14 @@ import (
 // offered at its own endpoint, and previewed.
 func TestNativeModuleReadsKimi(t *testing.T) {
 	kimiFixture := func(name string) []byte { return fixture(t, "../../providers/kimi/testdata/"+name) }
+	var mu sync.Mutex // the engine reads credentials in parallel
 	var seen []string
 	handler := func(platform string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			key := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+			mu.Lock()
 			seen = append(seen, platform+" "+r.URL.Path+" "+key)
+			mu.Unlock()
 			switch r.URL.Path {
 			case "/coding/v1/usages":
 				_, _ = w.Write(kimiFixture("usages.json"))
@@ -121,6 +126,10 @@ func TestNativeModuleReadsKimi(t *testing.T) {
 		code.Windows[1].Name != "Week" || len(code.Models) != 1 || code.Models[0].ID != "kimi-for-coding" {
 		t.Fatalf("Kimi Code card = %+v", code)
 	}
+	// each card opens where its account is managed: its own platform
+	if code.Link != "https://www.kimi.com/code" || cny.Link != "https://platform.moonshot.cn/console/info" || usd.Link != "https://platform.moonshot.ai/console/info" {
+		t.Errorf("links: %s, %s, %s", code.Link, cny.Link, usd.Link)
+	}
 	// every digit the platform reports, as people write money
 	if cny.Status != quota.StatusOK || cny.Balances[0] != (quota.Balance{Currency: "CNY", Amount: "49.58894", Granted: "46.58893", ToppedUp: "3.00001"}) || cny.Message != "" {
 		t.Fatalf("China platform card = %+v", cny)
@@ -129,12 +138,15 @@ func TestNativeModuleReadsKimi(t *testing.T) {
 		t.Fatalf("international card = %+v", usd)
 	}
 	// each key went to its own platform and nowhere else
+	mu.Lock()
+	sent := slices.Clone(seen)
+	mu.Unlock()
 	for _, want := range []string{"cn /coding/v1/usages sk-kimi-1", "cn /v1/users/me/balance sk-cn", "ai /v1/users/me/balance sk-ai"} {
-		if !strings.Contains(strings.Join(seen, "\n"), want) {
-			t.Errorf("no request %q in %v", want, seen)
+		if !strings.Contains(strings.Join(sent, "\n"), want) {
+			t.Errorf("no request %q in %v", want, sent)
 		}
 	}
-	for _, s := range seen {
+	for _, s := range sent {
 		if (strings.HasSuffix(s, " sk-ai") && !strings.HasPrefix(s, "ai ")) || (strings.HasSuffix(s, " sk-cn") && !strings.HasPrefix(s, "cn /v1/")) {
 			t.Errorf("a key left its platform: %s", s)
 		}

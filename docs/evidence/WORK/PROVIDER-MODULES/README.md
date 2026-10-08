@@ -175,3 +175,31 @@ once sealed in the vault (its secret row is a foreign key), so the test finds th
 key in OpenCode rather than faking a vault; the add path keeps its own vault tests.
 
 Acceptance check so far: `git diff --stat 15bb7c3 -- <core paths>` → empty.
+
+**A4 — live check** (real binary built from `cb3c4ab`, `env -i` with HOME and PATH in a scratch
+directory and an empty PATH; fake keys: `KIMI_CODE_API_KEY`, `MOONSHOT_API_KEY`, and a
+`moonshotai` key in the scratch home's OpenCode `auth.json`). Requests made with fake keys (R4):
+one inventory read each, to `api.kimi.com/coding/v1/usages`, `api.moonshot.cn/v1/users/me/balance`
+and `api.moonshot.ai/v1/users/me/balance`; a refused key reads no model list. Results:
+
+| Credential | Card | Stored credential | `collector_runs` |
+|---|---|---|---|
+| Kimi Code (`$KIMI_CODE_API_KEY`) | signed out: "Kimi Code refused the key. Check it in your Kimi Code console." | `signed_out`, same detail | 1 inventory run, `signed_out` |
+| Moonshot China (`$MOONSHOT_API_KEY`) | signed out: "Moonshot refused the key. Check it in platform.kimi.com › API keys." | `signed_out` | 1 run, `signed_out` |
+| Moonshot international (OpenCode) | signed out: "… platform.kimi.ai › API keys." | `signed_out` | 1 run, `signed_out` |
+
+No accounts or offers were recorded (nothing was read); `GET /api/route?model=kimi-for-coding`
+→ `{"use":[],"notUsed":[]}`. All three real hosts answered a bad key with a 401 status (unlike
+Z.ai's HTTP 200), so no parser change was needed.
+
+**Found by the live check:** the two Moonshot cards' "Open" link went to Kimi Code (the
+provider's link); quota's reader used to set each platform's console itself, which the module
+path doesn't run. A mode may now give its link from the account's values (`quota.Mode.Link`),
+used by both paths; the end-to-end test checks all three links and fails without the rule
+(mutation-checked). Not re-run live: it would mean three more requests with fake keys for what the
+test already shows.
+
+**Gate note (A4).** The first gate run failed `TestNativeModuleReadsKimi` under `-race`: the test's
+fake servers appended to a request log from concurrent reads (the engine reads credentials in
+parallel). A test bug from A3 that passed A3's gates by chance; the log is now guarded and copied
+before checking. `-race -count=5`: 5/5 pass; full gates re-run.

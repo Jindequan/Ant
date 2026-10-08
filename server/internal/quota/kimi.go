@@ -42,6 +42,12 @@ func kimiProvider() Provider {
 				return append(cn, ai...)
 			},
 			Read: readMoonshotBalance,
+			Link: func(v map[string]string) string {
+				if v["region"] == "ai" {
+					return "https://platform.moonshot.ai/console/info"
+				}
+				return "https://platform.moonshot.cn/console/info"
+			},
 		},
 	}}
 }
@@ -77,9 +83,8 @@ func readMoonshotBalance(ctx context.Context, l Local, c Connection) Account {
 	p := kimiProvider()
 	a := base(p, p.Modes[1], c, l.Now())
 	host, currency := "https://api.moonshot.cn", "CNY"
-	a.Link = "https://platform.moonshot.cn/console/info"
 	if c.Values["region"] == "ai" {
-		host, currency, a.Link = "https://api.moonshot.ai", "USD", "https://platform.moonshot.ai/console/info"
+		host, currency = "https://api.moonshot.ai", "USD"
 	}
 	var raw json.RawMessage
 	if !getJSON(ctx, l, l.url("kimi.api", host)+"/v1/users/me/balance", c.Values["apiKey"], "Moonshot", &a, &raw) {

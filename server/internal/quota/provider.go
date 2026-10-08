@@ -49,6 +49,9 @@ type Mode struct {
 	Discover func(Local) []Connection `json:"-"`
 	// Read reads one connection of this mode.
 	Read func(context.Context, Local, Connection) Account `json:"-"`
+	// Link, when set, is where a connection of this mode is managed, from
+	// its values (a platform per region); otherwise the provider's link.
+	Link func(values map[string]string) string `json:"-"`
 
 	// Ways are the ways of reading this mode, easiest first: what another
 	// app on this machine already holds, then keys, then sign-ins. Each
@@ -214,10 +217,16 @@ func (p Provider) mode(id string) (Mode, bool) {
 
 // base is the Account every read of a connection starts from.
 func base(p Provider, m Mode, c Connection, now time.Time) Account {
-	return Account{
+	a := Account{
 		ID: c.ID, Provider: p.ID, Name: p.Name, Mode: m.ID, ModeName: m.Name, Kind: m.Kind, Way: c.Way, WayName: m.wayName(c.Way), Media: m.mediaOf(p),
 		Label: c.Label, Origin: c.Origin, Source: c.Source, Link: p.Link, ReadAt: now, Live: m.Live,
 	}
+	if m.Link != nil {
+		if l := m.Link(c.Values); l != "" {
+			a.Link = l
+		}
+	}
+	return a
 }
 
 // NewAccount is the card for connection c before anything is read: its
