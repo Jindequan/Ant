@@ -2,13 +2,11 @@ package quota
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"net/http"
-	"sort"
-	"strings"
 	"sync"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // What each account can call, as its provider lists it with the account's
@@ -66,71 +64,21 @@ func fixedModels(ids ...string) []Model {
 	return out
 }
 
-// openAIModels reads an OpenAI-style list: {"data":[{"id":"…"},…]}.
+// openAIModels reads an OpenAI-style list with the shared parser.
 func openAIModels(ctx context.Context, l Local, url string, headers map[string]string) ([]Model, error) {
 	b, err := l.fetch(ctx, http.MethodGet, url, headers, nil)
 	if err != nil {
 		return nil, err
 	}
-	var r struct {
-		Data []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-			// some lists say what a model is for
-			Type         string   `json:"type"`
-			Capabilities []string `json:"capabilities"`
-			Arch         *struct {
-				Output []string `json:"output_modalities"`
-			} `json:"architecture"`
-		} `json:"data"`
+	list, err := catalog.ParseOpenAIModels(b)
+	if err != nil {
+		return nil, err
 	}
-	if json.Unmarshal(b, &r) != nil {
-		return nil, errors.New("not a model list")
+	out := make([]Model, len(list))
+	for i, m := range list {
+		out[i] = Model{ID: m.ID, Name: m.Name, Media: m.Media}
 	}
-	var out []Model
-	for _, m := range r.Data {
-		if m.ID == "" {
-			continue
-		}
-		media := modelMedia(m.ID, m.Type)
-		if m.Arch != nil && len(m.Arch.Output) > 0 && !contains(m.Arch.Output, "text") {
-			media = m.Arch.Output[0]
-		}
-		out = append(out, Model{ID: m.ID, Name: m.Name, Media: media})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
-}
-
-// modelMedia guesses what a model makes from its id and the list's type
-// field, for lists that don't say.
-func modelMedia(id, typ string) string {
-	s := strings.ToLower(id + " " + typ)
-	switch {
-	case strings.Contains(s, "embed"):
-		return "embedding"
-	case strings.Contains(s, "rerank"):
-		return "rerank"
-	case strings.Contains(s, "tts") || strings.Contains(s, "speech") || strings.Contains(s, "cosyvoice") || strings.Contains(s, "voice"):
-		return "speech"
-	case strings.Contains(s, "whisper") || strings.Contains(s, "asr") || strings.Contains(s, "-audio") || strings.Contains(s, "omni-realtime") || strings.Contains(s, "transcri") || strings.Contains(s, "paraformer"):
-		return "audio"
-	case strings.Contains(s, "video") || strings.Contains(s, "wan2") || strings.Contains(s, "wan3") || strings.Contains(s, "seedance") || strings.Contains(s, "kling"):
-		return "video"
-	case strings.Contains(s, "image") || strings.Contains(s, "dall-e") || strings.Contains(s, "flux") || strings.Contains(s, "seedream") ||
-		strings.Contains(s, "stable-diffusion") || strings.Contains(s, "sdxl") || strings.Contains(s, "kolors"):
-		return "image"
-	}
-	return "text"
-}
-
-func contains(xs []string, x string) bool {
-	for _, y := range xs {
-		if y == x {
-			return true
-		}
-	}
-	return false
 }
 
 // keyModels lists models at url with the account's key as a bearer token.

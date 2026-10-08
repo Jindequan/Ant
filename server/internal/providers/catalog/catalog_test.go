@@ -1,9 +1,10 @@
-package catalog
+package catalog_test
 
 import (
 	"encoding/json"
 	"testing"
 
+	"ant/server/internal/providers/catalog"
 	"ant/server/internal/providers/deepseek"
 	"ant/server/internal/providers/localtest"
 )
@@ -17,7 +18,7 @@ func TestCatalogComposesProviderDirectoriesWithoutInventingScopes(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	composed, err := New(fixture, deepSeek)
+	composed, err := catalog.New(fixture, deepSeek)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +56,7 @@ func TestCatalogRejectsDuplicateProviderRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := New(fixture, fixture); err == nil {
+	if _, err := catalog.New(fixture, fixture); err == nil {
 		t.Fatal("duplicate provider type registration must fail")
 	}
 }

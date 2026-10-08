@@ -14,11 +14,15 @@ import (
 
 	"ant/server/internal/application"
 	"ant/server/internal/domain"
+	"ant/server/internal/providers/catalog"
+	"ant/server/internal/providers/deepseek"
+	"ant/server/internal/providers/zai"
 	"ant/server/internal/quota"
 	"ant/server/internal/security"
 	"ant/server/internal/store"
 	"ant/server/internal/supply"
 	"ant/server/internal/supply/quotasource"
+	"ant/server/internal/transport"
 )
 
 // localOwner owns the secrets added on the page. Ant is a local app with no
@@ -47,10 +51,28 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 		logger.Error("saved keys unavailable", "err", err)
 	}
 	local.Browser = accounts.BrowserAllowed // only sites the user allowed (R6)
-	src := quotasource.New(local, accounts, quota.Providers())
+	natives, err := providerModules()
+	if err != nil {
+		return nil, nil, err
+	}
+	src := quotasource.New(local, accounts, quota.Providers(), natives...)
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
 	reader := quotasource.Reader{Source: src, Engine: engine}
 	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}}), engine, nil
+}
+
+// providerModules are the providers read through their own module (design
+// 12), each with a Fetch limited to the origins it declares.
+func providerModules() ([]quotasource.Native, error) {
+	var out []quotasource.Native
+	for _, m := range []catalog.Module{zai.Module(zai.DefaultBase), deepseek.SupplyModule(deepseek.DefaultBase)} {
+		fetch, err := transport.NewObservationFetch(m.Supply.Origins, nil)
+		if err != nil {
+			return nil, fmt.Errorf("provider module %s: %w", m.ID, err)
+		}
+		out = append(out, quotasource.Native{Module: m, Fetch: fetch})
+	}
+	return out, nil
 }
 
 // localVault keeps the page's account values encrypted in Ant's database

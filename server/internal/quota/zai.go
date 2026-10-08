@@ -2,13 +2,13 @@ package quota
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/zai"
 )
 
 // Z.ai's GLM Coding Plan — the plan ZCode runs on — is read through the
@@ -90,6 +90,10 @@ func readZAI(ctx context.Context, l Local, c Connection) Account {
 		return a
 	}
 	plan, windows, err := parseZAIQuota(b)
+	if errors.Is(err, zai.ErrKeyRefused) {
+		a.Status, a.Message = StatusSignedOut, "The key was refused. Check it in your Z.ai API keys."
+		return a
+	}
 	if err != nil {
 		a.Status, a.Message = StatusError, short(err.Error())
 		return a
@@ -114,62 +118,22 @@ func readZAI(ctx context.Context, l Local, c Connection) Account {
 	return a
 }
 
-// parseZAIQuota reads
-//
-//	{"success":true,"data":{"level":"pro","limits":[
-//	  {"type":"TOKENS_LIMIT","unit":3,"number":5,"percentage":12,"nextResetTime":1758800000000},
-//	  {"type":"TOKENS_LIMIT","unit":6,"number":1,"percentage":40,"nextResetTime":…},
-//	  {"type":"TIME_LIMIT","unit":5,"number":1,"percentage":3,"nextResetTime":…}]}}
-//
-// unit 3 is hours, unit 6 the week; TIME_LIMIT is the month's MCP tool
-// calls, which don't stop the models (shape as read by yetone/magpie).
+// parseZAIQuota reads a plan with the Z.ai module's parser (BigModel answers
+// in the same shape) as the page's windows.
 func parseZAIQuota(b []byte) (string, []Window, error) {
-	var r struct {
-		Success *bool  `json:"success"`
-		Msg     string `json:"msg"`
-		Data    *struct {
-			Level  string `json:"level"`
-			Limits []struct {
-				Type          string   `json:"type"`
-				Unit          int      `json:"unit"`
-				Number        int      `json:"number"`
-				Percentage    *float64 `json:"percentage"`
-				NextResetTime int64    `json:"nextResetTime"`
-			} `json:"limits"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(b, &r); err != nil {
-		return "", nil, errors.New("Z.ai answered something Ant doesn't understand")
-	}
-	if (r.Success != nil && !*r.Success) || r.Data == nil {
-		if r.Msg != "" {
-			return "", nil, fmt.Errorf("Z.ai: %s", r.Msg)
-		}
-		return "", nil, errors.New("Z.ai returned no plan")
+	q, err := zai.ParseQuota(b)
+	if err != nil {
+		return "", nil, err
 	}
 	out := []Window{}
-	for _, lim := range r.Data.Limits {
-		w := Window{UsedPercent: lim.Percentage}
-		if lim.NextResetTime > 0 {
-			w.ResetsAt = ptr(time.UnixMilli(lim.NextResetTime).UTC())
-		}
-		switch {
-		case strings.EqualFold(lim.Type, "TIME_LIMIT"):
-			w.Name, w.Aside = "MCP tools · month", true
-		case lim.Unit == 3:
-			n := lim.Number
-			if n <= 0 {
-				n = 5
-			}
-			w.Name = fmt.Sprintf("%d hours", n)
-		case lim.Unit == 6:
-			w.Name = "Week"
-		default:
-			w.Name = "Allowance"
+	for _, l := range q.Limits {
+		w := Window{Name: l.Name(), UsedPercent: l.UsedPercent, Aside: l.Kind == "mcp"}
+		if l.NextReset > 0 {
+			w.ResetsAt = ptr(time.UnixMilli(l.NextReset).UTC())
 		}
 		out = append(out, w)
 	}
-	return planName(r.Data.Level), out, nil
+	return q.Level, out, nil
 }
 
 func planName(s string) string {

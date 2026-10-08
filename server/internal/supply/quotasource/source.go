@@ -25,6 +25,8 @@ type Source struct {
 	store     *quota.Store
 	providers []quota.Provider
 
+	natives *natives
+
 	mu     sync.Mutex
 	conns  []quota.Connection
 	byID   map[domain.ID]quota.Connection
@@ -32,9 +34,14 @@ type Source struct {
 	at     time.Time
 }
 
-// New reads with providers (quota.Providers() in production).
-func New(local quota.Local, store *quota.Store, providers []quota.Provider) *Source {
-	return &Source{local: local, store: store, providers: providers,
+// New reads with providers (quota.Providers() in production); a provider
+// with a native module is read through that module instead of its reader.
+func New(local quota.Local, store *quota.Store, providers []quota.Provider, native ...Native) *Source {
+	n := &natives{byProvider: map[string]Native{}, models: map[string]cachedModels{}}
+	for _, x := range native {
+		n.byProvider[x.Module.ID] = x
+	}
+	return &Source{local: local, store: store, providers: providers, natives: n,
 		byID: map[domain.ID]quota.Connection{}, latest: map[string]quota.Account{}}
 }
 
@@ -70,15 +77,24 @@ func (s *Source) Collect(ctx context.Context, cred supply.Credential) supply.Res
 	if !ok {
 		return supply.Result{Outcome: supply.OutcomeError, Detail: "connection vanished before it was read"}
 	}
+	if nat, ok := s.natives.of(c.Provider); ok {
+		a, r := s.natives.collect(ctx, s.providers, c, s.local.Now(), nat)
+		s.keep(c, a)
+		return r
+	}
 	a := quota.Read(ctx, s.providers, s.local, c)
 	if err := quota.KeepRenewed(s.store, c, &a); err != nil {
 		a.Status, a.Message = quota.StatusError, "Couldn't save the renewed sign-in: "+err.Error()
 	}
+	s.keep(c, a)
+	return result(a)
+}
+
+func (s *Source) keep(c quota.Connection, a quota.Account) {
 	s.mu.Lock()
 	s.latest[c.ID] = a
 	s.at = s.local.Now().UTC()
 	s.mu.Unlock()
-	return result(a)
 }
 
 // result is what a reading tells the scheduler.

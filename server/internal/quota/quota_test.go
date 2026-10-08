@@ -163,6 +163,10 @@ func TestZAIRefusedKeyAndKeyWithoutPlan(t *testing.T) {
 			_, _ = w.Write([]byte(`{"success":true,"data":{"level":"","limits":[]}}`))
 			return
 		}
+		if r.Header.Get("Authorization") == "expired" { // Z.ai's real refusal: HTTP 200
+			_, _ = w.Write([]byte(`{"code":401,"msg":"token expired or incorrect","success":false}`))
+			return
+		}
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer srv.Close()
@@ -171,6 +175,9 @@ func TestZAIRefusedKeyAndKeyWithoutPlan(t *testing.T) {
 	a := readZAI(context.Background(), l, Connection{Values: map[string]string{"apiKey": "bad", "region": "global"}})
 	if a.Status != StatusSignedOut {
 		t.Fatalf("account = %+v", a)
+	}
+	if a := readZAI(context.Background(), l, Connection{Values: map[string]string{"apiKey": "expired", "region": "global"}}); a.Status != StatusSignedOut {
+		t.Fatalf("refused in the body: %+v", a)
 	}
 	a = readZAI(context.Background(), l, Connection{Values: map[string]string{"apiKey": "payg", "region": "global"}})
 	if a.Status != StatusOK || a.Kind != KindAPI || a.Message == "" {

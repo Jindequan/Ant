@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Bailian's CLI gateway: the endpoint the official CLI reads with a console
@@ -233,7 +235,7 @@ func readFreeQuotaList(ctx context.Context, g bailianAPI, now time.Time) ([]Wind
 		}
 		media := capsMedia(caps[q.Model])
 		if media == "text" { // capabilities that don't say: the name may
-			media = modelMedia(q.Model, "")
+			media = catalog.ModelMedia(q.Model, "")
 		}
 		w := Window{Name: q.Model, Model: q.Model, Media: media, Left: ptr(float64(q.QuotaTotal)), Limit: ptr(float64(q.QuotaInitTotal)), Unit: freeQuotaUnit(caps[q.Model]), Expires: true}
 		if q.QuotaValidityPeriod > 0 {

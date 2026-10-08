@@ -219,3 +219,15 @@ func base(p Provider, m Mode, c Connection, now time.Time) Account {
 		Label: c.Label, Origin: c.Origin, Source: c.Source, Link: p.Link, ReadAt: now, Live: m.Live,
 	}
 }
+
+// NewAccount is the card for connection c before anything is read: its
+// provider's and mode's names, kind, link and where it was found. Provider
+// modules (design 12) fill in what they read.
+func NewAccount(providers []Provider, c Connection, now time.Time) Account {
+	p, ok := providerByID(providers, c.Provider)
+	if !ok {
+		return Account{ID: c.ID, Provider: c.Provider, Name: c.Provider, Origin: c.Origin, Source: c.Source, Label: c.Label, ReadAt: now}
+	}
+	m, _ := p.mode(c.Mode)
+	return base(p, m.withWay(c.Way), c, now)
+}

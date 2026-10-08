@@ -18,6 +18,13 @@ type Inventory struct {
 	Identity    string
 	DisplayName string
 	Packages    []PackageReading
+	// DisplayGroup puts readings of one provider account on one card when
+	// the provider reports no identity but the readings show it (Z.ai keys
+	// of one plan read the same windows). Display only: the store never
+	// merges accounts on it (design 11 §2.6).
+	DisplayGroup string
+	// Note is what the user should know about this read, in a sentence.
+	Note string
 }
 
 type PackageReading struct {
@@ -29,12 +36,17 @@ type PackageReading struct {
 	RenewsAt    *domain.Millis
 	EndsAt      *domain.Millis
 	AutoRenew   *bool
-	Resources   []ResourceReading
+	// Usable: whether the provider accepts calls on this package now (a
+	// balance too low to call is false); nil when it doesn't say.
+	Usable    *bool
+	Resources []ResourceReading
 }
 
 // ResourceReading is one meter and, for an observed package, its value now.
 type ResourceReading struct {
 	TemplateRef       string
+	Label             string // as the user sees it: "5 hours", "Week", "Balance"
+	Aside             bool   // used up, it doesn't stop the models (Z.ai's MCP calls)
 	MetricID          domain.ID
 	Unit              string
 	QuantumExp        int
