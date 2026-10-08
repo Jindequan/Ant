@@ -13,8 +13,8 @@ import (
 )
 
 // DemoSource feeds the real engine with the sample accounts of the
-// providers that have modules (Z.ai, DeepSeek), so demo mode shows the real
-// route preview without reading anything. Each sample account's meters and
+// providers that have modules (Z.ai, DeepSeek, Kimi), so demo mode shows
+// the real route preview without reading anything. Each sample account's meters and
 // models become an inventory and offers the way a module's would.
 type DemoSource struct {
 	Now       func() time.Time

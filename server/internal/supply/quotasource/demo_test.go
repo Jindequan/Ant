@@ -15,6 +15,8 @@ func demoSource() DemoSource {
 	return DemoSource{Now: time.Now, Endpoints: map[string]catalog.Endpoint{
 		"zai":      {Base: "https://api.z.ai/api/coding/paas/v4", Protocol: "openai-chat"},
 		"deepseek": {Base: "https://api.deepseek.com", Protocol: "openai-chat"},
+		// a module with several products: the sample is Kimi Code's endpoint
+		"kimi": {Base: "https://api.kimi.com/coding/v1", Protocol: "openai-chat", Product: "code"},
 	}}
 }
 
@@ -34,11 +36,11 @@ func TestDemoSourceHasNoNetwork(t *testing.T) {
 func TestDemoSourceSamplesProvidersWithEndpoints(t *testing.T) {
 	d := demoSource()
 	creds, err := d.Discover(context.Background())
-	if err != nil || len(creds) != 2 {
+	if err != nil || len(creds) != 3 {
 		t.Fatalf("credentials = %+v %v", creds, err)
 	}
 	for _, c := range creds {
-		if c.Origin != supply.OriginFound || (c.ProviderID != "zai" && c.ProviderID != "deepseek") {
+		if c.Origin != supply.OriginFound || (c.ProviderID != "zai" && c.ProviderID != "deepseek" && c.ProviderID != "kimi") {
 			t.Fatalf("credential = %+v", c)
 		}
 		r := d.Collect(context.Background(), c)

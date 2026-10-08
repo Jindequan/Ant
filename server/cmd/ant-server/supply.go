@@ -16,6 +16,7 @@ import (
 	"ant/server/internal/domain"
 	"ant/server/internal/providers/catalog"
 	"ant/server/internal/providers/deepseek"
+	"ant/server/internal/providers/kimi"
 	"ant/server/internal/providers/zai"
 	"ant/server/internal/quota"
 	"ant/server/internal/security"
@@ -40,10 +41,11 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	local := quota.DefaultLocal()
 	if demo {
 		// sample accounts, additions kept in memory; the real engine runs the
-		// route preview over the sample Z.ai and DeepSeek accounts, in its own
+		// route preview over the sample Z.ai, DeepSeek and Kimi accounts, in its own
 		// namespace, reading nothing
 		src := quotasource.DemoSource{Now: time.Now, Endpoints: map[string]catalog.Endpoint{
-			"zai": zai.Module(zai.DefaultBase).Supply.Endpoints[0], "deepseek": deepseek.SupplyModule(deepseek.DefaultBase).Supply.Endpoints[0]}}
+			"zai": zai.Module(zai.DefaultBase).Supply.Endpoints[0], "deepseek": deepseek.SupplyModule(deepseek.DefaultBase).Supply.Endpoints[0],
+			"kimi": kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase).Supply.Endpoints[0]}} // the sample is Kimi Code
 		engine := supply.NewEngine("demo", st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply-demo"))
 		return quota.NewService(local, quota.NewStore(""), quota.Options{Demo: true, Router: quotasource.Routes{Engine: engine, Name: src.Name}}), engine, nil
 	}
@@ -71,7 +73,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 // 12), each with a Fetch limited to the origins it declares.
 func providerModules() ([]quotasource.Native, error) {
 	var out []quotasource.Native
-	for _, m := range []catalog.Module{zai.Module(zai.DefaultBase), deepseek.SupplyModule(deepseek.DefaultBase)} {
+	for _, m := range []catalog.Module{zai.Module(zai.DefaultBase), deepseek.SupplyModule(deepseek.DefaultBase), kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase)} {
 		fetch, err := transport.NewObservationFetch(m.Supply.Origins, nil)
 		if err != nil {
 			return nil, fmt.Errorf("provider module %s: %w", m.ID, err)

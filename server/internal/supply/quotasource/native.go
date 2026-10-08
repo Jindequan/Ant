@@ -144,7 +144,7 @@ func scaledPtr(u *domain.Units, exp int) *float64 {
 func balanceOf(r observed.ResourceReading) quota.Balance {
 	b := quota.Balance{Currency: r.Currency}
 	if r.Remaining != nil {
-		b.Amount = supply.Decimal(*r.Remaining, r.QuantumExp)
+		b.Amount = supply.Money(*r.Remaining, r.QuantumExp)
 	}
 	var ev struct {
 		Granted  string `json:"granted"`

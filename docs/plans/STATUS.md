@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 design 13 step A3: the server reads Kimi through its module and demo samples Kimi Code. End-to-end on TLS fakes: Kimi Code + both Moonshot platforms → cards, stored facts at their quanta, offers per product and platform (a key never reaches the other platform), route previews for `kimi-for-coding` and `kimi-k3`. Card balances are written as money (`49.58894`, not `49.588940`). Core diff since A1: empty. Gates pass.
+
 2026-10-08 design 13 step A2: `providers/kimi` — Kimi Code windows (observed usages) and the Moonshot balance per platform (CNY on .cn, USD on .ai), exact to every reported digit, arrears and used-up noted, endpoints per product and region. Quota's Kimi readers call the module's parsers over the same fixtures (mutation-checked); `catalog.ParseDecimal` and `catalog.WindowName` are shared. **M-3 widened:** a second test, `TestReorderPoolUpdatesLiveAndCompiledPriorityAtomically`, failed once with the same store budget timeout under gate load and passed 10/10 alone — the follow-up is the store write budget under load, not one test. Gates pass.
 
 2026-10-08 design 13 step A1: the module contract knows products and regions — `catalog.Session.Product` (the connection's mode) and optional `Product`/`Region` selectors on endpoints, so one module can hold Kimi Code and the Moonshot platform (CNY/USD regions). Module layer only; Z.ai and DeepSeek unchanged. Gates pass. This commit is the base of the Kimi acceptance range (design 13 §1).

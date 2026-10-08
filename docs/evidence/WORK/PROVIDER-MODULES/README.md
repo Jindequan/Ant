@@ -150,3 +150,28 @@ command exceeded budget: context deadline exceeded", the same store write budget
 `-race` load as the ledger test in M-3. Nothing in A2 touches the application, config or store
 packages. Re-run alone with `-race -count=10`: 10/10 pass; full gates re-run from the start before
 committing. Added to the M-3 follow-up: the store budget under gate load, not one test.
+
+**A3 — wiring.** The server reads Kimi through its module (`providerModules`, a Fetch limited to
+its three origins); demo samples Kimi Code with the module's endpoint. End-to-end test
+`TestNativeModuleReadsKimi` (TLS fakes; the quota readers' own client reaches nothing, so a card
+can only be OK through the module): a Kimi Code key from the environment, a China-platform key from
+the environment, an international-platform key from OpenCode's `auth.json` →
+
+- three cards: Kimi Code windows 5 hours / Week at 25 % used; `49.58894 CNY` (vouchers
+  `46.58893`, cash `3.00001`); `2.50 USD` with cash `-1.25` and the note "Cash is in arrears:
+  -1.25 USD.";
+- each key read at its own platform only (the test fails if a key reaches the other one);
+- stored: three accounts; `window/short` at 7500 (percent ×100); `balance/cny` 49588940 and
+  `balance/usd` 2500000 at quantum −6;
+- offers: `kimi-for-coding` at `…/coding/v1` drawing the plan's windows; `kimi-k3` once per
+  platform, each drawing only its own currency;
+- `GET /api/route?model=kimi-for-coding` → the plan, "5 hours 75% left, Week 75% left";
+  `?model=Kimi-K3` → both balances as prepaid, "Prepaid: 49.58894 CNY left" and "Prepaid: 2.50
+  USD left".
+
+Found while building: the card showed balances at the reading's quantum ("49.588940"); the
+adapter now writes them with `supply.Money`, as the preview does. An added key is recorded only
+once sealed in the vault (its secret row is a foreign key), so the test finds the international
+key in OpenCode rather than faking a vault; the add path keeps its own vault tests.
+
+Acceptance check so far: `git diff --stat 15bb7c3 -- <core paths>` → empty.
