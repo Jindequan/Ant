@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Agents, search and voice services with free or plan allowances. Each
@@ -367,7 +369,7 @@ func readElevenLabs(ctx context.Context, l Local, c Connection) Account {
 		a.Status, a.Message = StatusError, "ElevenLabs answered something Ant doesn't understand."
 		return a
 	}
-	a.Plan = planName(strings.ReplaceAll(r.Tier, "_", " "))
+	a.Plan = catalog.PlanName(strings.ReplaceAll(r.Tier, "_", " "))
 	if r.Tier != "" && r.Tier != "free" {
 		a.Kind = KindSubscription
 	}

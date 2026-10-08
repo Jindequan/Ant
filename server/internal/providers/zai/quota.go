@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // ErrKeyRefused: the endpoint refused the key. Z.ai says so in the body of
@@ -68,7 +70,7 @@ func ParseQuota(b []byte) (Quota, error) {
 		}
 		return Quota{}, errors.New("Z.ai returned no plan")
 	}
-	q := Quota{Level: capitalize(r.Data.Level), Limits: []Limit{}}
+	q := Quota{Level: catalog.PlanName(r.Data.Level), Limits: []Limit{}}
 	for _, lim := range r.Data.Limits {
 		l := Limit{UsedPercent: lim.Percentage, NextReset: max(lim.NextResetTime, 0)}
 		switch {
@@ -100,12 +102,4 @@ func (l Limit) Name() string {
 		return "Week"
 	}
 	return "Allowance"
-}
-
-func capitalize(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return ""
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }

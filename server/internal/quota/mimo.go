@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Xiaomi MiMo's open platform (platform.xiaomimimo.com). Its Token Plan
@@ -154,7 +156,7 @@ func readMiMoPlan(ctx context.Context, l Local, c Connection) Account {
 	if t, err := time.ParseInLocation("2006-01-02 15:04:05", strings.TrimSpace(detail.CurrentPeriodEnd), mimoZone); err == nil {
 		ends = ptr(t.UTC())
 	}
-	a.Status, a.Plan, a.EndsAt = StatusOK, planName(detail.PlanCode), ends
+	a.Status, a.Plan, a.EndsAt = StatusOK, catalog.PlanName(detail.PlanCode), ends
 	for _, it := range items {
 		name := map[string]string{"month_total_token": "Plan credits", "plan_total_token": "Plan credits", "compensation_total_token": "Compensation credits"}[it.Name]
 		if name == "" {

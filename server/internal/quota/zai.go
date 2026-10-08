@@ -135,11 +135,3 @@ func parseZAIQuota(b []byte) (string, []Window, error) {
 	}
 	return q.Level, out, nil
 }
-
-func planName(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return ""
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
-}

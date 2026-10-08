@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 housekeeping step 4 (L3, L4): one plan-name helper (`catalog.PlanName`) replaces Z.ai's `capitalize` and quota's `planName`; Z.ai's model list refuses an empty key like its plan read does, and a test shows no request goes out without a key. Gates pass.
+
 2026-10-08 housekeeping step 3 (M-4, L7): the preview's freshness note now says what it measures — "last checked 2h ago", from the last successful read. **Pushback on M-4's suggested fix, with evidence:** readings are stored only on change, so a reading's `observed_at` is when its value last changed; ageing on it would mark a balance confirmed a minute ago as hours old. The data was right, the words weren't (design 12 §5 records why). Exclusion reasons follow design 12 §5's order across all of a route's meters (used up → too low to call → declared), with a test that fails on the old order. Gates pass.
 
 2026-10-08 housekeeping step 2 (M-2): fixture parity is mechanical — the shared Z.ai and DeepSeek replies live once in `internal/providers/*/testdata` and every test reads them (module, quota reader, supply adapter). Verified by changing one value in the plan file: the module, quota and end-to-end tests all failed together; restored. Gates pass.

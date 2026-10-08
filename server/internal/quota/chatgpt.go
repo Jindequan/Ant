@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // ChatGPT's plan is read through the sign-in Codex keeps in
@@ -73,7 +75,7 @@ func readChatGPT(ctx context.Context, l Local, c Connection) Account {
 	}
 	id := jwtClaims(auth.Tokens.IDToken)
 	a.User = claimString(id, "email")
-	a.Plan = planName(claimString(id, "https://api.openai.com/auth", "chatgpt_plan_type"))
+	a.Plan = catalog.PlanName(claimString(id, "https://api.openai.com/auth", "chatgpt_plan_type"))
 	if t, err := time.Parse(time.RFC3339, claimString(id, "https://api.openai.com/auth", "chatgpt_subscription_active_until")); err == nil && t.After(now) {
 		a.RenewsAt = ptr(t.UTC())
 	}
@@ -198,7 +200,7 @@ func parseChatGPTUsage(b []byte, now time.Time) (string, []Window, []Balance, er
 			balances = append(balances, Balance{Currency: "credits", Amount: strings.TrimSpace(c.Balance)})
 		}
 	}
-	return planName(u.PlanType), windows, balances, nil
+	return catalog.PlanName(u.PlanType), windows, balances, nil
 }
 
 func spanName(secs int64) string {

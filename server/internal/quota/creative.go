@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Image and video sites with free allowances. Each reads its own account
@@ -176,7 +178,7 @@ func leonardoTime(s string) *time.Time {
 
 // fillLeonardo shows a user_details row: the plan's tokens first.
 func fillLeonardo(d leonardoDetails, a *Account, api bool) {
-	a.Plan = planName(strings.ToLower(d.Plan))
+	a.Plan = catalog.PlanName(strings.ToLower(d.Plan))
 	if d.Plan != "" && !strings.EqualFold(d.Plan, "FREE") {
 		a.Kind = KindSubscription
 	}
@@ -422,7 +424,7 @@ func parseSDWebUser(b []byte, a *Account) error {
 	if u == nil {
 		return errWebSignedOut
 	}
-	a.User, a.Plan = u.Email, planName(strings.ToLower(u.Plan))
+	a.User, a.Plan = u.Email, catalog.PlanName(strings.ToLower(u.Plan))
 	if u.Plan != "" && !strings.EqualFold(u.Plan, "FREE") {
 		a.Kind = KindSubscription
 	}

@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Claude (Pro / Max) subscription windows, read three ways, easiest first:
@@ -295,7 +297,7 @@ func readClaudeOAuth(ctx context.Context, l Local, c Connection) Account {
 			a.Status, a.Message = StatusSignedOut, "Claude Code is signed out. Run claude and /login."
 			return a
 		}
-		token, a.Plan = cr.OAuth.AccessToken, planName(cr.OAuth.SubscriptionType)
+		token, a.Plan = cr.OAuth.AccessToken, catalog.PlanName(cr.OAuth.SubscriptionType)
 		if cr.OAuth.ExpiresAt > 0 && time.UnixMilli(cr.OAuth.ExpiresAt).Before(l.Now()) {
 			a.Status, a.Message = StatusSignedOut, "Claude Code's sign-in has expired. Open Claude Code once and it renews it."
 			return a

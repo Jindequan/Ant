@@ -137,3 +137,13 @@ func Offers(s *Supply, models []observed.UpstreamModel) []observed.Offer {
 	}
 	return out
 }
+
+// PlanName is a provider's plan or level as people read it: trimmed, first
+// letter upper-case ("pro" is "Pro").
+func PlanName(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // Alibaba Cloud Bailian (百炼). Everything Bailian shows on its Token Plan
@@ -392,7 +394,7 @@ func readTokenPlan(ctx context.Context, l Local, c Connection) Account {
 		return a
 	}
 	a.Identity = sub.InstanceCode
-	a.Plan = planName(sub.SpecCode)
+	a.Plan = catalog.PlanName(sub.SpecCode)
 	a.AutoRenew = sub.AutoRenewFlag
 	if sub.EndTime > 0 {
 		end := time.UnixMilli(sub.EndTime).UTC()

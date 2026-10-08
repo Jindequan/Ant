@@ -68,3 +68,11 @@ func TestModelIDNormalizesOnlyCaseAndVendorPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanName(t *testing.T) {
+	for in, want := range map[string]string{"pro": "Pro", "  max ": "Max", "": "", "Lite": "Lite"} {
+		if got := catalog.PlanName(in); got != want {
+			t.Errorf("PlanName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

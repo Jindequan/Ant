@@ -99,3 +99,18 @@ func TestModels(t *testing.T) {
 		t.Fatalf("models = %+v %v (auth %q)", ms, err, *auth)
 	}
 }
+
+func TestNoKeyIsSignedOutAndSendsNothing(t *testing.T) {
+	_, m, fetch, auth := server(t)
+	*auth = "untouched"
+	empty := catalog.Session{Values: map[string]string{"apiKey": "  "}}
+	if _, err := m.Supply.Collector.Inventory(context.Background(), empty, fetch); !errors.Is(err, catalog.ErrSignedOut) {
+		t.Fatalf("inventory: %v", err)
+	}
+	if _, err := m.Supply.Collector.Models(context.Background(), empty, fetch); !errors.Is(err, catalog.ErrSignedOut) {
+		t.Fatalf("models: %v", err)
+	}
+	if *auth != "untouched" {
+		t.Fatalf("a request went out without a key (Authorization %q)", *auth)
+	}
+}

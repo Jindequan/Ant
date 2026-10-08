@@ -103,8 +103,12 @@ func inventory(q Quota) observed.Inventory {
 
 // Models are what the plan's coding endpoint serves.
 func (c collector) Models(ctx context.Context, s catalog.Session, fetch observed.Fetch) ([]observed.UpstreamModel, error) {
+	key := strings.TrimSpace(s.Values["apiKey"])
+	if key == "" {
+		return nil, fmt.Errorf("%w: Add the plan's API key.", catalog.ErrSignedOut)
+	}
 	res, err := fetch(ctx, observed.Request{URL: c.base + "/api/coding/paas/v4/models",
-		Header: map[string]string{"Authorization": "Bearer " + strings.TrimSpace(s.Values["apiKey"]), "Accept": "application/json"}})
+		Header: map[string]string{"Authorization": "Bearer " + key, "Accept": "application/json"}})
 	if err != nil {
 		return nil, err
 	}

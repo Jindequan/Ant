@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/catalog"
 )
 
 // GitHub Copilot's monthly allowances (premium requests, chat,
@@ -310,7 +312,7 @@ func parseCopilotUser(b []byte, a *Account) error {
 	}
 	a.Plan = map[string]string{"individual": "Pro", "individual_pro": "Pro+", "business": "Business", "enterprise": "Enterprise", "free": "Free"}[r.Plan]
 	if a.Plan == "" {
-		a.Plan = planName(r.Plan)
+		a.Plan = catalog.PlanName(r.Plan)
 	}
 	if strings.EqualFold(r.Plan, "free") || strings.Contains(r.SKU, "free") {
 		a.Kind = KindFree
