@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"ant/server/internal/domain/observed"
@@ -12,11 +14,14 @@ import (
 	"ant/server/internal/transport"
 )
 
-// planFixture is the reply quota's Z.ai tests read (fixture parity).
-const planFixture = `{"success":true,"data":{"level":"pro","limits":[
-	{"type":"TOKENS_LIMIT","unit":3,"number":5,"percentage":12,"nextResetTime":1791400000000},
-	{"type":"TOKENS_LIMIT","unit":6,"number":1,"percentage":40,"nextResetTime":1791900000000},
-	{"type":"TIME_LIMIT","unit":5,"number":1,"percentage":3,"nextResetTime":1792000000000}]}}`
+func fixture(t *testing.T, name string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
 
 func server(t *testing.T) (*httptest.Server, catalog.Module, observed.Fetch, *string) {
 	t.Helper()
@@ -27,12 +32,12 @@ func server(t *testing.T) (*httptest.Server, catalog.Module, observed.Fetch, *st
 		case r.URL.Path == "/api/coding/paas/v4/models":
 			_, _ = w.Write([]byte(`{"data":[{"id":"glm-5.3"},{"id":"glm-5.3-air"}]}`))
 		case auth == "payg":
-			_, _ = w.Write([]byte(`{"success":true,"data":{"level":"","limits":[]}}`))
+			_, _ = w.Write(fixture(t, "no-plan.json"))
 		case auth == "expired":
 			// what Z.ai really answers a bad key (2026-10-08): HTTP 200
-			_, _ = w.Write([]byte(`{"code":401,"msg":"token expired or incorrect","success":false}`))
+			_, _ = w.Write(fixture(t, "refused.json"))
 		case auth == "abc.secret":
-			_, _ = w.Write([]byte(planFixture))
+			_, _ = w.Write(fixture(t, "plan.json"))
 		default:
 			w.WriteHeader(http.StatusUnauthorized)
 		}

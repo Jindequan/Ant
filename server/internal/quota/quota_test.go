@@ -113,10 +113,7 @@ func TestZAIReadsPlanWindows(t *testing.T) {
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
-		_, _ = w.Write([]byte(`{"success":true,"data":{"level":"pro","limits":[
-			{"type":"TOKENS_LIMIT","unit":3,"number":5,"percentage":12,"nextResetTime":1791400000000},
-			{"type":"TOKENS_LIMIT","unit":6,"number":1,"percentage":40,"nextResetTime":1791900000000},
-			{"type":"TIME_LIMIT","unit":5,"number":1,"percentage":3,"nextResetTime":1792000000000}]}}`))
+		_, _ = w.Write(fixture(t, "../providers/zai/testdata/plan.json"))
 	}))
 	defer srv.Close()
 	l := testLocal(t, nil)
@@ -160,11 +157,11 @@ func TestTwoZAIKeysOfOnePlanAreOneAccount(t *testing.T) {
 func TestZAIRefusedKeyAndKeyWithoutPlan(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") == "payg" {
-			_, _ = w.Write([]byte(`{"success":true,"data":{"level":"","limits":[]}}`))
+			_, _ = w.Write(fixture(t, "../providers/zai/testdata/no-plan.json"))
 			return
 		}
 		if r.Header.Get("Authorization") == "expired" { // Z.ai's real refusal: HTTP 200
-			_, _ = w.Write([]byte(`{"code":401,"msg":"token expired or incorrect","success":false}`))
+			_, _ = w.Write(fixture(t, "../providers/zai/testdata/refused.json"))
 			return
 		}
 		w.WriteHeader(http.StatusUnauthorized)
@@ -241,7 +238,7 @@ func TestDeepSeekFoundInZCodeReadsBalance(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_, _ = w.Write([]byte(`{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"23.40","granted_balance":"10.00","topped_up_balance":"13.40"}]}`))
+		_, _ = w.Write(fixture(t, "../providers/deepseek/testdata/balance.json"))
 	}))
 	defer srv.Close()
 	l := testLocal(t, nil)
@@ -607,4 +604,15 @@ func TestTheOldBailianAccountBecomesItsInstances(t *testing.T) {
 	if len(out) != 4 || modes["token-plan"] != "s" || modes["free-quota"] != "s" || modes["payg"] != "newer" || modes["console"] != "" {
 		t.Fatalf("migrated = %+v", out)
 	}
+}
+
+// fixture reads a canonical provider reply, shared with the provider
+// modules' own tests (one file, not copies).
+func fixture(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

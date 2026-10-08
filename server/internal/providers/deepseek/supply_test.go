@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -12,16 +14,13 @@ import (
 	"ant/server/internal/transport"
 )
 
-// The reply quota's DeepSeek test reads (fixture parity).
-const balanceFixture = `{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"23.40","granted_balance":"10.00","topped_up_balance":"13.40"}]}`
-
 func TestSupplyInventoryAndModels(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Header.Get("Authorization") != "Bearer sk-test":
 			w.WriteHeader(http.StatusUnauthorized)
 		case r.URL.Path == "/user/balance":
-			_, _ = w.Write([]byte(balanceFixture))
+			_, _ = w.Write(balanceFixture(t))
 		case r.URL.Path == "/models":
 			_, _ = w.Write([]byte(`{"object":"list","data":[{"id":"deepseek-v4"},{"id":"deepseek-v4-pro"}]}`))
 		}
@@ -66,4 +65,15 @@ func TestSupplyBalanceTooLowToCall(t *testing.T) {
 	if err != nil || *inv.Packages[0].Usable || inv.Note == "" || inv.Packages[0].Resources[0].TemplateRef != "balance/usd" {
 		t.Fatalf("inventory = %+v %v", inv, err)
 	}
+}
+
+// balanceFixture is the canonical balance reply, shared with quota's and
+// the supply adapter's tests.
+func balanceFixture(t *testing.T) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("testdata", "balance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

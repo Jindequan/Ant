@@ -28,9 +28,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 			_, _ = w.Write([]byte(`{"data":[{"id":"glm-5.3"}]}`))
 			return
 		}
-		_, _ = w.Write([]byte(`{"success":true,"data":{"level":"pro","limits":[
-			{"type":"TOKENS_LIMIT","unit":3,"number":5,"percentage":12,"nextResetTime":1791400000000},
-			{"type":"TOKENS_LIMIT","unit":6,"number":1,"percentage":40,"nextResetTime":1791900000000}]}}`))
+		_, _ = w.Write(fixture(t, "../../providers/zai/testdata/plan.json"))
 	}))
 	defer zaiSrv.Close()
 	dsSrv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +36,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 			_, _ = w.Write([]byte(`{"data":[{"id":"deepseek-v4"}]}`))
 			return
 		}
-		_, _ = w.Write([]byte(`{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"23.40","granted_balance":"10.00","topped_up_balance":"13.40"}]}`))
+		_, _ = w.Write(fixture(t, "../../providers/deepseek/testdata/balance.json"))
 	}))
 	defer dsSrv.Close()
 
@@ -84,7 +82,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	if len(snap.Accounts) != 2 || z == nil || d == nil {
 		t.Fatalf("cards = %+v", snap.Accounts)
 	}
-	if z.Status != quota.StatusOK || z.Plan != "Pro" || len(z.Windows) != 2 || *z.Windows[0].UsedPercent != 12 || z.Windows[0].Name != "5 hours" ||
+	if z.Status != quota.StatusOK || z.Plan != "Pro" || len(z.Windows) != 3 || *z.Windows[0].UsedPercent != 12 || z.Windows[0].Name != "5 hours" || !z.Windows[2].Aside ||
 		len(z.Keys) != 2 || len(z.Models) != 1 || z.Models[0].ID != "glm-5.3" {
 		t.Fatalf("Z.ai card = %+v", z)
 	}

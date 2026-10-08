@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -91,7 +92,7 @@ func TestThePageShowsWhatTheEngineRead(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_, _ = w.Write([]byte(`{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"23.40","granted_balance":"10.00","topped_up_balance":"13.40"}]}`))
+		_, _ = w.Write(fixture(t, "../../providers/deepseek/testdata/balance.json"))
 	}))
 	defer srv.Close()
 	env := map[string]string{"DEEPSEEK_API_KEY": "sk-test"}
@@ -149,4 +150,14 @@ func TestThePageShowsWhatTheEngineRead(t *testing.T) {
 	if err != nil || remaining != 23_400_000 || kind != "prepaid" || !strings.Contains(evidence, `"granted":"10.00"`) || !strings.HasPrefix(identity, "credential:") {
 		t.Fatalf("reading: %d %s %s %s %v", remaining, evidence, kind, identity, err)
 	}
+}
+
+// fixture reads a canonical provider reply (internal/providers/*/testdata).
+func fixture(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

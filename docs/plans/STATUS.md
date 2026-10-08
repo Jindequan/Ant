@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 housekeeping step 2 (M-2): fixture parity is mechanical — the shared Z.ai and DeepSeek replies live once in `internal/providers/*/testdata` and every test reads them (module, quota reader, supply adapter). Verified by changing one value in the plan file: the module, quota and end-to-end tests all failed together; restored. Gates pass.
+
 2026-10-08 review of design 12 (REVIEW-DESIGN12-SLICE, accepted) — housekeeping step 1: the observation Fetch no longer takes a proxy from the environment (M-1), validates collector headers (L2), constructs its transport explicitly (L1) and treats https :443 as the default origin (L5). **Follow-up item (M-3): `TestPreparationConcurrentCapacityAndSingleConsume` is load-sensitive** — it failed once in a full gate run (store write budget exceeded under concurrent -race load) and passes 10/10 alone; ledger code, untouched by these slices; [evidence](../evidence/WORK/PROVIDER-MODULES/README.md) (gate note, step 6). Open until investigated (a separate task was offered). Gates pass.
 
 2026-10-08 design 12 complete (step 6, the page): the Models view shows the read-only route preview per model (order with reasons, not-used with reasons; uncovered accounts named, never mixed in); the card menu is Edit · Pause/Resume routing · Remove; the Add flow shows each plan rule once; demo mode runs the real engine over sample accounts. Walkthrough recorded; two page bugs found and fixed in it. Stage-1 open items closed. Gates pass. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).
