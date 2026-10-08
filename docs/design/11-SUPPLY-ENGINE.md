@@ -524,7 +524,7 @@ Phase 1's `accounts.json` import:
 
 | Phase | Delivers | Removes |
 |---|---|---|
-| 0. Preconditions | ENG-01 gate green (done 2026-10-08); ENG-03 supply-inventory retirement (`/v1/inventory`, `domain/supply`, table drop — **needs user confirmation**) | — |
+| 0. Preconditions | ENG-01 gate green (done 2026-10-08); ENG-03 supply-inventory retirement (`/v1/inventory`, `domain/supply`, table drop — ruled R7, done 2026-10-08, schema v5) | — |
 | 1. Store | migration with the phase-1 `supply_*` tables; repositories in `store/sqlite`; `accounts.json` import (§5) | `accounts.json` writes |
 | 2. Engine shell | discovery strategies, scheduler, reconciler; an adapter that wraps today's readers and converts `Account` → `Inventory`, so every provider works on day one | `Service.refresh`, `mergeSame`, `hideFailedWays` |
 | 3. Models | `models`, `model_aliases`, `supply_offers`; curated `models.json`; `/v1/supply/models` with ranking | browser-side `routes()` |

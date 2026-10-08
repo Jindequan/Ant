@@ -435,7 +435,7 @@ R21→config drafts/Catalog/Web→A26; R22→ResourceOffer/ResourcePool/shared r
 
 ## 13. Configure resources before consumption (2026-10-07 ruling)
 
-The implemented corrective business model, page contracts and additive SQLite v4 persistence boundary are specified in [SUPPLY-INVENTORY](implementation/SUPPLY-INVENTORY.md), with [local verification evidence](evidence/WORK/SUPPLY-INVENTORY/README.md). Inventory is separate from executable ConfigDocument v1. Admission into execution remains subsequent work; no user acceptance is claimed. The following older editor description is historical and rejected.
+The corrective business model, page contracts and additive SQLite v4 persistence boundary that were implemented are specified in [SUPPLY-INVENTORY](implementation/SUPPLY-INVENTORY.md), with [local verification evidence](evidence/WORK/SUPPLY-INVENTORY/README.md). Inventory is separate from executable ConfigDocument v1. Admission into execution remains subsequent work; no user acceptance is claimed. **Retired 2026-10-08** (ENG-03, ruling R7): the supply inventory API, code and table were removed; schema v5 drops `supply_inventory` and its rows on the next server start. The supply direction is now [design 11](design/11-SUPPLY-ENGINE.md). The following older editor description is historical and rejected.
 
 The delivered editor described below was rejected on 2026-10-07: “what a shit!
 do you know what should you build??” Its technical implementation is historical,
@@ -443,7 +443,7 @@ not accepted business design. Provider accounts must remain distinct from their
 subscriptions and other resource packages. Presets must translate plan/package
 rules into normalized resources and metering definitions; ordinary users must
 not construct the ledger graph by typing internal fields. The historical corrective scope in RESOURCE-CONFIGURATION is superseded by
-the implemented supply inventory above. Existing execution contracts and
+the supply inventory above, itself retired. Existing execution contracts and
 acceptance gates remain applicable.
 
 The user directs resource configuration to precede consumption. The existing

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,7 +103,7 @@ func TestMigrateRejectsFutureSchema(t *testing.T) {
 		t.Fatalf("open future db: %v", err)
 	}
 	execOK(t, future, "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL) STRICT")
-	execOK(t, future, "INSERT INTO schema_migrations(version, applied_at) VALUES(7, 42)")
+	execOK(t, future, fmt.Sprintf("INSERT INTO schema_migrations(version, applied_at) VALUES(%d, 42)", currentSchemaVersion+1))
 	execOK(t, future, "CREATE TABLE future_binary_table(x INTEGER)")
 	if err := future.Close(); err != nil {
 		t.Fatalf("close future db: %v", err)
@@ -129,8 +130,8 @@ func TestMigrateRejectsFutureSchema(t *testing.T) {
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != 1 {
 		t.Fatalf("schema_migrations rows = %d, want 1 (Migrate must not write to a future-version database)", got)
 	}
-	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != 7 {
-		t.Fatalf("max schema version = %d, want 7 (no downgrade, no extra rows)", got)
+	if got := queryInt(t, db, "SELECT MAX(version) FROM schema_migrations"); got != currentSchemaVersion+1 {
+		t.Fatalf("max schema version = %d, want %d (no downgrade, no extra rows)", got, currentSchemaVersion+1)
 	}
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != 2 {
 		t.Fatalf("user tables = %d, want 2 (schema_migrations + future_binary_table; no v1 DDL ran)", got)
@@ -144,14 +145,14 @@ func TestMigrateRejectsFutureVersionOverExistingCurrent(t *testing.T) {
 	st, path := openTestStore(t, testConfig()) // migrated to the current version
 
 	db := openRawDB(t, path)
-	execOK(t, db, "INSERT INTO schema_migrations(version, applied_at) VALUES(7, 1)")
+	execOK(t, db, fmt.Sprintf("INSERT INTO schema_migrations(version, applied_at) VALUES(%d, 1)", currentSchemaVersion+1))
 
 	err := sqlite.Migrate(ctx, st)
 	if err == nil || !strings.Contains(err.Error(), "upgrade required") {
 		t.Fatalf("Migrate over a future-marked database = %v, want an upgrade-required refusal", err)
 	}
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM schema_migrations"); got != currentSchemaVersion+1 {
-		t.Fatalf("schema_migrations rows = %d, want v1..v%d plus v7 (nothing added)", got, currentSchemaVersion)
+		t.Fatalf("schema_migrations rows = %d, want v1..v%d plus one future row (nothing added)", got, currentSchemaVersion)
 	}
 	if got := queryInt(t, db, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"); got != currentTableCount {
 		t.Fatalf("table count = %d, want %d (schema unchanged by the refusal)", got, currentTableCount)

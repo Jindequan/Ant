@@ -13,10 +13,13 @@ in [QUOTA.md](QUOTA.md).
 
 The React console that used to live in `web/` was retired on 2026-10-07 and
 moved to `.archive/2026-10-07-old-frontend/`. The sections below describe its
-configuration workflows. Their server APIs still exist, but `-web-dist` no
-longer exists.
+configuration workflows as history only: `-web-dist` no longer exists, and the
+supply-inventory API they used (`/v1/inventory`) was removed on 2026-10-08.
 
-## Configure subscriptions and resources first
+## Configure subscriptions and resources first (retired)
+
+> **Retired 2026-10-08** (ENG-03, ruling R7): the supply inventory API, code and table were removed; schema v5 drops `supply_inventory` and its rows on the next server start. This section describes the archived React console; nothing in it works against the
+> current server. Current supply design: [design 11](design/11-SUPPLY-ENGINE.md).
 
 Build with `make build`, then bootstrap an administrator once:
 
@@ -57,8 +60,8 @@ provider facts. Provider choices identify accounts; they do not claim verified
 adapters or current plan terms. Live-provider verification and admission into
 executable configuration are the next phase. The inventory does not silently
 convert or activate the previous technical drafts; they remain accessible through
-the advanced execution workspace. SQLite migration v4 adds the inventory table
-without changing existing ledger/config records.
+the advanced execution workspace. SQLite migration v4 added the inventory table
+without changing existing ledger/config records; migration v5 drops it, one-way.
 
 ## Local synthetic execution workspace
 

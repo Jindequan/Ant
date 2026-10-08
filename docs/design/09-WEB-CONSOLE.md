@@ -101,7 +101,7 @@ T2 first walks the real DB → Go API → minimal Web pages → configuration �
 should you build??” The account-as-subscription terminology and raw ID/unit/
 precision forms below describe historical behavior. They cannot supersede §1's
 guided configuration requirement or PRD's requirement that provider presets
-absorb accounting complexity. The corrected flow is now implemented separately in [SUPPLY-INVENTORY](../implementation/SUPPLY-INVENTORY.md), with current page contracts and [local evidence](../evidence/WORK/SUPPLY-INVENTORY/README.md). The description below is retained as historical behavior.
+absorb accounting complexity. The corrected flow was implemented separately (and retired 2026-10-08) in [SUPPLY-INVENTORY](../implementation/SUPPLY-INVENTORY.md), with current page contracts and [local evidence](../evidence/WORK/SUPPLY-INVENTORY/README.md). The description below is retained as historical behavior.
 
 The resource form now lives in `/resources?draft=<id>`. Resources → Configure
 resources creates a draft from the active revision or empty document. An account
@@ -122,7 +122,10 @@ receive saved definitions with no mutation forms. Saved quotas are declarations,
 not balances. Consumption acceptance remains a separate stage.
 
 
-## Current configure-first inventory (2026-10-07 correction)
+## Configure-first inventory (2026-10-07 correction, retired)
+
+> **Retired 2026-10-08** (ENG-03, ruling R7): the supply inventory API, code and table were removed; schema v5 drops `supply_inventory` and its rows on the next server start. The pages below lived in the archived React console.
+
 
 Providers shows named accounts and packages. Resources groups real subscription,
 credit, free and pay-as-you-go packages by account; setup asks account, package,
