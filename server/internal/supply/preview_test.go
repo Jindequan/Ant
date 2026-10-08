@@ -109,7 +109,7 @@ func TestRoutePreview(t *testing.T) {
 	}
 	for id, want := range map[string]string{
 		"lose":       "Use before it's lost: 5 hours 80% left, resets in 2h|",
-		"plan-stale": "Plan: 5 hours 70% left, Week 40% left|reading is 2h old",
+		"plan-stale": "Plan: 5 hours 70% left, Week 40% left|last checked 2h ago",
 		"plan-tight": "Plan: 5 hours 20% left, Week 90% left|",
 		"no-plan":    "Pay-as-you-go: no plan on this key, billed per call|",
 		"used-up":    "5 hours used up · resets in 2h",
@@ -182,5 +182,32 @@ func TestRoutePreviewOrdersBalancesByHowLongTheyLast(t *testing.T) {
 	}
 	if strings.Join(order, " ") != "idle slow fast" || !strings.Contains(p.Eligible[2].Reason, "lasts ~") {
 		t.Fatalf("order %v, reasons %+v", order, p.Eligible)
+	}
+}
+
+// With one drawn meter used up and another only declared, the reason is
+// the used-up one: design 12 §5 orders "used up" before "declared only",
+// whatever order the meters come in.
+func TestRoutePreviewReasonOrderAcrossMeters(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	declared := planWindow("window/week", "Week", 90, 72*hour, now)
+	r := zaiResult("glm-5.3", planWindow("window/short", "5 hours", 0, 2*hour, now), declared)
+	// the week comes from a package the user declared: listed first, never read
+	inv := r.Inventory
+	inv.Packages = []observed.PackageReading{
+		{TemplateRef: "zai/declared", Kind: "subscription", Basis: "declared", Resources: []observed.ResourceReading{declared}},
+		{TemplateRef: "zai/coding-plan", Kind: "subscription", Basis: "observed", Resources: []observed.ResourceReading{planWindow("window/short", "5 hours", 0, 2*hour, now)}},
+	}
+	r.Offers[0].Draws = []string{"window/week", "window/short"} // the declared meter is judged first
+	src.creds = []Credential{found("k")}
+	src.results["k"] = r
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Preview(context.Background(), "glm-5.3")
+	if err != nil || len(p.Excluded) != 1 || p.Excluded[0].Reason != "5 hours used up · resets in 2h" {
+		t.Fatalf("preview = %+v %v", p, err)
 	}
 }

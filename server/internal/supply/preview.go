@@ -187,10 +187,9 @@ func judge(c store.SupplyCredentialRecord, meters []meter, accountPkgs []store.S
 	case c.Status != "ok" || c.AccountID == "":
 		return Candidate{}, "Not read yet"
 	}
+	// design 12 §5's order holds across all the route's meters: used up,
+	// then balance too low to call, then declared only
 	for _, m := range meters {
-		if m.pkg.Basis == "declared" {
-			return Candidate{}, "Only declared, never read"
-		}
 		if left, ok := remaining(m); ok && left <= 0 {
 			why := name(m) + " used up"
 			if m.latest.WindowEnd != nil && *m.latest.WindowEnd > now {
@@ -198,13 +197,23 @@ func judge(c store.SupplyCredentialRecord, meters []meter, accountPkgs []store.S
 			}
 			return Candidate{}, why
 		}
+	}
+	for _, m := range meters {
 		if usable, said := packageUsable(m.pkg); said && !usable {
 			return Candidate{}, "Balance too low to call"
 		}
 	}
+	for _, m := range meters {
+		if m.pkg.Basis == "declared" {
+			return Candidate{}, "Only declared, never read"
+		}
+	}
 	cand := Candidate{fresh: verifiedAt(c)}
+	// Freshness is when Ant last read the account successfully: readings are
+	// stored only when a value changes, so a reading's own time says when it
+	// last changed, not how current it is (design 12 §5).
 	if age := now - verifiedAt(c); age > ms(staleAfter) {
-		cand.Stale = "reading is " + span(time.Duration(age)*time.Millisecond) + " old"
+		cand.Stale = "last checked " + span(time.Duration(age)*time.Millisecond) + " ago"
 	}
 	var windows, balances []meter
 	for _, m := range meters {

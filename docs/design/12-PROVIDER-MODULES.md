@@ -122,8 +122,11 @@ computed by the supply engine from the store; nothing is sent to a provider.
 3. **Prepaid balance** — the balance that lasts longest at its recent pace first;
 4. **Pay-as-you-go** last.
 
-Ties go to the fresher reading. A reading older than 30 minutes stays eligible and is marked
-"reading is 2 h old". Each candidate carries one sentence of why ("Plan · 5 hours 82% left, week
+Ties go to the fresher reading. An account last read successfully more than 30 minutes ago stays
+eligible and is marked "last checked 2h ago". Freshness is the last successful read, not a
+reading's own time: readings are stored only when a value changes, so a reading's time says when
+it last *changed* — a balance unchanged for six hours but confirmed a minute ago is current
+(review M-4, resolved by wording; the data was already right). Each candidate carries one sentence of why ("Plan · 5 hours 82% left, week
 54% left") and the exclusions carry theirs.
 
 ## 6. Pause and resume
