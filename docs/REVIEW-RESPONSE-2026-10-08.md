@@ -101,3 +101,28 @@ Where it is wrong, with evidence:
 Not acted on (user decisions): R1–R8 remain open; the reviewer's ballot is recorded next to each
 proposal in design 11 §8. Archived `node_modules` deletion and putting the tree under git
 (watch 7) await the user.
+
+## 7. Response to REVIEW-PHASE0-PHASE1-2026-10-08
+
+All sixteen findings were re-verified against the tree before acting; every one holds. One addition:
+F-13 was confirmed with `EXPLAIN QUERY PLAN` (the tiebreaker forced `USE TEMP B-TREE FOR LAST TERM
+OF ORDER BY`; without it the index alone serves the query).
+
+History note: F-01 rewrote the two-commit history, so the review's hashes changed —
+`890052b` → `bc97a4e` (baseline without `server/ant-server`, `.gitignore` gains `server/ant-server`
+and `data/`) and `020e965` → `659d18c` (identical tree apart from those two). `.git` 17 MB → 3.1 MB.
+
+| ID | Action | Commit |
+|---|---|---|
+| F-01, F-10 | binary removed from history; ignore entries added | rewritten baseline |
+| F-04, F-09, F-15 | seven live docs put in past tense with the v5 data-loss note; future versions relative; ENG-03 evidence lists every grep match | `Housekeeping: …` |
+| F-02, F-03, F-06, F-07, F-08, F-13, F-14 | see the commit message; v6 amended in place (never applied anywhere) | `Supply store: namespace-bound secrets…` |
+| F-03 decision | (a) schema-enforced: composite FK via a unique index on `secret_refs`; the accepted table's definition is unchanged | same |
+| F-06 decision | per-namespace uniqueness; key value stays globally derived (design 11 §2.2) — a global UNIQUE would also leak cross-tenant existence | same |
+| F-05 | deferred to phase 2 with its first consumer; stated in the evidence README and design §3.3 | `Design 11: …` |
+| F-11, F-12 | reading-order policy (`observed_at` is Ant's clock; out-of-order = skipped, run `ok`) and engine-side size caps in design §3.3 | `Design 11: …` |
+| F-16 | adopted: one commit per planned step from here on (this batch: four) | — |
+
+One thing the fixes surfaced: the v6 index on `secret_refs` also had to be removed by the
+integration tests' rollback helper (`dropSupplyStore`), otherwise simulated v2–v5 databases failed
+to upgrade. Real v2–v5 databases never have that index; the failure was in the fixture only.

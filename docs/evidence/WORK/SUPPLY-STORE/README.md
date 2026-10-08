@@ -19,3 +19,16 @@ Not in this step, by design: the `accounts.json` import (§5). `secret_refs` req
 principal and today's page has none; the import lands with the page's `/v1` session (ruling R8),
 i.e. with phase 2's engine shell. No consumer of the port exists yet; phase 2's reconciler is the
 first.
+
+## Corrections after REVIEW-PHASE0-PHASE1 (2026-10-08)
+
+Commit `Supply store: namespace-bound secrets…` (migration v6 amended in place; it had never been
+applied — both local databases were at v4): composite secret FK `(namespace, secret_ref)`;
+`UNIQUE(namespace, physical_key)`; `template_ref` in the resource identity guard; typed errors for
+UNIQUE/PK/FK and closed runs; no tiebreaker in the latest-reading query (query plan has no temp
+B-tree). New tests: every identity dimension (mutation-checked on `template_ref`), all secret paths
+including cross-namespace and unknown secrets, per-namespace physical keys, typed errors.
+
+**Deliberately not yet available** (phase 2, with the scheduler as first consumer): reading
+collector runs (freshness) and listing packages. The port today reads credentials, resources and
+readings only.

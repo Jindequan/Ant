@@ -108,7 +108,7 @@ The two bridges are explicit and both already exist as ports:
 |---|---|
 | `VerifiedScope{kind: account}` | `supply_accounts` row (provider + provider-reported identity) |
 | `VerifiedScope{kind: shared, aliases}` | **out of scope for V1** (§2.6) |
-| `VerifiedResourceFact.physicalKey` | `supply_resources.physical_key` = hash(provider, account identity, package template, resource template, scope), derived by the server, globally unique |
+| `VerifiedResourceFact.physicalKey` | `supply_resources.physical_key` = hash(provider, account identity, package template, resource template, scope), derived by the server from global inputs (no namespace), so the same physical capacity has the same key everywhere; stored unique **per namespace** (each namespace keeps its own observation, and none learns that another holds the account). Activation's one-ledger rule applies to the key's value. |
 | resource identity | `supply_resources.resource_id` (stable across re-reads) |
 | metric, unit, quantumExp, currency, metered | resource template in the provider module |
 | semanticsRef / semanticsRevision | resource template (§2.3), registered in the provider descriptor |
@@ -178,68 +178,16 @@ on the attempt; it never becomes a supply reading.
 Every table carries `namespace`; secrets live only in the existing namespace-owned
 `secret_records`/`secret_refs`. Tables land with their first use (phase in brackets).
 
-```sql
--- [phase 1]
-CREATE TABLE supply_credentials (
-  namespace TEXT NOT NULL, credential_id TEXT NOT NULL, provider_id TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK(kind IN('api_key','oauth','session','sts','console_token','none')),
-  origin TEXT NOT NULL CHECK(origin IN('found','added')),
-  strategy TEXT NOT NULL,                                    -- file-json, keychain, env, browser, cli-config, …
-  locator_json TEXT NOT NULL CHECK(json_valid(locator_json)), -- where a found secret lives; never the secret
-  secret_ref TEXT,                                            -- added secrets only → secret_records (encrypted)
-  account_id TEXT,                                            -- set once the collector reports an identity
-  status TEXT NOT NULL CHECK(status IN('unverified','ok','signed_out','error','hidden','needs_key')),
-  status_detail TEXT NOT NULL DEFAULT '', verified_at INTEGER, created_at INTEGER NOT NULL,
-  PRIMARY KEY(namespace, credential_id),
-  CHECK((origin='added') = (secret_ref IS NOT NULL) OR kind='none' OR status='needs_key')
-) STRICT;
-CREATE TABLE supply_accounts (           -- = VerifiedScope{kind: account}
-  namespace TEXT NOT NULL, account_id TEXT NOT NULL, provider_id TEXT NOT NULL,
-  provider_identity TEXT NOT NULL,       -- the provider's own id/email, as the collector reported it
-  display_name TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL,
-  PRIMARY KEY(namespace, account_id), UNIQUE(namespace, provider_id, provider_identity)
-) STRICT;
-CREATE TABLE supply_packages (
-  namespace TEXT NOT NULL, package_id TEXT NOT NULL, account_id TEXT NOT NULL,
-  template_ref TEXT NOT NULL,            -- e.g. 'zai.coding-plan'
-  kind TEXT NOT NULL CHECK(kind IN('subscription','prepaid','payg','free_grant','credit_pack')),
-  basis TEXT NOT NULL CHECK(basis IN('observed','declared')),   -- §3.6
-  plan TEXT NOT NULL DEFAULT '', starts_at INTEGER, renews_at INTEGER, ends_at INTEGER,
-  auto_renew INTEGER CHECK(auto_renew IN(0,1)), live INTEGER NOT NULL CHECK(live IN(0,1)),
-  definition_json TEXT NOT NULL CHECK(json_valid(definition_json)), updated_at INTEGER NOT NULL,
-  PRIMARY KEY(namespace, package_id),
-  FOREIGN KEY(namespace, account_id) REFERENCES supply_accounts(namespace, account_id)
-) STRICT;
-CREATE TABLE supply_resources (          -- = VerifiedResourceFact
-  namespace TEXT NOT NULL, resource_id TEXT NOT NULL, physical_key TEXT NOT NULL UNIQUE,
-  package_id TEXT NOT NULL, template_ref TEXT NOT NULL,
-  metric_id TEXT NOT NULL, unit TEXT NOT NULL, quantum_exp INTEGER NOT NULL, currency TEXT NOT NULL DEFAULT '',
-  semantics_ref TEXT NOT NULL, semantics_revision TEXT NOT NULL,       -- §2.3: no role column
-  window_json TEXT NOT NULL CHECK(json_valid(window_json)),           -- domain.WindowRule
-  scope_json TEXT NOT NULL CHECK(json_valid(scope_json)),             -- all | model set | one model
-  updated_at INTEGER NOT NULL,
-  PRIMARY KEY(namespace, resource_id),
-  FOREIGN KEY(namespace, package_id) REFERENCES supply_packages(namespace, package_id)
-) STRICT;
-CREATE TABLE supply_readings (           -- append-only; a row only when the value changes
-  namespace TEXT NOT NULL, reading_id TEXT NOT NULL, resource_id TEXT NOT NULL,
-  observed_at INTEGER NOT NULL, window_start INTEGER, window_end INTEGER,
-  reset_basis TEXT NOT NULL CHECK(reset_basis IN('reported','computed','none')),
-  limit_units INTEGER, used_units INTEGER, remaining_units INTEGER,   -- signed: balances can go negative
-  run_id TEXT NOT NULL, evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json)),
-  PRIMARY KEY(namespace, reading_id),
-  FOREIGN KEY(namespace, resource_id) REFERENCES supply_resources(namespace, resource_id)
-) STRICT;
-CREATE INDEX supply_readings_latest ON supply_readings(namespace, resource_id, observed_at DESC);
-CREATE TRIGGER supply_readings_no_update BEFORE UPDATE ON supply_readings BEGIN SELECT RAISE(ABORT,'append-only'); END;
-CREATE TRIGGER supply_readings_no_delete BEFORE DELETE ON supply_readings BEGIN SELECT RAISE(ABORT,'append-only'); END;
-CREATE TABLE collector_runs (            -- health, backoff, audit, and freshness ("checked, unchanged")
-  namespace TEXT NOT NULL, run_id TEXT NOT NULL, credential_id TEXT NOT NULL,
-  capability TEXT NOT NULL CHECK(capability IN('inventory','models','verify')),
-  started_at INTEGER NOT NULL, finished_at INTEGER, outcome TEXT, detail TEXT,
-  PRIMARY KEY(namespace, run_id)
-) STRICT;
+Phase 1 is implemented; its authoritative schema is
+[`server/migrations/006_supply_store.sql`](../../server/migrations/006_supply_store.sql), not a copy
+here. Beyond this section's original sketch it adds, by review: the composite secret foreign key
+`(namespace, secret_ref)` (a credential can only use its own namespace's secret, via a unique index
+on `secret_refs`), `UNIQUE(namespace, physical_key)`, `UNIQUE(namespace, account_id, template_ref)`
+on packages, a reading→run foreign key, a run outcome/finish pairing CHECK and a window-order
+CHECK. Write errors are typed (`store.ErrSupplyIdentityConflict`, `ErrSupplyMissingReference`,
+`ErrSupplyReadingOutOfOrder`, `ErrCollectorRunNotOpen`).
 
+```sql
 -- [phase 3]
 CREATE TABLE models (model_id TEXT PRIMARY KEY, vendor TEXT NOT NULL, family TEXT NOT NULL,
   media TEXT NOT NULL, context_tokens INTEGER, definition_json TEXT NOT NULL CHECK(json_valid(definition_json))) STRICT;
@@ -388,8 +336,20 @@ the package; no exemption is carried into `supply` or `providers/*`.
   `resources.WindowAt`. A provider-reported reset wins (`reset_basis = reported`); a computed one is
   `computed`.
 - **Semantics guard.** Readings for occupancy or execution-owned templates are rejected (§2.3).
-- **Readings.** Append a `supply_readings` row only when (limit, used, remaining, window) differs
-  from the latest; every run is in `collector_runs`.
+- **Readings.** Append a `supply_readings` row only when (limit, used, remaining, window,
+  reset basis) differs from the latest; every run is in `collector_runs`.
+- **Reading order.** `observed_at` is **Ant's** clock when the read completed, never a
+  provider-reported time (those go into window bounds and evidence), so it only moves backwards if
+  the host clock does. A reading must be strictly newer than the latest for its resource; the store
+  returns `ErrSupplyReadingOutOfOrder` otherwise (same millisecond, older, or a replay). The
+  reconciler treats that as "skipped", not as a failure: the run finishes `ok` with the skip noted
+  in `detail`, and the next run proceeds normally.
+- **Size caps (engine-side, before any write).** `evidence_json` and `definition_json` ≤ 16 KiB
+  (larger provider replies keep only the fields the parser used), `status_detail` and run `detail`
+  ≤ 512 characters. The schema does not cap JSON, consistent with the rest of the store; the
+  writer's command budget is not a size control.
+- **Reads the scheduler needs** (added in phase 2 with their first consumer, not before): latest run
+  per credential and capability (freshness, "checked, unchanged"), and `ListSupplyPackages`.
 - **Models.** Upstream ids resolve through `model_aliases`; unknown ids get a `rule` alias by
   normalization (strip `vendor/`, case, date-suffix rules) or stay unresolved and are shown so.
 
