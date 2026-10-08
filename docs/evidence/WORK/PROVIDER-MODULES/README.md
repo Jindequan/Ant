@@ -70,3 +70,36 @@ with the stale one marked, pay-as-you-go, used up with reset, paused; DeepSeek p
 to call; an unknown model), `…SignedOutAfterReading`, `…OrdersBalancesByHowLongTheyLast`; end to
 end through the page API with both modules: preview, pause both Z.ai keys, preview again, resume;
 the page API without a router. `TestDecimalIsExact` and `TestSpan` moved with the shared helpers.
+
+## Step 6: the page, and the walkthrough
+
+- **Models view:** opening a model shows "What Ant would do" — the accounts in order, each with
+  its class and one sentence, then "Not used" with why — and "A preview: nothing is sent to any
+  model." The row's best account becomes the preview's first choice (the page's own guess and the
+  server's ranking can't disagree on screen). Models no module covers yet say so in one line and
+  keep the accounts' own list; accounts the preview doesn't cover are named as "not in the preview
+  yet", never mixed into the order.
+- **Card menu:** "…" opens Edit · Pause/Resume routing (only on cards that serve models) ·
+  Remove/Hide (with confirmation); a paused card shows "Paused".
+- **Add flow:** the plan rule appears once, on the step where it's chosen.
+- **Demo mode** runs the real engine over the sample Z.ai and DeepSeek accounts (namespace
+  `demo`, nothing read), so the preview is the real one there too.
+
+**Walkthrough** (demo mode, built binary): `glm-5.3` → 1. Z.ai, use first, "Use before it's lost:
+5 hours 82% left, resets in 2h 14m", plus four accounts named as not previewed yet;
+`deepseek-v4` → DeepSeek, prepaid, "Prepaid: 23.40 CNY left"; `kimi-k3` → not covered, one line.
+Card menu on Z.ai: Edit · Pause routing · Hide; Pause → card tagged Paused, preview "Not used:
+Paused by you"; Resume → back. Kling (no models): Edit · Hide only. Escape closes.
+
+**Found and fixed during the walkthrough:**
+1. A sample balance read "23.400000 CNY" (adapter precision); amounts now read as people write
+   them, still exact (`supply.Money`).
+2. The card menu lived inside the card: the page's 30-second refresh destroyed an open menu, and
+   the card's `overflow: hidden` could clip it. It now sits above the page, anchored to its
+   button, reopens after a refresh, and closes when the cards leave the view.
+
+**Gate note (step 6).** One full gate run failed in `tests/integration`:
+`TestPreparationConcurrentCapacityAndSingleConsume` — "store: command exceeded budget: context
+deadline exceeded" (a write budget under concurrent load). This slice doesn't touch the ledger or
+preparation. Re-run alone with `-race -count=10`: 10/10 pass; the full gates were then re-run from
+the start before committing. Recorded as a load-sensitive test in accepted code, not fixed here.

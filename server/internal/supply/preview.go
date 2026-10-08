@@ -267,7 +267,7 @@ func prepaidCandidate(cand Candidate, balances []meter, now domain.Millis) Candi
 	var parts []string
 	for _, m := range balances {
 		left, _ := remaining(m)
-		parts = append(parts, Decimal(left, m.res.QuantumExp)+" "+m.res.Currency)
+		parts = append(parts, Money(left, m.res.QuantumExp)+" "+m.res.Currency)
 		if m.outlook.Kind == OutlookRunsOut && m.outlook.At != nil {
 			lasts := float64(*m.outlook.At - now)
 			cand.score = math.Min(cand.score, lasts)

@@ -104,4 +104,6 @@ yearly CNY price; the tile reads "¥100.00 + $20.00 a month".
   doubled every forecast row on the Timeline (55 rows, no duplicates now).
 
 Still open for a later pass: the final form step still restates the rule; card menu ("…") reviewed
-only as edit.
+only as edit. **Both closed 2026-10-08 in design 12 step 6** (rule shown once; the menu is Edit ·
+Pause/Resume routing · Remove, survives refreshes) — see
+[provider-modules evidence](../PROVIDER-MODULES/README.md).

@@ -264,10 +264,10 @@ function renderCard(a) {
     <article class="card" style="--hue:${HUES[a.provider] ?? 30}">
       <div class="head">
         <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
-        <div class="who"><h3>${esc(a.label || a.name)}</h3><p>${a.label ? `${esc(a.name)} · ` : ""}${sub}</p></div>
+        <div class="who"><h3>${esc(a.label || a.name)}${isPaused(a) ? ' <span class="tag off">Paused</span>' : ""}</h3><p>${a.label ? `${esc(a.name)} · ` : ""}${sub}</p></div>
         <div class="tools">
           <a class="open" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Open ↗</a>
-          <button type="button" class="icon-btn" data-edit="${esc(a.id)}" aria-label="Edit ${esc(a.label || a.name)}">
+          <button type="button" class="icon-btn" data-menu="${esc(a.id)}" aria-haspopup="menu" aria-expanded="false" aria-label="More for ${esc(a.label || a.name)}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
           </button>
         </div>
@@ -407,15 +407,16 @@ function routeRow(r) {
 function renderModels(accounts) {
   const rs = routes(accounts);
   if (!rs.length) return '<p class="empty">No account here lists its models yet. Accounts read with an API key or an agent\'s sign-in list theirs.</p>';
-  return `<p class="sheet-lead models-lead">${rs.length} models. For each, the accounts that can serve it, best first: what you'd lose first, then plans with room, then pay-as-you-go.</p>
+  return `<p class="sheet-lead models-lead">${rs.length} models. Open one to see which account Ant would use for it, and why.</p>
   <div class="models" role="list">
     <div class="m-row m-head"><span>Model</span><span>Type</span><span>Best account</span><span>Left</span><span></span></div>
-    ${rs.map((r) => `<details class="m-item" role="listitem">
+    ${rs.map((r) => `<details class="m-item" role="listitem" data-model="${esc(r.id)}" data-providers="${esc(JSON.stringify(r.via.map((v) => ({ provider: v.a.provider, name: v.a.label || v.a.name }))))}">
       <summary class="m-row">
         <span class="m-model"><code>${esc(r.id)}</code>${r.via.length > 1 ? `<span class="m-n">${r.via.length} accounts</span>` : ""}</span>
         <span class="m-type">${esc(MEDIA_LABEL[r.media] || r.media)}</span>
         ${routeRow(r.best)}
       </summary>
+      <div class="m-route"></div>
       <div class="m-via">${r.via.map((v, i) => `<div class="m-row m-sub"><span class="m-rank">${i + 1}</span><span></span>${routeRow(v)}</div>`).join("")}</div>
     </details>`).join("")}
   </div>`;
@@ -496,6 +497,7 @@ function renderTimeline(accounts) {
 
 function render() {
   const snap = state.snap;
+  if (state.view !== "cards" && menuFor) closeMenu();
   document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.filter === state.filter)));
   document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
   $("sort").value = state.sort;
@@ -542,6 +544,12 @@ function render() {
     <section class="section">${sec.title ? `<h2>${esc(sec.title)} <span class="n">${sec.items.length}</span></h2>` : ""}
       <div class="cards">${sec.items.map(renderCard).join("")}</div>
     </section>`).join("");
+  if (menuFor) {
+    const id = menuFor;
+    const button = [...document.querySelectorAll("[data-menu]")].find((x) => x.dataset.menu === id);
+    if (button) openMenu(button, true);
+    else closeMenu();
+  }
 }
 
 // ---------- server ----------
@@ -704,7 +712,9 @@ function stepForm(p, m, view, back) {
   sheetStack = back ? [full.ways.length > 1 ? () => stepWays(p, full, p.modes.length > 1) : () => stepModes(p)] : [];
   const editing = !!view;
   const found = view?.origin === "found";
-  const rule = `<div class="rule"><b>${esc(m.name)}${m.wayName ? ` · ${esc(m.wayName)}` : ""}.</b> ${esc(m.rule)}${m.live ? "" : " Ant can't read this from " + esc(p.name) + ", so it shows what follows from the rule and your setup."}</div>`;
+  // the rule was on the step before; say it here only when this step is the first
+  const rule = back && !view ? (m.live ? "" : `<div class="rule">Ant can't read this from ${esc(p.name)}, so it shows what follows from the rule and your setup.</div>`)
+    : `<div class="rule"><b>${esc(m.name)}${m.wayName ? ` · ${esc(m.wayName)}` : ""}.</b> ${esc(m.rule)}${m.live ? "" : " Ant can't read this from " + esc(p.name) + ", so it shows what follows from the rule and your setup."}</div>`;
   if (m.signIn) {
     const fields = editing && m.fields.length ? m.fields.map((f) => fieldHTML(f, view)).join("") : "";
     showStep(editing ? (view.label || p.name) : p.name, `${rule}<p class="sheet-lead">${esc(m.connect || "")}</p>${fields}
@@ -966,9 +976,105 @@ sheet.addEventListener("close", () => { if ($("sheet-body").querySelector("[data
 $("sheet-back").addEventListener("click", () => { const back = sheetStack.pop(); if (back) back(); });
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
+// ---------- card menu, pause, route preview ----------
+
+const isPaused = (a) => (state.snap?.paused || []).includes(a.id);
+// a card can be paused when it serves models: pausing only changes Ant's choice of it
+const routable = (a) => (a.models || []).length > 0;
+
+// The menu sits above the page, anchored to its button, so a card's edges
+// don't clip it; a re-render (the page refreshes itself) reopens it.
+let menuFor = null;
+
+function closeMenu() {
+  menuFor = null;
+  document.querySelector(".card-menu")?.remove();
+  document.querySelectorAll("[data-menu][aria-expanded=true]").forEach((b) => b.setAttribute("aria-expanded", "false"));
+}
+
+function placeMenu(menu, button) {
+  const r = button.getBoundingClientRect();
+  menu.style.top = `${r.bottom + window.scrollY + 4}px`;
+  menu.style.left = `${Math.max(8, r.right + window.scrollX - menu.offsetWidth)}px`;
+}
+
+function openMenu(button, keepFocus) {
+  closeMenu();
+  const a = (state.snap?.accounts || []).find((x) => x.id === button.dataset.menu);
+  if (!a) return;
+  const menu = document.createElement("div");
+  menu.className = "card-menu";
+  menu.setAttribute("role", "menu");
+  menu.innerHTML = `
+    <button type="button" role="menuitem" data-menu-edit="${esc(a.id)}">Edit</button>
+    ${routable(a) ? `<button type="button" role="menuitem" data-menu-pause="${esc(a.id)}" data-paused="${isPaused(a) ? "0" : "1"}">${isPaused(a) ? "Resume routing" : "Pause routing"}</button>` : ""}
+    <button type="button" role="menuitem" class="danger" data-menu-remove="${esc(a.id)}">${a.origin === "found" ? "Hide" : "Remove"}</button>`;
+  document.body.append(menu);
+  placeMenu(menu, button);
+  button.setAttribute("aria-expanded", "true");
+  menuFor = a.id;
+  if (!keepFocus) menu.querySelector("button").focus();
+}
+
+async function menuAction(t) {
+  closeMenu();
+  try {
+    if (t.dataset.menuEdit) return openEdit(t.dataset.menuEdit);
+    if (t.dataset.menuPause) state.snap = await api("POST", "/api/pause", { id: t.dataset.menuPause, paused: t.dataset.paused === "1" });
+    if (t.dataset.menuRemove) {
+      const a = (state.snap?.accounts || []).find((x) => x.id === t.dataset.menuRemove);
+      if (!confirm(`${a?.origin === "found" ? "Hide" : "Remove"} ${a?.label || a?.name || "this account"}?`)) return;
+      state.snap = await api("DELETE", `/api/accounts/${encodeURIComponent(t.dataset.menuRemove)}`);
+    }
+    render();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+const ROUTE_CLASS = { use_before_lost: "Use first", plan: "Plan", prepaid: "Prepaid", payg: "Pay as you go" };
+
+// routePreview fills a model's row with what Ant would do, from the server.
+async function routePreview(details) {
+  const box = details.querySelector(".m-route");
+  if (!box || box.dataset.loaded) return;
+  box.dataset.loaded = "1";
+  box.innerHTML = '<p class="muted">Working out the route…</p>';
+  let p;
+  try { p = await api("GET", `/api/route?model=${encodeURIComponent(details.dataset.model)}`); } catch (e) {
+    box.innerHTML = `<p class="note problem">${esc(e.message)}</p>`;
+    return;
+  }
+  const covered = new Set([...p.use, ...p.notUsed].map((c) => c.provider));
+  const others = JSON.parse(details.dataset.providers || "[]").filter((x) => !covered.has(x.provider));
+  if (!p.use.length && !p.notUsed.length) {
+    box.innerHTML = '<p class="muted route-note">Ant\'s route preview doesn\'t cover these accounts yet (it covers Z.ai and DeepSeek so far). Below: what the accounts themselves show.</p>';
+    return;
+  }
+  details.classList.add("previewed");
+  // the row's "best account" is now the preview's first choice, not the page's guess
+  const best = details.querySelector("summary .r-acct");
+  if (best && p.use[0]) {
+    const a = (state.snap?.accounts || []).find((x) => x.id === p.use[0].id || (x.keys || []).includes(p.use[0].id));
+    best.style.setProperty("--hue", HUES[p.use[0].provider] ?? 30);
+    best.innerHTML = `<span class="mark" aria-hidden="true">${esc(p.use[0].name.slice(0, 1))}</span>${esc(p.use[0].name)}${a?.modeName ? ` · ${esc(a.modeName)}` : ""}`;
+  }
+  const row = (c, i) => `<li class="r-choice">${i != null ? `<span class="r-rank">${i + 1}</span>` : ""}
+    <span class="r-who"><b>${esc(c.name)}</b>${c.class ? ` <span class="tag ${c.class === "use_before_lost" ? "" : "off"}">${esc(ROUTE_CLASS[c.class] || c.class)}</span>` : ""}</span>
+    <span class="r-why">${esc(c.reason)}${c.stale ? ` <span class="muted">· ${esc(c.stale)}</span>` : ""}</span></li>`;
+  box.innerHTML = `
+    <div class="r-title">What Ant would do</div>
+    ${p.use.length ? `<ol class="r-list">${p.use.map((c, i) => row(c, i)).join("")}</ol>` : '<p class="note problem">No account can serve it right now.</p>'}
+    ${p.notUsed.length ? `<div class="r-title">Not used</div><ul class="r-list">${p.notUsed.map((c) => row(c, null)).join("")}</ul>` : ""}
+    ${others.length ? `<p class="muted route-note">Also listed by ${others.map((x) => esc(x.name)).join(", ")}, not in the preview yet.</p>` : ""}
+    <p class="muted route-note">A preview: nothing is sent to any model.</p>`;
+}
+
 // ---------- wiring ----------
 
 $("cards").addEventListener("click", (e) => {
+  const menu = e.target.closest("[data-menu]");
+  if (menu) return menu.getAttribute("aria-expanded") === "true" ? closeMenu() : openMenu(menu);
   const b = e.target.closest("[data-edit]");
   if (b) openEdit(b.dataset.edit);
   const price = e.target.closest("[data-price]");
@@ -1012,3 +1118,12 @@ api("GET", "/api/providers").then((ps) => {
 setInterval(load, 60_000);
 setInterval(render, 30_000);
 load();
+
+document.addEventListener("click", (e) => {
+  const item = e.target.closest(".card-menu button");
+  if (item) return menuAction(item);
+  if (!e.target.closest(".card-menu, [data-menu]")) closeMenu();
+});
+window.addEventListener("resize", closeMenu);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+$("cards").addEventListener("toggle", (e) => { if (e.target.matches?.("details.m-item") && e.target.open) routePreview(e.target); }, true);

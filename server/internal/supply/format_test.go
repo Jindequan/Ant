@@ -22,3 +22,11 @@ func TestSpan(t *testing.T) {
 		}
 	}
 }
+
+func TestMoney(t *testing.T) {
+	for in, want := range map[[2]int64]string{{23_400_000, -6}: "23.40", {1_200, -6}: "0.0012", {2340, -2}: "23.40", {7, 0}: "7.00", {-15_000_000, -6}: "-15.00"} {
+		if got := Money(domain.Units(in[0]), int(in[1])); got != want {
+			t.Errorf("Money(%d, %d) = %s, want %s", in[0], in[1], got, want)
+		}
+	}
+}

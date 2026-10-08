@@ -327,3 +327,21 @@ main#cards { display: block; }
 
 .tl-row.forecast .what span.soon { color: var(--warn); font-weight: 600; }
 .tile .value .unit { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+
+/* card menu */
+.card-menu { position: absolute; z-index: 20; min-width: 170px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 4px; display: flex; flex-direction: column; }
+.card-menu button { text-align: left; border: 0; background: none; font: inherit; font-size: 13.5px; padding: 8px 10px; border-radius: 7px; cursor: pointer; color: var(--text); }
+.card-menu button:hover, .card-menu button:focus-visible { background: var(--surface-2); outline: none; }
+.card-menu button.danger { color: var(--low); }
+h3 .tag { vertical-align: middle; }
+/* route preview */
+.m-route { padding: 10px 16px 4px; }
+.m-route:empty { display: none; }
+details.previewed .m-via { display: none; }
+.r-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 6px 0; }
+.r-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.r-choice { display: grid; grid-template-columns: 22px minmax(140px, auto) 1fr; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 13.5px; }
+.r-list:not(ol) .r-choice { grid-template-columns: minmax(162px, auto) 1fr; }
+.r-rank { color: var(--muted); font-variant-numeric: tabular-nums; }
+.route-note { font-size: 12.5px; margin: 4px 0 8px; }
+@media (max-width: 640px) { .r-choice, .r-list:not(ol) .r-choice { grid-template-columns: 1fr; gap: 2px; } }

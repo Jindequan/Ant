@@ -309,3 +309,6 @@ func demoLeft(w Window) *float64 {
 	}
 	return nil
 }
+
+// DemoAccounts are the sample accounts, as demo mode shows them now.
+func DemoAccounts(now time.Time) []Account { return demoAccounts(demoConnections(), now) }

@@ -85,7 +85,7 @@ func meters(windows []quota.Window, balances []quota.Balance) []observed.Resourc
 }
 
 func windowMeter(w quota.Window) observed.ResourceReading {
-	r := observed.ResourceReading{TemplateRef: "window/" + slug(w.Name), MetricID: domain.ID(slug(w.Name)), Unit: firstOf(w.Unit, "count"),
+	r := observed.ResourceReading{TemplateRef: "window/" + slug(w.Name), Label: w.Name, Aside: w.Aside, MetricID: domain.ID(slug(w.Name)), Unit: firstOf(w.Unit, "count"),
 		QuantumExp: quantumExp, SemanticsRef: semanticsWindow, SemanticsRevision: semanticsRev,
 		WindowJSON: mustJSON(struct {
 			Kind string `json:"kind"`
@@ -117,7 +117,7 @@ func windowMeter(w quota.Window) observed.ResourceReading {
 
 func balanceMeter(b quota.Balance) observed.ResourceReading {
 	name := firstOf(b.Label, b.Currency)
-	r := observed.ResourceReading{TemplateRef: "balance/" + slug(name), MetricID: "balance", Unit: b.Currency, Currency: b.Currency,
+	r := observed.ResourceReading{TemplateRef: "balance/" + slug(name), Label: firstOf(b.Label, "Balance"), MetricID: "balance", Unit: b.Currency, Currency: b.Currency,
 		QuantumExp: quantumExp, SemanticsRef: semanticsBalance, SemanticsRevision: semanticsRev,
 		WindowJSON: []byte(`{"kind":"lifetime"}`), ScopeJSON: scope(""), ResetBasis: "none"}
 	r.Remaining = decimalUnits(b.Amount)

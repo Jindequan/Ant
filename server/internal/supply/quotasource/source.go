@@ -278,9 +278,16 @@ func remaining(r store.SupplyReadingRecord) (domain.Units, bool) {
 // fromUnits is an adapter meter's units (quantumExp) as a number.
 func fromUnits(u domain.Units) float64 { return float64(u) / 1e6 }
 
+// Routes answers the page's route previews and pauses from the engine;
+// Name is how a credential's card is called.
+type Routes struct {
+	Engine *supply.Engine
+	Name   func(credentialID string) string
+}
+
 // Preview is the engine's route preview for a model named any way the user
 // or a provider names it, with each account as its card calls it.
-func (r Reader) Preview(ctx context.Context, model string) (quota.RoutePreview, error) {
+func (r Routes) Preview(ctx context.Context, model string) (quota.RoutePreview, error) {
 	p, err := r.Engine.Preview(ctx, catalog.ModelID(model))
 	if err != nil {
 		return quota.RoutePreview{}, err
@@ -295,21 +302,12 @@ func (r Reader) Preview(ctx context.Context, model string) (quota.RoutePreview, 
 	return out, nil
 }
 
-func (r Reader) choice(route supply.Route, class, reason, stale string) quota.RouteChoice {
-	c := quota.RouteChoice{ID: string(route.CredentialID), Provider: string(route.ProviderID), Name: string(route.ProviderID),
+func (r Routes) choice(route supply.Route, class, reason, stale string) quota.RouteChoice {
+	return quota.RouteChoice{ID: string(route.CredentialID), Provider: string(route.ProviderID), Name: r.Name(string(route.CredentialID)),
 		Endpoint: route.Endpoint, Model: route.UpstreamModel, Class: class, Reason: reason, Stale: stale}
-	r.Source.mu.Lock()
-	if a, ok := r.Source.latest[c.ID]; ok {
-		c.Name = a.Name
-		if a.Label != "" {
-			c.Name = a.Label
-		}
-	}
-	r.Source.mu.Unlock()
-	return c
 }
 
-func (r Reader) SetPaused(ctx context.Context, ids []string, paused bool) error {
+func (r Routes) SetPaused(ctx context.Context, ids []string, paused bool) error {
 	cred := make([]domain.ID, len(ids))
 	for i, id := range ids {
 		cred[i] = domain.ID(id)
@@ -317,11 +315,24 @@ func (r Reader) SetPaused(ctx context.Context, ids []string, paused bool) error 
 	return r.Engine.SetPaused(ctx, cred, paused)
 }
 
-func (r Reader) Paused(ctx context.Context) (map[string]bool, error) {
+func (r Routes) Paused(ctx context.Context) (map[string]bool, error) {
 	got, err := r.Engine.Paused(ctx)
 	out := make(map[string]bool, len(got))
 	for id := range got {
 		out[string(id)] = true
 	}
 	return out, err
+}
+
+// Routes are the reader's route previews and pauses, named as the cards are.
+func (r Reader) Routes() Routes { return Routes{Engine: r.Engine, Name: r.Source.name} }
+
+// name is how a connection's card is called.
+func (s *Source) name(id string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if a, ok := s.latest[id]; ok {
+		return firstOf(a.Label, a.Name)
+	}
+	return id
 }

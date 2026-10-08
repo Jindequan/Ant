@@ -69,7 +69,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	}
 	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
 	reader := Reader{Source: src, Engine: engine}
-	page := quota.NewService(local, accounts, quota.Options{Reader: reader, Router: reader})
+	page := quota.NewService(local, accounts, quota.Options{Reader: reader, Router: reader.Routes()})
 
 	snap := page.Refresh(context.Background())
 	var z, d *quota.Account

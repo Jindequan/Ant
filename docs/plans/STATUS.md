@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 design 12 complete (step 6, the page): the Models view shows the read-only route preview per model (order with reasons, not-used with reasons; uncovered accounts named, never mixed in); the card menu is Edit · Pause/Resume routing · Remove; the Add flow shows each plan rule once; demo mode runs the real engine over sample accounts. Walkthrough recorded; two page bugs found and fixed in it. Stage-1 open items closed. Gates pass. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).
+
 2026-10-08 design 12 steps 4–5: offers and pause stored (migration v7, 42 tables); read-only route preview for any model — accounts in the order Ant would use them and why, excluded ones and why — plus pause/resume per card, through the loopback page API. No request goes to any model. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md). Next: step 6, the page.
 
 2026-10-08 design 12 steps 2–3: Z.ai and DeepSeek are now read through their own provider modules (`providers/zai`, `providers/deepseek`) via an origin-pinned Fetch; one shared Z.ai parser and one model-list parser; the other providers unchanged. The live check found Z.ai refuses bad keys inside an HTTP 200 body — both paths now say "signed out". [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).

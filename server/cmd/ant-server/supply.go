@@ -39,7 +39,13 @@ const localOwner domain.ID = "local"
 func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, logger *slog.Logger) (*quota.Service, *supply.Engine, error) {
 	local := quota.DefaultLocal()
 	if demo {
-		return quota.NewService(local, quota.NewStore(""), quota.Options{Demo: true}), nil, nil // additions kept in memory
+		// sample accounts, additions kept in memory; the real engine runs the
+		// route preview over the sample Z.ai and DeepSeek accounts, in its own
+		// namespace, reading nothing
+		src := quotasource.DemoSource{Now: time.Now, Endpoints: map[string]catalog.Endpoint{
+			"zai": zai.Module(zai.DefaultBase).Supply.Endpoints[0], "deepseek": deepseek.SupplyModule(deepseek.DefaultBase).Supply.Endpoints[0]}}
+		engine := supply.NewEngine("demo", st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply-demo"))
+		return quota.NewService(local, quota.NewStore(""), quota.Options{Demo: true, Router: quotasource.Routes{Engine: engine, Name: src.Name}}), engine, nil
 	}
 	accounts := quota.NewStore(local.AccountsFile())
 	vault, err := newLocalVault(st, clock, filepath.Join(filepath.Dir(local.AccountsFile()), "master.key"), ns)
@@ -58,7 +64,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	src := quotasource.New(local, accounts, quota.Providers(), natives...)
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
 	reader := quotasource.Reader{Source: src, Engine: engine}
-	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}, Router: reader}), engine, nil
+	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}, Router: reader.Routes()}), engine, nil
 }
 
 // providerModules are the providers read through their own module (design
