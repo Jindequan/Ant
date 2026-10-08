@@ -90,6 +90,20 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("POST /api/signin/cancel", s.change(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"open": CancelSignIn()})
 	}))
+	mux.HandleFunc("PUT /api/prices/{id}", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in Price
+		if !decode(w, r, &in) {
+			return
+		}
+		p, err := normalPrice(in)
+		if err == nil {
+			err = s.store.SetPrice(r.PathValue("id"), &p)
+		}
+		s.answer(w, err)
+	}))
+	mux.HandleFunc("DELETE /api/prices/{id}", s.change(func(w http.ResponseWriter, r *http.Request) {
+		s.answer(w, s.store.SetPrice(r.PathValue("id"), nil))
+	}))
 	mux.HandleFunc("POST /api/notify", s.change(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			On bool `json:"on"`
@@ -119,6 +133,19 @@ func (s *Service) Handler() http.Handler {
 		s.respond(w, r, "", s.remove(r.PathValue("id")))
 	}))
 	return LocalOnly(mux)
+}
+
+// answer replies to a change that needs no read: the snapshot, or why not.
+func (s *Service) answer(w http.ResponseWriter, err error) {
+	if errors.Is(err, errBadInput) {
+		writeError(w, http.StatusBadRequest, strings.TrimPrefix(err.Error(), errBadInput.Error()+": "))
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Couldn't save: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, s.Snapshot())
 }
 
 // respond refreshes the changed account (or just the list) and answers

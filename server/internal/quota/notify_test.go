@@ -46,15 +46,18 @@ func TestAlerts(t *testing.T) {
 		},
 		"deepseek": {{Currency: "CNY", Outlook: "runs_out", At: at(40 * time.Hour)}},
 	}
-	got := keys(alerts(accounts, insights, testNow))
+	got := keys(alerts(accounts, insights, map[string]Price{"copilot": {Amount: "10", Currency: "USD", Period: "month"}}, testNow))
 	want := "Claude · 5 hours resets soon | Z.ai · 5 hours is running out | Z.ai · Week is running out | Kling AI · Daily free credits expires soon | " +
 		"DeepSeek balance is running low | Copilot renews soon | Figma ends soon | Suno is signed out"
 	if got != want {
 		t.Fatalf("alerts:\n got %s\nwant %s", got, want)
 	}
-	for _, a := range alerts(accounts, insights, testNow) {
+	for _, a := range alerts(accounts, insights, map[string]Price{"copilot": {Amount: "10", Currency: "USD", Period: "month"}}, testNow) {
 		if a.Title == "Kling AI · Daily free credits expires soon" && !strings.Contains(a.Body, "66 credits left") {
 			t.Fatalf("expiring body: %s", a.Body)
+		}
+		if a.Title == "Copilot renews soon" && a.Body != "Pro renews in 20h for 10 USD." {
+			t.Fatalf("renewal body: %s", a.Body)
 		}
 		if a.Title == "Z.ai · Week is running out" && a.Body != "At this pace it runs out in 3h, 1 day before it resets." {
 			t.Fatalf("running-out body: %s", a.Body)

@@ -3,6 +3,7 @@ package quota
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -30,6 +31,8 @@ type storeData struct {
 	BrowserSites []string `json:"browserSites,omitempty"`
 	// Notify: whether Ant shows notifications on this computer; nil is on.
 	Notify *bool `json:"notify,omitempty"`
+	// Prices are what the user pays for an account, by card id.
+	Prices map[string]Price `json:"prices,omitempty"`
 }
 
 func NewStore(path string) *Store { return &Store{path: path} }
@@ -186,7 +189,7 @@ func (s *Store) SetNotify(on bool) error {
 }
 
 func cloneData(d storeData) storeData {
-	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites), Notify: d.Notify}
+	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites), Notify: d.Notify, Prices: maps.Clone(d.Prices)}
 	// (Values are copied below; SecretRef/SecretRevision travel with c.)
 	for _, c := range d.Accounts {
 		v := map[string]string{}

@@ -76,3 +76,19 @@ Tests: `TestAlerts` (every rule, including the suppressed and the not-worth-it c
 wording), `TestNotificationsAreSentOnceAndCanBeTurnedOff`, `TestABurstIsSpreadOut`. Live: real
 binary in an isolated home (empty PATH, so no notification was actually shown): the bell is on by
 default, turns off and on, and the server keeps the setting.
+
+## Ability: prices and a monthly total (2026-10-08)
+
+Each subscription card's footer shows its price ("$20.00/mo") or a quiet "Add price". The sheet asks
+one question — what do you pay — with amount, currency and month/year; Enter saves. The
+Subscriptions tile adds what they cost a month, per currency (yearly prices count as a twelfth):
+"¥100.00 + $20.00 a month · next renews Oct 14". Renewal notifications mention the price. Prices are
+kept with the page's other choices (amount checked as a positive decimal with up to 2 places,
+ISO currency, month or year).
+
+Also fixed while here: each sheet step now starts without the previous step's hidden data (a stale
+value could have sent a later Save to the wrong place), and Enter submits whichever step is shown.
+
+Tests: `TestPricesAreCheckedAndKept` (valid, too precise, zero, bad currency, bad period, delete),
+renewal alert wording with a price. Checked in demo mode: add a monthly USD price with Enter, a
+yearly CNY price; the tile reads "¥100.00 + $20.00 a month".

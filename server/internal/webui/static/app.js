@@ -111,7 +111,7 @@ function renderSummary(accounts) {
     <div class="tile">
       <div class="label">Subscriptions</div>
       <div class="value">${subs.length}</div>
-      <div class="hint">${next ? `Next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : subs.length ? "Renewal dates not reported" : "None yet"}</div>
+      <div class="hint">${[monthly(subs), next ? `next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : subs.length ? "renewal dates not reported" : "none yet"].filter(Boolean).join(" · ").replace(/^./, (c) => c.toUpperCase())}</div>
     </div>
     <div class="tile">
       <div class="label">API balances</div>
@@ -145,6 +145,17 @@ function spark(points) {
   const px = (x) => x1 === x0 ? 0 : ((x - x0) / (x1 - x0)) * 116 + 2;
   const py = (y) => y1 === y0 ? 12 : 22 - ((y - y0) / (y1 - y0)) * 20;
   return `<svg class="spark" viewBox="0 0 120 24" aria-hidden="true"><polyline points="${points.map((p) => `${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(" ")}"/></svg>`;
+}
+
+// monthly is what the priced accounts cost a month, per currency.
+function monthly(accounts) {
+  const per = {};
+  for (const a of accounts) {
+    const p = state.snap?.prices?.[a.id];
+    if (p) per[p.currency] = (per[p.currency] || 0) + Number(p.amount) / (p.period === "year" ? 12 : 1);
+  }
+  const parts = Object.entries(per).map(([c, n]) => money(c, n.toFixed(2)));
+  return parts.length ? `${parts.join(" + ")} a month` : "";
 }
 
 function renderWindow(w, compact, a) {
@@ -239,6 +250,9 @@ function renderCard(a) {
   const renews = time(a.renewsAt);
   const ends = !renews && time(a.endsAt);
   const life = renews ? `Renews ${dayFmt.format(renews)}` : ends ? `Ends ${dayFmt.format(ends)}${a.autoRenew === false ? " · auto-renew off" : ""}` : "";
+  const price = state.snap?.prices?.[a.id];
+  const cost = price ? `<button type="button" class="link" data-price="${esc(a.id)}">${money(price.currency, price.amount)}/${price.period === "year" ? "yr" : "mo"}</button>`
+    : a.kind === "subscription" && a.status === "ok" ? `<button type="button" class="link quiet" data-price="${esc(a.id)}">Add price</button>` : "";
   const status = { signed_out: "Signed out", error: "Couldn't read" }[a.status] || "";
   const where = a.source?.startsWith("Signed in") ? a.source
     : a.origin === "added" ? (a.source ? `Yours · from ${a.source}` : "Added by you")
@@ -261,7 +275,7 @@ function renderCard(a) {
       <div class="body">${body}</div>
       <div class="foot">
         <span class="src"><i class="dot ${esc(a.status)}"></i><span>${foot}</span></span>
-        ${life ? `<span class="${ends && a.autoRenew === false ? "ending" : ""}">${life}</span>` : ""}
+        ${life || cost ? `<span class="${ends && a.autoRenew === false ? "ending" : ""}">${[life, cost].filter(Boolean).join(" · ")}</span>` : ""}
       </div>
     </article>`;
 }
@@ -579,7 +593,9 @@ function modeOf(a) { return asWay(provider(a.provider)?.modes.find((m) => m.id =
 
 function showStep(title, html, back) {
   $("sheet-title").textContent = title;
-  $("sheet-body").innerHTML = html;
+  const body = $("sheet-body");
+  for (const k of Object.keys(body.dataset)) delete body.dataset[k]; // each step sets its own
+  body.innerHTML = html;
   $("sheet-back").hidden = !back;
   if (!sheet.open) sheet.showModal();
   const first = $("sheet-body").querySelector("input, select, button");
@@ -807,6 +823,48 @@ async function setBrowser(allow) {
   }
 }
 
+const CURRENCIES = ["USD", "CNY", "EUR", "GBP", "JPY", "HKD", "SGD", "KRW", "INR", "CAD", "AUD"];
+
+// stepPrice asks what the user pays for an account.
+function stepPrice(id) {
+  const a = (state.snap?.accounts || []).find((x) => x.id === id);
+  if (!a) return;
+  const p = state.snap?.prices?.[id] || { amount: "", currency: (allBalances(a)[0]?.currency || "USD"), period: "month" };
+  const currencies = CURRENCIES.includes(p.currency) ? CURRENCIES : [p.currency, ...CURRENCIES];
+  sheetStack = [];
+  showStep(`What do you pay for ${a.label || a.name}?`, `
+    <p class="sheet-lead">Providers rarely say. Ant adds it up for you and mentions it before the plan renews.</p>
+    <div class="price-row">
+      <div class="field"><label for="f-amount">Price</label>
+        <input id="f-amount" name="amount" type="text" inputmode="decimal" value="${esc(p.amount)}" placeholder="20" autocomplete="off"></div>
+      <div class="field"><label for="f-currency">Currency</label>
+        <select id="f-currency" name="currency">${currencies.map((c) => `<option ${c === p.currency ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></div>
+      <div class="field"><label for="f-period">Every</label>
+        <select id="f-period" name="period"><option value="month" ${p.period === "month" ? "selected" : ""}>month</option><option value="year" ${p.period === "year" ? "selected" : ""}>year</option></select></div>
+    </div>
+    <p class="form-error" id="form-error" role="alert" hidden></p>
+    <div class="sheet-actions">${state.snap?.prices?.[id] ? `<button type="button" class="btn danger" data-price-remove>Remove price</button>` : ""}
+      <div class="right"><button type="button" class="btn" data-cancel>Cancel</button>
+      <button type="button" class="btn primary" data-price-save>Save</button></div></div>`, false);
+  $("sheet-body").dataset.priceId = id;
+  $("f-amount").focus();
+}
+
+async function savePrice(remove) {
+  const body = $("sheet-body");
+  const id = body.dataset.priceId;
+  try {
+    state.snap = remove ? await api("DELETE", `/api/prices/${encodeURIComponent(id)}`)
+      : await api("PUT", `/api/prices/${encodeURIComponent(id)}`, { amount: $("f-amount").value, currency: $("f-currency").value, period: $("f-period").value });
+    sheet.close();
+    render();
+  } catch (e) {
+    const error = $("form-error");
+    error.textContent = e.message;
+    error.hidden = false;
+  }
+}
+
 async function signIn(providerID, modeID, wayID) {
   const p = provider(providerID);
   const m = asWay(p.modes.find((x) => x.id === modeID), wayID);
@@ -885,12 +943,14 @@ $("sheet-body").addEventListener("click", (e) => {
   else if (t.hasAttribute("data-remove")) remove();
   else if (t.hasAttribute("data-refresh-close")) { sheet.close(); refresh(); }
   else if (t.dataset.browser) setBrowser(t.dataset.browser === "on");
+  else if (t.hasAttribute("data-price-save")) savePrice(false);
+  else if (t.hasAttribute("data-price-remove")) savePrice(true);
   else if (t.hasAttribute("data-signin")) signIn(body.dataset.provider, body.dataset.mode, body.dataset.way);
   else if (t.hasAttribute("data-signin-finish")) { t.disabled = true; t.textContent = "Reading your session…"; api("POST", "/api/signin/finish").catch(() => {}); }
   else if (t.hasAttribute("data-signin-cancel")) api("POST", "/api/signin/cancel").catch(() => {});
 });
 $("sheet-body").addEventListener("input", () => { const e = $("form-error"); if (e) e.hidden = true; });
-$("sheet-form").addEventListener("submit", (e) => { e.preventDefault(); save(); });
+$("sheet-form").addEventListener("submit", (e) => { e.preventDefault(); if ($("sheet-body").dataset.priceId) savePrice(false); else save(); });
 $("sheet-close").addEventListener("click", () => sheet.close());
 sheet.addEventListener("close", () => { if ($("sheet-body").querySelector("[data-signin-cancel]")) api("POST", "/api/signin/cancel").catch(() => {}); });
 $("sheet-back").addEventListener("click", () => { const back = sheetStack.pop(); if (back) back(); });
@@ -901,6 +961,8 @@ sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); 
 $("cards").addEventListener("click", (e) => {
   const b = e.target.closest("[data-edit]");
   if (b) openEdit(b.dataset.edit);
+  const price = e.target.closest("[data-price]");
+  if (price) stepPrice(price.dataset.price);
   const again = e.target.closest("[data-signin-card]");
   if (again) signIn(again.dataset.signinCard, again.dataset.mode, again.dataset.way);
 });

@@ -23,7 +23,7 @@ func (s *Service) notifyOnce(ctx context.Context) {
 		}
 	}
 	var fresh []Alert
-	for _, al := range alerts(snap.Accounts, insights, s.local.Now()) {
+	for _, al := range alerts(snap.Accounts, insights, snap.Prices, s.local.Now()) {
 		if !s.sent[al.Key] && len(fresh) < maxPerPass {
 			fresh = append(fresh, al)
 			s.sent[al.Key] = true

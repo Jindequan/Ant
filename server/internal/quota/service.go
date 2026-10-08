@@ -14,8 +14,9 @@ type Snapshot struct {
 	Accounts    []Account `json:"accounts"`
 	Demo        bool      `json:"demo,omitempty"`
 	// BrowserSites: the sites the user allowed Ant to read from their browsers.
-	BrowserSites []string `json:"browserSites"`
-	Notify       bool     `json:"notify"`
+	BrowserSites []string         `json:"browserSites"`
+	Notify       bool             `json:"notify"`
+	Prices       map[string]Price `json:"prices"`
 }
 
 // Reading is the latest read of every connection, as whoever schedules the
@@ -135,6 +136,7 @@ func (s *Service) Snapshot() Snapshot {
 		out.BrowserSites = d.BrowserSites
 	}
 	out.Notify = s.store.NotifyOn()
+	out.Prices = s.store.Prices()
 	return out
 }
 

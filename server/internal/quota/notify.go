@@ -29,7 +29,7 @@ const (
 )
 
 // alerts says what deserves a notification now.
-func alerts(accounts []Account, insights map[string][]Insight, now time.Time) []Alert {
+func alerts(accounts []Account, insights map[string][]Insight, prices map[string]Price, now time.Time) []Alert {
 	var out []Alert
 	for _, a := range accounts {
 		name := a.Label
@@ -76,8 +76,12 @@ func alerts(accounts []Account, insights map[string][]Insight, now time.Time) []
 		}
 		switch {
 		case a.RenewsAt != nil && a.RenewsAt.After(now) && a.RenewsAt.Sub(now) <= renewWithin:
+			cost := ""
+			if p, ok := prices[a.ID]; ok {
+				cost = fmt.Sprintf(" for %s %s", p.Amount, p.Currency)
+			}
 			out = append(out, Alert{Key: a.ID + "|renews|" + a.RenewsAt.UTC().Format(time.RFC3339), Title: name + " renews soon",
-				Body: fmt.Sprintf("%s renews in %s.", firstLine(a.Plan, name), span(a.RenewsAt.Sub(now)))})
+				Body: fmt.Sprintf("%s renews in %s%s.", firstLine(a.Plan, name), span(a.RenewsAt.Sub(now)), cost)})
 		case a.RenewsAt == nil && a.EndsAt != nil && a.AutoRenew != nil && !*a.AutoRenew && a.EndsAt.After(now) && a.EndsAt.Sub(now) <= endingWithin:
 			out = append(out, Alert{Key: a.ID + "|ends|" + a.EndsAt.UTC().Format(time.RFC3339), Title: name + " ends soon",
 				Body: fmt.Sprintf("%s ends in %s, and auto-renew is off.", firstLine(a.Plan, name), span(a.EndsAt.Sub(now)))})

@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 ability: prices — what you pay per subscription (month/year, any currency), shown on the card, totalled per month on the summary, mentioned in renewal notifications. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
+
 2026-10-08 ability: notifications on this Mac — use-it-or-lose-it, running out early, low balance, renewals/endings, sign-outs; once per event, at most 5 a minute, bell switch on the page. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
 
 2026-10-08 ability: history and forecasts (design 11 phase 6). Cards warn when an allowance will run out before it resets at the recent pace; balances show a 7-day trend and how long they last; "use before" urgency is dropped where the pace uses it up anyway. Computed from the recorded readings (`supply/outlook.go`, `GET /api/insights`); demo mode shows sample outlooks. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
