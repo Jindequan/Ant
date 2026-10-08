@@ -148,7 +148,7 @@ func credential(c quota.Connection) supply.Credential {
 		origin = supply.OriginAdded
 	}
 	return supply.Credential{ID: domain.ID(c.ID), ProviderID: domain.ID(c.Provider), Kind: kind(c), Origin: origin,
-		Strategy: "quota/" + way, Locator: b}
+		Strategy: "quota/" + way, Locator: b, SecretRef: domain.ID(c.SecretRef)}
 }
 
 // kind is the credential kind a connection's values show. It is a

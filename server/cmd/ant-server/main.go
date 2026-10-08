@@ -388,7 +388,14 @@ func run() error {
 	}
 	// The page and the supply engine behind it: every account read from the
 	// sign-ins on this machine. The page answers only on loopback.
-	quotaService, supplyEngine := newQuotaPage(demo, st, clock, domain.ID(supplyNamespace), logger)
+	quotaService, supplyEngine, err := newQuotaPage(demo, st, clock, domain.ID(supplyNamespace), logger)
+	if err != nil {
+		if executionHost != nil {
+			_ = executionHost.Close(context.Background())
+		}
+		_ = st.Close(ctx)
+		return fmt.Errorf("set up the page's accounts: %w", err)
+	}
 	mux.Handle("/api/", quotaService.Handler())
 	mux.Handle("/", quota.LocalOnly(api.PageHandler(webui.Files())))
 

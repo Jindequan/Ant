@@ -134,6 +134,10 @@ type SupplyReaderTx interface {
 // SupplyWriterTx is the supply engine's write surface.
 type SupplyWriterTx interface {
 	WriterTx
+	// EnsureLocalOwner creates the principal that owns the secrets added on
+	// the local page, when it doesn't exist yet. Ant has no login (ruling
+	// R8): this is an ownership record for secret_refs, nothing more.
+	EnsureLocalOwner(principalID domain.ID, displayName string, at domain.Millis) error
 	UpsertSupplyCredential(SupplyCredentialRecord) error
 	// UpsertSupplyAccount merges by (namespace, provider, provider identity)
 	// and returns the account id that holds that identity.

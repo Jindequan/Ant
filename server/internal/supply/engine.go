@@ -43,7 +43,8 @@ type Credential struct {
 	Kind       string // api_key | oauth | session | sts | console_token | none
 	Origin     string // found | added
 	Strategy   string
-	Locator    []byte // JSON
+	Locator    []byte    // JSON
+	SecretRef  domain.ID // an added credential's encrypted secret; "" for found ones
 }
 
 // Result is what one collection tells the scheduler.
@@ -67,10 +68,10 @@ type Clock interface{ Now() domain.Millis }
 // Engine schedules reads: one at a time per credential, at most
 // Policy.MaxInFlight at once, each credential at its own cadence.
 //
-// Until the accounts.json import (design 11 §5), only found credentials are
-// recorded in the store; added ones are read but not persisted, because
-// their secrets still live in accounts.json and supply_credentials accepts
-// an added credential only with an encrypted secret reference.
+// Found credentials are recorded with where their secret lives; added ones
+// with their encrypted secret reference. An added credential without one
+// (only possible before its key was saved) is read but not recorded, since
+// supply_credentials never holds a secret itself.
 type Engine struct {
 	ns     domain.ID
 	st     store.Store
@@ -161,7 +162,7 @@ func (e *Engine) Discover(ctx context.Context) error {
 		}
 		s.cred = c
 		slots[c.ID], order = s, append(order, c.ID)
-		if c.Origin == OriginFound {
+		if recordable(c) {
 			found = append(found, e.credentialRecord(s, ""))
 		}
 	}
@@ -188,7 +189,7 @@ func (e *Engine) Discover(ctx context.Context) error {
 // on a slot no one else touches.
 func (e *Engine) credentialRecord(s *slot, detail string) store.SupplyCredentialRecord {
 	return store.SupplyCredentialRecord{Namespace: e.ns, CredentialID: s.cred.ID, ProviderID: s.cred.ProviderID,
-		Kind: s.cred.Kind, Origin: s.cred.Origin, Strategy: s.cred.Strategy, LocatorJSON: s.cred.Locator,
+		Kind: s.cred.Kind, Origin: s.cred.Origin, Strategy: s.cred.Strategy, LocatorJSON: s.cred.Locator, SecretRef: s.cred.SecretRef,
 		AccountID: s.accountID, Status: s.status, StatusDetail: clip(detail), VerifiedAt: s.verifiedAt, CreatedAt: s.createdAt}
 }
 
@@ -266,7 +267,7 @@ func (e *Engine) run(ctx context.Context, id domain.ID, fromLoop bool) {
 	}
 	defer func() { <-e.sem }()
 
-	recorded := cred.Origin == OriginFound
+	recorded := recordable(cred)
 	start := e.clock.Now()
 	runID := newID("run-")
 	if recorded {
@@ -443,6 +444,10 @@ func newID(prefix string) domain.ID {
 	b := make([]byte, 12)
 	_, _ = rand.Read(b)
 	return domain.ID(prefix + hex.EncodeToString(b))
+}
+
+func recordable(c Credential) bool {
+	return c.Origin == OriginFound || c.SecretRef != "" || c.Kind == "none"
 }
 
 func clip(s string) string {

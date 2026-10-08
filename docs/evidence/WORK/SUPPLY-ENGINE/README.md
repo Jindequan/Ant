@@ -105,3 +105,31 @@ account found), `TestAllowingAndStoppingABrowserSite` (refuses a non-browser way
 the account; removing revokes and doesn't hide). Existing browser tests run with every site
 allowed. Page checked in demo mode: Add account → Kling AI → Your browser shows the permission
 step; Allow and read saves `klingai.com` and closes.
+
+## Step 5 (step 4 dropped by the revised R8): keys encrypted, no setup (2026-10-08)
+
+**What changed.** Keys and other values of accounts added on the page are no longer written to
+`accounts.json`. `quota.Store` keeps them through a `Vault`; the server's vault uses the existing
+secret commands (`secret_records`/`secret_refs`, AES-GCM) under a local owner principal Ant creates
+for itself (`local`, an ownership record — there is no login), with a 32-byte key file
+`~/.config/ant/master.key` created on first start (0600 in a 0700 directory) and reused after.
+`accounts.json` keeps a `secretRef`/`secretRevision` per account. A plaintext file from before is
+moved on start: every value is sealed and read back before the file is rewritten; if anything fails,
+the file is left exactly as it was, and later reads fail with the reason (shown on the page) rather
+than reading accounts without their keys. Edits re-seal under the same reference only when values
+change. Added credentials are now recorded in the supply store by their secret reference, so they
+get history like found ones.
+
+**Ruling R5 closed:** plaintext at rest ends with this step.
+
+**Tests.** `quota/vault_test.go` (move-out, unchanged values not re-sealed, edit re-seals, failed
+readback leaves the file untouched, a wrong vault is an error); `cmd/ant-server/supply_test.go`
+(real secret commands and SQLite: key file created private, restart reuses it, plaintext moved,
+edit rotates, another namespace can't open); `supply/engine_test.go` (an added credential is
+recorded by its secret reference).
+
+**Live check.** Real binary, isolated HOME/PATH, a plaintext `accounts.json` with a fake DeepSeek
+key: after start the file holds only the reference, `master.key` is 0600, the local owner exists,
+the credential is recorded with its secret reference, and the page shows the card with no key
+returned. The engine then really asked DeepSeek for that fake key's balance (read-only, R4); it was
+refused, which the run and card report correctly.

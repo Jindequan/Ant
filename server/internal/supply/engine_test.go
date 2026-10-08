@@ -123,8 +123,8 @@ func TestPolicyNextDue(t *testing.T) {
 	}
 }
 
-// Found credentials are recorded with their run and status; added ones are
-// read but not recorded until the accounts.json import.
+// Found credentials are recorded with their run and status; an added one
+// without an encrypted secret is read but not recorded.
 func TestRunNowRecordsFoundCredentialsOnly(t *testing.T) {
 	added := Credential{ID: "added-1", ProviderID: "deepseek", Kind: "api_key", Origin: OriginAdded, Strategy: "quota/api", Locator: []byte(`{}`)}
 	src := &fakeSource{creds: []Credential{found("found-1"), added}, result: Result{Outcome: OutcomeOK}}
@@ -142,7 +142,37 @@ func TestRunNowRecordsFoundCredentialsOnly(t *testing.T) {
 		t.Fatal("found credential's run not recorded")
 	}
 	if n := rawQueryInt(t, path, `SELECT COUNT(*) FROM supply_credentials WHERE credential_id='added-1'`); n != 0 {
-		t.Fatal("added credential recorded before the import")
+		t.Fatal("an added credential without an encrypted secret was recorded")
+	}
+}
+
+// An added credential is recorded by its encrypted secret's reference.
+func TestRunNowRecordsAddedCredentialsBySecretRef(t *testing.T) {
+	added := Credential{ID: "added-1", ProviderID: "deepseek", Kind: "api_key", Origin: OriginAdded, Strategy: "quota/api", Locator: []byte(`{}`), SecretRef: "secret-1"}
+	src := &fakeSource{creds: []Credential{added}, result: Result{Outcome: OutcomeOK}}
+	e, path, _ := newTestEngine(t, src, DefaultPolicy())
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		`INSERT INTO principals(principal_id,display_name,enabled,created_at) VALUES('local','This Mac',1,1)`,
+		`INSERT INTO secret_records(secret_ref,revision,nonce,ciphertext,master_key_ref,mask,created_at) VALUES('secret-1','r1',x'00',x'00','k','••••',1)`,
+		`INSERT INTO secret_refs(secret_ref,principal_id,namespace,current_revision,mask,created_at,updated_at) VALUES('secret-1','local','local','r1','••••',1,1)`,
+	} {
+		if _, err := db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = db.Close()
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if n := rawQueryInt(t, path, `SELECT COUNT(*) FROM supply_credentials WHERE credential_id='added-1' AND secret_ref='secret-1' AND status='ok'`); n != 1 {
+		t.Fatal("added credential not recorded with its secret reference")
+	}
+	if n := rawQueryInt(t, path, `SELECT COUNT(*) FROM collector_runs WHERE credential_id='added-1' AND outcome='ok'`); n != 1 {
+		t.Fatal("added credential's run not recorded")
 	}
 }
 

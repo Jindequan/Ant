@@ -14,9 +14,11 @@ import (
 // readable by the user alone — ~/.config/ant/accounts.json — like the
 // sign-in files of the apps Ant reads. With no path it lives in memory.
 type Store struct {
-	path string
-	mu   sync.Mutex
-	mem  storeData
+	path   string
+	mu     sync.Mutex
+	mem    storeData
+	vault  Vault
+	opened map[string]openedSecret // by secret ref: what the vault last gave or took
 }
 
 type storeData struct {
@@ -45,6 +47,18 @@ func (s *Store) load() (storeData, error) {
 	if err := json.Unmarshal(b, &d); err != nil {
 		return storeData{}, errors.New("Ant's accounts file is damaged: " + s.path)
 	}
+	if s.vault != nil {
+		for i, c := range d.Accounts {
+			if c.SecretRef == "" {
+				continue
+			}
+			v, err := s.open(c.SecretRef, c.SecretRevision)
+			if err != nil {
+				return storeData{}, errors.New("Ant couldn't open the saved keys: " + err.Error())
+			}
+			d.Accounts[i].Values = v
+		}
+	}
 	return d, nil
 }
 
@@ -56,6 +70,13 @@ func (s *Store) save(d storeData) error {
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
+	}
+	if s.vault != nil {
+		sealed, err := s.seal(d)
+		if err != nil {
+			return err // never written in plaintext instead
+		}
+		d = sealed
 	}
 	b, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
@@ -146,6 +167,7 @@ func (s *Store) SetBrowserSite(domain string, allow bool) error {
 
 func cloneData(d storeData) storeData {
 	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites)}
+	// (Values are copied below; SecretRef/SecretRevision travel with c.)
 	for _, c := range d.Accounts {
 		v := map[string]string{}
 		for k, x := range c.Values {

@@ -60,6 +60,12 @@ func unitsPtr(v sql.NullInt64) *domain.Units {
 	return &u
 }
 
+func (w *writerTx) EnsureLocalOwner(principalID domain.ID, displayName string, at domain.Millis) error {
+	_, err := w.tx.ExecContext(w.ctx, `INSERT INTO principals(principal_id,display_name,enabled,created_at) VALUES(?,?,1,?) ON CONFLICT(principal_id) DO NOTHING`,
+		string(principalID), displayName, int64(at))
+	return err
+}
+
 func (w *writerTx) UpsertSupplyCredential(r store.SupplyCredentialRecord) error {
 	result, err := w.tx.ExecContext(w.ctx, `INSERT INTO supply_credentials(namespace,credential_id,provider_id,kind,origin,strategy,locator_json,secret_ref,account_id,status,status_detail,verified_at,created_at)
 VALUES(?,?,?,?,?,?,CAST(? AS TEXT),?,?,?,?,?,?) ON CONFLICT(namespace,credential_id) DO UPDATE SET

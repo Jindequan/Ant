@@ -496,8 +496,9 @@ engine schedules and records reads; until the import step only found credentials
 **2. reconciler + `Account` → `Inventory` — done 2026-10-08** (store merges only on
 provider-reported identities; adapter meters are `unmodeled`/`quota.adapter.*` and never verified
 facts; `mergeSame`/`hideFailedWays` remain page presentation until step 4); **3. per-site
-browser opt-in (R6) — done 2026-10-08** (permission kept with the page's choices until the import; see evidence); ~~4. page session on `/v1`~~ — dropped by the revised R8 (no login); 5. `accounts.json` import
-(§5), with a local owner principal and a key file Ant creates itself.
+browser opt-in (R6) — done 2026-10-08** (permission kept with the page's choices until the import; see evidence); ~~4. page session on `/v1`~~ — dropped by the revised R8 (no login); **5. `accounts.json` import
+(§5) — done 2026-10-08**, with a local owner principal and a key file Ant creates itself
+(`~/.config/ant/master.key`); no prompt, no plaintext fallback.
 
 Migration numbering and table count (`store/sqlite/migrate.go`, `expectedTableCount = 36` today):
 if ENG-03 is confirmed, `005_drop_supply_inventory.sql` (36 → 35) precedes `006_supply_store.sql`

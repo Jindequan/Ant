@@ -146,6 +146,10 @@ type Connection struct {
 	Source   string            `json:"source,omitempty"` // "ZCode", "~/.codex/auth.json", "Chrome · Default"
 	Values   map[string]string `json:"values,omitempty"`
 	AddedAt  time.Time         `json:"addedAt,omitzero"`
+	// SecretRef and SecretRevision say where Values are kept encrypted when
+	// the Store has a Vault; accounts.json then holds no Values at all.
+	SecretRef      string `json:"secretRef,omitempty"`
+	SecretRevision string `json:"secretRevision,omitempty"`
 }
 
 // fingerprint identifies a connection by its provider, mode and secret, so
