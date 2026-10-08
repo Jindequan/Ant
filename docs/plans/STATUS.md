@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 **user ruling R8 revised — no auth**, verbatim: “it's a local running app, for managing my all subscription resources and free quota, no auth required! just make its abilities abundant and perfect!” The page and its API stay loopback-only with no login; the planned `/v1` page session is dropped; added secrets get a local owner principal (an ownership record, not a login). Direction for the next work: abundant, polished abilities. Design 11 §3.5/§8 updated.
+
 2026-10-08 stage 1 clarity pass 1 (page): toolbar reduced to one row (tabs · search · sort · views); search absorbs the Type/Model pickers and narrows cards; one vocabulary (Subscriptions · API balances · Free allowances); Add account gets search and Connected marks. Checked in demo mode at desktop and 375 px; gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md) lists what is still to judge.
 
 2026-10-08 design 11 phase 2 step 3 (R6, per-site browser opt-in): **implemented and locally verified**. No everyday-browser cookie store or Keychain item is opened for a site the user hasn't allowed; on the page, a site's "Your browser" way asks once (Allow and read) and removing the account takes the permission back. User direction received the same day — **stage 1: manage providers and resources smoothly; complex to simple, chaotic to clear** — now the bar for every page change. Gates pass. [Evidence](../evidence/WORK/SUPPLY-ENGINE/README.md).

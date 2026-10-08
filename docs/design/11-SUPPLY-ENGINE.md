@@ -247,7 +247,7 @@ flowchart LR
   Creds --> Scheduler --> Collectors["Collectors\n(fetch port, no net/http)"]
   Collectors --> Reconciler["Reconciler\n(identity, physicalKey, windows)"]
   Reconciler --> Supply[(supply_* tables)]
-  Supply --> Query["Supply query\n(projections, ranking)"] --> API["/v1/supply/*"] --> UI
+  Supply --> Query["Supply query\n(projections, ranking)"] --> API["/api/* (loopback only)"] --> UI
   Supply --> Facts["Verified-fact source\n(VerifiedScope / VerifiedResourceFact)"] --> Compiler["Config compiler (existing)"]
   Query --> Proposal["Pool order proposal"] -.user applies.-> Compiler
   Supply -.configured resources only.-> Observe["RecordObservation (existing ledger command)"]
@@ -320,7 +320,7 @@ Package layout and its `check-deps.py` edges:
 | `supply/discover` browser strategy → `cookiestore` | — | no | read-only foreign files (existing exemption) |
 | `store/sqlite` (`supply_*` statements) | as today | no | yes |
 | `transport` (`Fetch` implementation) | as today | yes | no |
-| `api` (`/v1/supply/*`) | application, supply | yes | no |
+| page API (`/api/*`, loopback only) | supply, quota (until phase 4) | yes | no |
 
 The temporary `internal/quota` net/http exemption recorded on 2026-10-08 ends when phase 4 deletes
 the package; no exemption is carried into `supply` or `providers/*`.
@@ -369,16 +369,14 @@ Projections are SQL over `supply_*`: **resources** (everything held, latest read
 **models** (per canonical model: offers → access path → resources), **timeline** (resets,
 renewals, expiries), **health** (credentials needing attention).
 
-The API is `/v1/supply/*` behind the existing `AuthMiddleware`, namespace-scoped: `read` sees
-projections; `configure` adds/removes credentials, applies a pool proposal and requests refresh.
-Secrets are never returned. Today's `/api/*` LocalOnly surface is retired with `internal/quota`.
-
-**Page transition (no phase may leave the page without a working path).** Until phase 4 the page
-keeps reading `/api/*`; each view switches to `/v1/supply/*` only when that endpoint reaches parity
-for it. `/v1` needs a session, and today's page needs no login. The existing path is the one-time
-`-bootstrap-admin` token exchanged once at `POST /sessions` for a persistent browser session;
-`-demo` mints a demo-namespace session automatically. Whether a loopback-only automatic session for
-the local operator should replace the one-time token is a security posture choice: ruling R8.
+**Ant is a local app for one person, with no login (ruling R8, revised 2026-10-08 by the user:
+"it's a local running app, for managing my all subscription resources and free quota, no auth
+required!").** The page and its API answer only on this machine (`LocalOnly`: loopback host name
+*and* loopback peer) and change requests carry the page's own header and origin; that is the whole
+access model. The supply API is served on that same local surface (`/api/*`), not under the
+authenticated `/v1` engine API. Data stays namespaced (`-supply-namespace`, default `local`), and
+secrets added on the page are owned by one local principal that Ant creates for itself — an
+ownership record for `secret_refs`, not a login. Secrets are never returned to the page.
 
 **Ranking is a policy, not hard-coded UI.** Default order for a model's offers: (1) use-before-lost
 (expiring grants, windows resetting soon with room); (2) subscription headroom; (3) prepaid,
@@ -487,7 +485,7 @@ Phase 1's `accounts.json` import:
 | 0. Preconditions | ENG-01 gate green (done 2026-10-08); ENG-03 supply-inventory retirement (`/v1/inventory`, `domain/supply`, table drop — ruled R7, done 2026-10-08, schema v5) | — |
 | 1. Store | migration with the phase-1 `supply_*` tables; repositories in `store/sqlite`; `accounts.json` import (§5) | `accounts.json` writes |
 | 2. Engine shell | discovery strategies, scheduler, reconciler; an adapter that wraps today's readers and converts `Account` → `Inventory`, so every provider works on day one | `Service.refresh`, `mergeSame`, `hideFailedWays` |
-| 3. Models | `models`, `model_aliases`, `supply_offers`; curated `models.json`; `/v1/supply/models` with ranking | browser-side `routes()` |
+| 3. Models | `models`, `model_aliases`, `supply_offers`; curated `models.json`; `/api/models` with ranking | browser-side `routes()` |
 | 4. Native modules | providers ported one by one into `providers/<id>` with `Collector` + `Fetch` (Z.ai, ChatGPT, Claude, Copilot, Bailian first); each moves only when it passes the same fixture tests its reader has today | `internal/quota`, `/api/*`, the quota net/http exemption |
 | 5. Verified facts | the `FactSource` (snapshot facts, §2.2.1) behind `ResolveScopeFact`/`ResolveDimensionalFact`; adopt-from-supply drafts pin a snapshot `factId`; pool proposal → config draft; `RecordObservation` feed for configured resources | — |
 | 6. History | burn rate, "lasts until", forecast on the timeline (reads `supply_readings`) | — |
@@ -498,7 +496,8 @@ engine schedules and records reads; until the import step only found credentials
 **2. reconciler + `Account` → `Inventory` — done 2026-10-08** (store merges only on
 provider-reported identities; adapter meters are `unmodeled`/`quota.adapter.*` and never verified
 facts; `mergeSame`/`hideFailedWays` remain page presentation until step 4); **3. per-site
-browser opt-in (R6) — done 2026-10-08** (permission kept with the page's choices until the import; see evidence); 4. page session on `/v1` (R8); 5. `accounts.json` import (§5).
+browser opt-in (R6) — done 2026-10-08** (permission kept with the page's choices until the import; see evidence); ~~4. page session on `/v1`~~ — dropped by the revised R8 (no login); 5. `accounts.json` import
+(§5), with a local owner principal and a key file Ant creates itself.
 
 Migration numbering and table count (`store/sqlite/migrate.go`, `expectedTableCount = 36` today):
 if ENG-03 is confirmed, `005_drop_supply_inventory.sql` (36 → 35) precedes `006_supply_store.sql`
@@ -528,7 +527,7 @@ carries one coordinated plan; numbers are assigned when the batch starts, not he
 | R5 | Accept plaintext `accounts.json` until phase 1 lands? | Accept temporarily; phase 1 removes it. | accept |
 | R6 | Everyday-browser cookie reading: automatic, or opt-in per site? | Opt-in per site, remembered in `supply_credentials` (`status = hidden` until enabled). | accept opt-in |
 | R7 | ENG-03: drop `supply_inventory` data (one-way) | Drop. | accept |
-| R8 | Page auth after the move to `/v1/supply/*` (§3.5) | Keep the existing one-time bootstrap token → persistent session; no new auto-session path. | not covered |
+| R8 | Page auth | **Revised by the user 2026-10-08: no auth.** Local single-user app; loopback-only page API; no login, no session (§3.5). | — |
 
 ## 9. Changelog V0.1 → V0.2
 
