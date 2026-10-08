@@ -479,6 +479,11 @@ function render() {
   const refreshed = snap && time(snap.refreshedAt);
   $("updated").textContent = state.busy || snap?.refreshing ? "Reading your accounts…" : refreshed ? `Updated ${ago(refreshed)}` : "";
   $("refresh").classList.toggle("busy", state.busy || !!snap?.refreshing);
+  const bell = $("notify");
+  bell.hidden = !snap || snap.demo;
+  bell.setAttribute("aria-pressed", String(!!snap?.notify));
+  bell.setAttribute("aria-label", snap?.notify ? "Notifications on — turn off" : "Notifications off — turn on");
+  bell.title = snap?.notify ? "Notifications on: Ant tells you before anything runs out or is lost" : "Notifications off";
   if (!snap || !refreshed) {
     $("summary").innerHTML = "";
     $("cards").innerHTML = '<div class="cards"><div class="skeleton"></div><div class="skeleton"></div></div>';
@@ -919,6 +924,10 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && !sheet.open) { e.preventDefault(); $("search").focus(); }
 });
 $("refresh").addEventListener("click", refresh);
+$("notify").addEventListener("click", async () => {
+  try { state.snap = await api("POST", "/api/notify", { on: !state.snap?.notify }); } catch { /* unchanged */ }
+  render();
+});
 $("add").addEventListener("click", () => { if (state.providers.length) stepProviders(); });
 api("GET", "/api/providers").then((ps) => {
   for (const p of ps) for (const m of p.modes) {

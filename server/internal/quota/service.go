@@ -15,6 +15,7 @@ type Snapshot struct {
 	Demo        bool      `json:"demo,omitempty"`
 	// BrowserSites: the sites the user allowed Ant to read from their browsers.
 	BrowserSites []string `json:"browserSites"`
+	Notify       bool     `json:"notify"`
 }
 
 // Reading is the latest read of every connection, as whoever schedules the
@@ -44,6 +45,8 @@ type Service struct {
 	store       *Store
 	reader      Reader
 	insights    InsightSource
+	notifier    Notifier
+	sent        map[string]bool // alert keys already shown
 	interval    time.Duration
 	readTimeout time.Duration
 	demo        bool
@@ -61,6 +64,7 @@ type Service struct {
 type Options struct {
 	Reader      Reader        // required unless Demo
 	Insights    InsightSource // optional: history-based outlooks
+	Notifier    Notifier      // optional: notifications on this computer (never in demo)
 	Interval    time.Duration // demo refresh; default 10 minutes
 	ReadTimeout time.Duration // a page-triggered refresh waits this plus 5s; default 20 seconds
 	Demo        bool          // sample accounts; reads nothing, keeps additions in memory
@@ -73,7 +77,7 @@ func NewService(local Local, store *Store, opt Options) *Service {
 	if opt.ReadTimeout <= 0 {
 		opt.ReadTimeout = 20 * time.Second
 	}
-	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, insights: opt.Insights, interval: opt.Interval,
+	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, insights: opt.Insights, notifier: opt.Notifier, sent: map[string]bool{}, interval: opt.Interval,
 		readTimeout: opt.ReadTimeout, demo: opt.Demo, conns: map[string]Connection{}}
 }
 
@@ -82,6 +86,22 @@ func NewService(local Local, store *Store, opt Options) *Service {
 // blocks until the loop has returned.
 func (s *Service) Start(ctx context.Context) {
 	if !s.demo {
+		if s.notifier != nil {
+			s.wg.Add(1)
+			go func() {
+				defer s.wg.Done()
+				t := time.NewTicker(notifyInterval)
+				defer t.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-t.C:
+						s.notifyOnce(ctx)
+					}
+				}
+			}()
+		}
 		return
 	}
 	s.wg.Add(1)
@@ -114,6 +134,7 @@ func (s *Service) Snapshot() Snapshot {
 	if d, err := s.store.Data(); err == nil && d.BrowserSites != nil {
 		out.BrowserSites = d.BrowserSites
 	}
+	out.Notify = s.store.NotifyOn()
 	return out
 }
 

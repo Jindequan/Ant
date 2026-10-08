@@ -50,7 +50,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	src := quotasource.New(local, accounts, quota.Providers())
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
 	reader := quotasource.Reader{Source: src, Engine: engine}
-	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader}), engine, nil
+	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}}), engine, nil
 }
 
 // localVault keeps the page's account values encrypted in Ant's database

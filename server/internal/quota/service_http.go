@@ -90,6 +90,19 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("POST /api/signin/cancel", s.change(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"open": CancelSignIn()})
 	}))
+	mux.HandleFunc("POST /api/notify", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			On bool `json:"on"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		if err := s.setNotify(in.On); err != nil {
+			writeError(w, http.StatusInternalServerError, "Couldn't change notifications: "+err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, s.Snapshot())
+	}))
 	mux.HandleFunc("POST /api/browser", s.change(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Provider string `json:"provider"`

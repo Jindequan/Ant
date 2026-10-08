@@ -311,3 +311,9 @@ main#cards { display: block; }
 .spark { width: 72px; height: 18px; margin-left: 10px; vertical-align: middle; }
 .spark polyline { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 .pace { margin-top: 2px; }
+
+/* notifications switch */
+#notify .slash { display: none; }
+#notify[aria-pressed="false"] { color: var(--muted); }
+#notify[aria-pressed="false"] .slash { display: inline; }
+#notify[hidden] { display: none; }

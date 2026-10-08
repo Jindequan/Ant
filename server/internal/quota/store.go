@@ -28,6 +28,8 @@ type storeData struct {
 	// BrowserSites are the sites whose sign-in the user allowed Ant to read
 	// from their everyday browsers (ruling R6: per-site opt-in).
 	BrowserSites []string `json:"browserSites,omitempty"`
+	// Notify: whether Ant shows notifications on this computer; nil is on.
+	Notify *bool `json:"notify,omitempty"`
 }
 
 func NewStore(path string) *Store { return &Store{path: path} }
@@ -165,8 +167,26 @@ func (s *Store) SetBrowserSite(domain string, allow bool) error {
 	return s.save(d)
 }
 
+// NotifyOn reports whether notifications are on (they are unless turned off).
+func (s *Store) NotifyOn() bool {
+	d, err := s.Data()
+	return err == nil && (d.Notify == nil || *d.Notify)
+}
+
+// SetNotify turns notifications on or off.
+func (s *Store) SetNotify(on bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.load()
+	if err != nil {
+		return err
+	}
+	d.Notify = &on
+	return s.save(d)
+}
+
 func cloneData(d storeData) storeData {
-	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites)}
+	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden), BrowserSites: slices.Clone(d.BrowserSites), Notify: d.Notify}
 	// (Values are copied below; SecretRef/SecretRevision travel with c.)
 	for _, c := range d.Accounts {
 		v := map[string]string{}

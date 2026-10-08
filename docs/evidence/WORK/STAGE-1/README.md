@@ -57,3 +57,22 @@ from its sample accounts so the feature can be seen without reading anything.
 window, pace at the last change vs quiet time slowing it, used up), `TestBalanceForecastIgnoresTopUps`,
 `TestOutlooksThroughTheEngine`, `TestInsightMatchesTheCardRow`. Checked in demo mode: 5 warnings,
 no row with both a "use before" tag and a "runs out" warning, trend lines on balances.
+
+## Ability: notifications (2026-10-08)
+
+Ant tells you on this Mac, with the page closed, once per event:
+- an allowance with ≥ 30% left that resets within 2 h ("use it or lose it"), or a grant that
+  expires within a day with anything left — not when the pace uses it up anyway;
+- a window that runs dry within 6 h at the recent pace, before it resets; a balance lasting under
+  3 days;
+- a plan renewing within a day, or ending within 3 days with auto-renew off;
+- an account signed out (once; again only after it was signed in in between).
+
+A bell next to Refresh turns them off and on (on by default; turning on shows one notification so
+you see where they appear). At most 5 per minute, the rest a minute later. The text is passed to
+`osascript` as arguments, never as script. None in demo mode.
+
+Tests: `TestAlerts` (every rule, including the suppressed and the not-worth-it cases, and the exact
+wording), `TestNotificationsAreSentOnceAndCanBeTurnedOff`, `TestABurstIsSpreadOut`. Live: real
+binary in an isolated home (empty PATH, so no notification was actually shown): the bell is on by
+default, turns off and on, and the server keeps the setting.
