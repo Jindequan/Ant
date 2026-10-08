@@ -12,7 +12,7 @@ const URGENT_HOURS = 24; // a window renewing this soon with this much left is "
 const URGENT_LEFT = 30;
 const EXPIRING_DAYS = 14; // a grant ending this soon is "use it"
 
-const state = { snap: null, providers: [], filter: "all", view: "cards", sort: "soon", q: "", busy: false };
+const state = { snap: null, providers: [], insights: {}, filter: "all", view: "cards", sort: "soon", q: "", busy: false };
 const PREFS = ["filter", "view", "sort"];
 try { for (const k of PREFS) state[k] = localStorage.getItem(`ant.${k}`) || state[k]; } catch { /* storage off */ }
 function savePref(k) { try { localStorage.setItem(`ant.${k}`, state[k]); } catch { /* storage off */ } }
@@ -50,8 +50,11 @@ function percentLeft(w) {
   if (w.used != null && w.limit) return Math.max(0, Math.min(100, 100 - (w.used / w.limit) * 100));
   return null;
 }
-function urgency(w) {
+// urgency says what to use before it is lost. When the recent pace uses an
+// allowance up before it resets or expires (a), nothing is lost: no urgency.
+function urgency(w, a) {
   if (w.aside) return null;
+  if (a && windowInsight(a, w)?.outlook === "runs_out") return null;
   const r = time(w.resetsAt);
   if (r == null) return null;
   if (w.expires) return r - Date.now() < EXPIRING_DAYS * 864e5 ? "Use before it expires" : null;
@@ -77,7 +80,7 @@ const allBalances = (a) => [...(a.balances || []), ...(a.groups || []).flatMap((
 // then problems.
 function order(a) {
   if (a.status !== "ok") return 3e15;
-  const soon = allWindows(a).filter(urgency).map((w) => time(w.resetsAt));
+  const soon = allWindows(a).filter((w) => urgency(w, a)).map((w) => time(w.resetsAt));
   if (soon.length) return Math.min(...soon);
   const resets = allWindows(a).filter((w) => !w.aside).map((w) => time(w.resetsAt)).filter(Boolean);
   return 1e15 + (resets.length ? Math.min(...resets) : 9e14);
@@ -87,7 +90,7 @@ function order(a) {
 
 function renderSummary(accounts) {
   const ok = accounts.filter((a) => a.status === "ok");
-  const urgent = ok.flatMap((a) => allWindows(a).filter(urgency).map((w) => ({ a, w })));
+  const urgent = ok.flatMap((a) => allWindows(a).filter((w) => urgency(w, a)).map((w) => ({ a, w })));
   urgent.sort((x, y) => time(x.w.resetsAt) - time(y.w.resetsAt));
   const subs = ok.filter((a) => a.kind === "subscription");
   const next = subs.map((a) => ({ t: time(a.renewsAt) || time(a.endsAt), ends: !a.renewsAt && !!a.endsAt })).filter((x) => x.t).sort((x, y) => x.t - y.t)[0];
@@ -117,7 +120,34 @@ function renderSummary(accounts) {
     </div>`;
 }
 
-function renderWindow(w, compact) {
+// insightsOf is what the history says about an account's rows: its own
+// connection's and those merged into its card.
+function insightsOf(a) {
+  return [a.id, ...(a.keys || [])].flatMap((id) => state.insights[id] || []);
+}
+
+function windowInsight(a, w) {
+  return a && insightsOf(a).find((i) => i.window === w.name && (i.model || "") === (w.model || ""));
+}
+
+// outlook speaks only when the recent pace uses an allowance up before it
+// resets or expires; lasting is what's expected and says nothing.
+function outlook(i) {
+  if (i?.outlook === "runs_out" && time(i.at)) return `<span class="outlook soon">runs out in ~${until(time(i.at))} at this pace</span>`;
+  return "";
+}
+
+// spark draws recent values as a small line.
+function spark(points) {
+  if (!points || points.length < 2) return "";
+  const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const px = (x) => x1 === x0 ? 0 : ((x - x0) / (x1 - x0)) * 116 + 2;
+  const py = (y) => y1 === y0 ? 12 : 22 - ((y - y0) / (y1 - y0)) * 20;
+  return `<svg class="spark" viewBox="0 0 120 24" aria-hidden="true"><polyline points="${points.map((p) => `${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(" ")}"/></svg>`;
+}
+
+function renderWindow(w, compact, a) {
   const p = percentLeft(w);
   const r = time(w.resetsAt);
   const level = p == null ? "" : p < 20 ? "low" : p < 50 ? "warn" : "";
@@ -130,7 +160,7 @@ function renderWindow(w, compact) {
   else left = "Unknown";
   const verb = w.expires ? "Expires" : "Resets";
   const when = r ? `${verb} in ${until(r)} · ${w.expires ? dayFmt.format(r) : dateFmt.format(r)}${w.resetEstimated ? " (expected)" : ""}` : "Reset time not reported";
-  const tag = compact ? null : urgency(w);
+  const tag = compact ? null : urgency(w, a);
   return `
     <div class="win ${w.aside ? "aside" : ""} ${compact ? "compact" : ""}">
       <div class="row">
@@ -140,7 +170,7 @@ function renderWindow(w, compact) {
       <div class="meter ${p == null ? "unknown" : ""}" role="meter" aria-label="${esc(w.name)} left" aria-valuemin="0" aria-valuemax="100" ${p == null ? "" : `aria-valuenow="${Math.round(p)}"`}>
         ${p == null ? "" : `<i class="${level}" style="width:${p.toFixed(1)}%"></i>`}
       </div>
-      ${compact ? "" : `<div class="when">${when}</div>`}
+      ${compact ? "" : `<div class="when">${when}${(() => { const o = outlook(windowInsight(a, w)); return o ? ` · ${o}` : ""; })()}</div>`}
     </div>`;
 }
 
@@ -148,7 +178,11 @@ function renderBalance(a) {
   return (a.balances || []).map((b) => {
     const parts = [Number(b.granted) ? `Granted ${money(b.currency, b.granted)}` : "", Number(b.toppedUp) ? `Topped up ${money(b.currency, b.toppedUp)}` : ""].filter(Boolean);
     const label = b.label ? `<div class="parts">${esc(b.label)}</div>` : a.kind === "api" ? "" : `<div class="parts">Extra credits</div>`;
-    return `<div class="balance">${label}<div class="amt">${money(b.currency, b.amount)}</div>${parts.length ? `<div class="parts">${parts.join(" · ")}</div>` : ""}</div>`;
+    const i = insightsOf(a).find((x) => x.currency === b.currency && (x.label || "") === (b.label || ""));
+    let pace = "";
+    if (i?.outlook === "runs_out" && time(i.at)) pace = `≈ ${until(time(i.at))} left at ${money(b.currency, i.perDay.toFixed(2))}/day`;
+    else if (i?.outlook === "idle") pace = "Nothing spent this week";
+    return `<div class="balance">${label}<div class="amt">${money(b.currency, b.amount)}${spark(i?.points)}</div>${parts.length ? `<div class="parts">${parts.join(" · ")}</div>` : ""}${pace ? `<div class="parts pace">${pace}</div>` : ""}</div>`;
   }).join("");
 }
 
@@ -159,7 +193,7 @@ function renderGroup(g, a) {
   const ws = g.windows || [];
   // windows that all end together say so once, for the group
   const shared = ws.length > 1 && ws.every((w) => w.resetsAt === ws[0].resetsAt && !!w.expires === !!ws[0].expires) && time(ws[0].resetsAt);
-  const rows = ws.map((w) => renderWindow(w, !!shared));
+  const rows = ws.map((w) => renderWindow(w, !!shared, a));
   const windows = rows.length > 6
     ? rows.slice(0, 5).join("") + `<details class="more"><summary>Show all ${rows.length}</summary>${rows.slice(5).join("")}</details>`
     : rows.join("");
@@ -181,11 +215,11 @@ function renderCard(a) {
   if (a.status === "ok") {
     const main = (a.windows || []).filter((w) => !w.aside);
     const aside = (a.windows || []).filter((w) => w.aside);
-    const rows = main.map((w) => renderWindow(w));
+    const rows = main.map((w) => renderWindow(w, false, a));
     const list = rows.length > 6
       ? rows.slice(0, 5).join("") + `<details class="more"><summary>Show all ${rows.length}</summary>${rows.slice(5).join("")}</details>`
       : rows.join("");
-    body = renderBalance(a) + list + aside.map((w) => renderWindow(w)).join("") + (a.groups || []).map((g) => renderGroup(g, a)).join("");
+    body = renderBalance(a) + list + aside.map((w) => renderWindow(w, false, a)).join("") + (a.groups || []).map((g) => renderGroup(g, a)).join("");
     if (a.message) body += `<p class="note">${esc(a.message)}</p>`;
     if (!body) body = `<p class="note">Connected. The provider reported no allowance or balance.</p>`;
   } else {
@@ -303,7 +337,7 @@ function route(a, id, media) {
   const ps = ws.map(percentLeft).filter((p) => p != null);
   const p = ps.length ? Math.min(...ps) : null;
   const w = ws.find((x) => percentLeft(x) === p) || ws[0] || null;
-  const expiring = ws.some((x) => x.expires || urgency(x));
+  const expiring = ws.some((x) => x.expires || urgency(x, a));
   const pays = a.kind === "api" || (!ws.length && allBalances(a).length);
   const cls = p === 0 ? 9 : expiring || a.kind === "free" ? 0 : pays ? 2 : 1;
   return { a, id, media, w, p, cls, t: w ? time(w.resetsAt) : null, pays };
@@ -350,7 +384,7 @@ function routeLeft(r) {
 
 function routeRow(r) {
   const level = r.p == null ? "" : r.p < 20 ? "low" : r.p < 50 ? "warn" : "";
-  const why = r.cls === 9 ? "Used up" : r.pays ? "Pay as you go" : r.w && urgency(r.w) ? urgency(r.w) : "";
+  const why = r.cls === 9 ? "Used up" : r.pays ? "Pay as you go" : r.w && urgency(r.w, r.a) ? urgency(r.w, r.a) : "";
   return `<span class="r-acct" style="--hue:${HUES[r.a.provider] ?? 30}"><span class="mark" aria-hidden="true">${esc(r.a.name.slice(0, 1))}</span>${esc(r.a.label || r.a.name)}${r.a.modeName ? ` · ${esc(r.a.modeName)}` : ""}</span>
     <span class="m-left"><span class="meter small ${r.p == null ? "unknown" : ""}">${r.p == null ? "" : `<i class="${level}" style="width:${r.p.toFixed(1)}%"></i>`}</span>${routeLeft(r)}</span>
     <span class="m-when">${why ? `<span class="tag ${r.cls === 9 ? "off" : ""}">${esc(why)}</span>` : r.t ? `${r.w?.expires ? "Expires" : "Resets"} ${until(r.t)}` : ""}</span>`;
@@ -425,7 +459,7 @@ function renderTimeline(accounts) {
       else if (ev.verb === "ends" && a.autoRenew === false) val = "auto-renew off";
       const name = esc(a.label || a.name);
       const what = w ? `${esc(w.name)} <span>${ev.verb}</span>` : `${esc(a.plan || a.modeName || "Plan")} <span>${ev.verb}</span>`;
-      const tag = w && urgency(w) ? ` <span class="tag">${urgency(w)}</span>` : "";
+      const tag = w && urgency(w, a) ? ` <span class="tag">${urgency(w, a)}</span>` : "";
       return `<div class="tl-row" style="--hue:${HUES[a.provider] ?? 30}">
         <span class="t">${when}</span>
         <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
@@ -495,9 +529,20 @@ async function api(method, path, body) {
   return data;
 }
 
+// loadInsights fetches the history-based outlooks when the accounts were
+// read again since the last time.
+let insightsAt = "";
+async function loadInsights() {
+  const at = state.snap?.refreshedAt || "";
+  if (!at || at === insightsAt) return;
+  insightsAt = at;
+  try { state.insights = await api("GET", "/api/insights"); render(); } catch { /* the cards stand without it */ }
+}
+
 async function load() {
   try { state.snap = await api("GET", "/api/quota"); } catch { /* keep the last snapshot */ }
   render();
+  loadInsights();
   if (state.snap?.refreshing || !time(state.snap?.refreshedAt)) setTimeout(load, 1500);
 }
 
@@ -508,6 +553,7 @@ async function refresh() {
   try { state.snap = await api("POST", "/api/quota/refresh"); } catch { /* keep the last snapshot */ }
   state.busy = false;
   render();
+  loadInsights();
 }
 
 // ---------- the add / edit sheet ----------

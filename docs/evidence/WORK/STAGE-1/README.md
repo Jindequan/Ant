@@ -36,3 +36,24 @@ four gates pass.
 **Still to judge** (next passes): the Add flow's three steps (provider → way of paying → way of
 reading) carry long paragraphs; the summary tile "Use before it's gone: 15" counts allowances
 without saying so; card menus and the Timeline view were not reviewed yet.
+
+## Ability: history and forecasts (2026-10-08)
+
+**What the page now says.** A window that will be used up before it resets says so on its row:
+"runs out in ~1d 18h at this pace", in warning colour. A balance shows a small 7-day trend line and
+"≈ 18d left at 72.22 credits/day" (or "Nothing spent this week"). Rows that simply last say
+nothing — lasting is the expected case, and saying it on every row was noise. When the pace uses an
+allowance up first, its "Use before reset/expires" tag goes away, on the row, in the summary count,
+in the Models view and on the timeline: nothing will be lost, so there is nothing to rush.
+
+**How it is computed** (`supply/outlook.go`, design 11 phase 6). Windows are paced within their
+current window, balances over the last 7 days counting only decreases (top-ups aren't spending).
+The value is taken as unchanged from its last stored change until the account's last good read, so
+quiet hours slow the pace instead of being ignored. Too little history (< 15 min for windows, < 1 h
+for balances) gives no outlook. Served by `GET /api/insights`; demo mode derives sample outlooks
+from its sample accounts so the feature can be seen without reading anything.
+
+**Tests.** `TestForecast` (eight cases: none, too little, idle, runs out, lasts, only the current
+window, pace at the last change vs quiet time slowing it, used up), `TestBalanceForecastIgnoresTopUps`,
+`TestOutlooksThroughTheEngine`, `TestInsightMatchesTheCardRow`. Checked in demo mode: 5 warnings,
+no row with both a "use before" tag and a "runs out" warning, trend lines on balances.

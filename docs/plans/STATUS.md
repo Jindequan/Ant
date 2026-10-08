@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 ability: history and forecasts (design 11 phase 6). Cards warn when an allowance will run out before it resets at the recent pace; balances show a 7-day trend and how long they last; "use before" urgency is dropped where the pace uses it up anyway. Computed from the recorded readings (`supply/outlook.go`, `GET /api/insights`); demo mode shows sample outlooks. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
+
 2026-10-08 keys encrypted with no setup (design 11 §5; ruling R5 closed): values of accounts added on the page now live encrypted in `ant.db` under a local owner, with a key file Ant creates itself; a plaintext `accounts.json` is moved on start only after every value reads back. Added credentials are now recorded with history. Live-checked with the real binary in an isolated home. Gates pass. [Evidence](../evidence/WORK/SUPPLY-ENGINE/README.md).
 
 2026-10-08 **user ruling R8 revised — no auth**, verbatim: “it's a local running app, for managing my all subscription resources and free quota, no auth required! just make its abilities abundant and perfect!” The page and its API stay loopback-only with no login; the planned `/v1` page session is dropped; added secrets get a local owner principal (an ownership record, not a login). Direction for the next work: abundant, polished abilities. Design 11 §3.5/§8 updated.

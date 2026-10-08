@@ -43,6 +43,7 @@ type Service struct {
 	providers   []Provider
 	store       *Store
 	reader      Reader
+	insights    InsightSource
 	interval    time.Duration
 	readTimeout time.Duration
 	demo        bool
@@ -59,6 +60,7 @@ type Service struct {
 // Options tune a Service; zero values take defaults.
 type Options struct {
 	Reader      Reader        // required unless Demo
+	Insights    InsightSource // optional: history-based outlooks
 	Interval    time.Duration // demo refresh; default 10 minutes
 	ReadTimeout time.Duration // a page-triggered refresh waits this plus 5s; default 20 seconds
 	Demo        bool          // sample accounts; reads nothing, keeps additions in memory
@@ -71,7 +73,7 @@ func NewService(local Local, store *Store, opt Options) *Service {
 	if opt.ReadTimeout <= 0 {
 		opt.ReadTimeout = 20 * time.Second
 	}
-	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, interval: opt.Interval,
+	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, insights: opt.Insights, interval: opt.Interval,
 		readTimeout: opt.ReadTimeout, demo: opt.Demo, conns: map[string]Connection{}}
 }
 

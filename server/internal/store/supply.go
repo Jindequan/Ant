@@ -129,6 +129,10 @@ type SupplyReaderTx interface {
 	ListSupplyResources(namespace domain.ID) ([]SupplyResourceRecord, error)
 	LatestSupplyReading(namespace, resourceID domain.ID) (SupplyReadingRecord, bool, error)
 	GetSupplyReading(namespace, readingID domain.ID) (SupplyReadingRecord, bool, error)
+	ListSupplyPackages(namespace domain.ID) ([]SupplyPackageRecord, error)
+	// ListSupplyReadings returns a resource's readings observed at or after
+	// since, oldest first.
+	ListSupplyReadings(namespace, resourceID domain.ID, since domain.Millis) ([]SupplyReadingRecord, error)
 }
 
 // SupplyWriterTx is the supply engine's write surface.

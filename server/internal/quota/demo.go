@@ -2,6 +2,7 @@ package quota
 
 import (
 	"context"
+	"strconv"
 	"time"
 )
 
@@ -254,4 +255,57 @@ func demoAccounts(conns []Connection, now time.Time) []Account {
 		}
 	}
 	return out
+}
+
+// demoInsights are sample outlooks for the demo accounts, derived from
+// their own numbers, so the page shows what history adds without reading
+// anything: allowances below half that reset in more than three hours run
+// out first; the rest last; balances drain over a few weeks.
+func demoInsights(accounts []Account, now time.Time) map[string][]Insight {
+	out := map[string][]Insight{}
+	for _, a := range accounts {
+		if a.Status != StatusOK {
+			continue
+		}
+		for _, w := range a.Windows {
+			left := demoLeft(w)
+			if left == nil || w.ResetsAt == nil || *left <= 0 {
+				continue
+			}
+			in := Insight{Window: w.Name, Model: w.Model, Outlook: "lasts", Unit: w.Unit}
+			if *left < 50 && w.ResetsAt.Sub(now) > 3*time.Hour {
+				at := now.Add(w.ResetsAt.Sub(now) * time.Duration(*left) / 100)
+				in.Outlook, in.At = "runs_out", &at
+			}
+			out[a.ID] = append(out[a.ID], in)
+		}
+		for i, b := range a.Balances {
+			amount, err := strconv.ParseFloat(b.Amount, 64)
+			if err != nil || amount <= 0 {
+				continue
+			}
+			days := 18 + 9*float64(i+len(a.ID)%5)
+			perDay := amount / days
+			at := now.Add(time.Duration(days * float64(24*time.Hour)))
+			in := Insight{Currency: b.Currency, Label: b.Label, Outlook: "runs_out", At: &at, PerDay: &perDay, Unit: b.Currency}
+			for d := 7; d >= 0; d-- {
+				t := now.Add(-time.Duration(d) * 24 * time.Hour)
+				in.Points = append(in.Points, [2]float64{float64(t.UnixMilli()), amount + perDay*float64(d) + float64(d%3)*perDay/3})
+			}
+			out[a.ID] = append(out[a.ID], in)
+		}
+	}
+	return out
+}
+
+func demoLeft(w Window) *float64 {
+	switch {
+	case w.UsedPercent != nil:
+		v := 100 - *w.UsedPercent
+		return &v
+	case w.Left != nil && w.Limit != nil && *w.Limit > 0:
+		v := *w.Left / *w.Limit * 100
+		return &v
+	}
+	return nil
 }

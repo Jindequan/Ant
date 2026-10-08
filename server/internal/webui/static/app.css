@@ -304,3 +304,10 @@ main#cards { display: block; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* history-based outlook */
+.outlook { color: var(--muted); }
+.outlook.soon { color: var(--warn, #b45309); font-weight: 600; }
+.spark { width: 72px; height: 18px; margin-left: 10px; vertical-align: middle; }
+.spark polyline { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.pace { margin-top: 2px; }

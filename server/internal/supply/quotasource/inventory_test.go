@@ -7,6 +7,8 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/quota"
+	"ant/server/internal/store"
+	"ant/server/internal/supply"
 )
 
 func TestDecimalUnitsIsExact(t *testing.T) {
@@ -82,5 +84,30 @@ func TestBalanceMeter(t *testing.T) {
 	if p.Kind != "prepaid" || r.TemplateRef != "balance/cny" || r.Currency != "CNY" || *r.Remaining != -3_200_000 || r.Limit != nil ||
 		!strings.Contains(string(r.Evidence), `"toppedUp":"-3.20"`) {
 		t.Fatalf("balance = %+v / %+v", p, r)
+	}
+}
+
+func TestInsightMatchesTheCardRow(t *testing.T) {
+	at := domain.Millis(1_800_000_000_000)
+	perDay := domain.Units(2_100_000)
+	left := domain.Units(23_400_000)
+	m := supply.MeterOutlook{
+		Resource: store.SupplyResourceRecord{Unit: "CNY", Currency: "CNY", ScopeJSON: []byte(`{"kind":"all"}`)},
+		Latest:   store.SupplyReadingRecord{ObservedAt: 5, Remaining: &left, EvidenceJSON: []byte(`{"label":"Main","amount":"23.40"}`)},
+		Points:   []store.SupplyReadingRecord{{ObservedAt: 5, Remaining: &left}},
+		Outlook:  supply.Outlook{Kind: supply.OutlookRunsOut, At: &at, PerDay: &perDay},
+	}
+	in := insight(m)
+	if in.Currency != "CNY" || in.Label != "Main" || in.Window != "" || in.Outlook != "runs_out" || *in.PerDay != 2.1 ||
+		in.At.UnixMilli() != int64(at) || len(in.Points) != 1 || in.Points[0] != [2]float64{5, 23.4} {
+		t.Fatalf("balance insight = %+v", in)
+	}
+	w := supply.MeterOutlook{
+		Resource: store.SupplyResourceRecord{Unit: "count", ScopeJSON: []byte(`{"kind":"model","model":"kimi-k3"}`)},
+		Latest:   store.SupplyReadingRecord{EvidenceJSON: []byte(`{"name":"Free tokens"}`)},
+		Outlook:  supply.Outlook{Kind: supply.OutlookLasts},
+	}
+	if in := insight(w); in.Window != "Free tokens" || in.Model != "kimi-k3" || in.Currency != "" || in.Outlook != "lasts" {
+		t.Fatalf("window insight = %+v", in)
 	}
 }

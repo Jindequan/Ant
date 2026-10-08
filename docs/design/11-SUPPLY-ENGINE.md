@@ -488,7 +488,7 @@ Phase 1's `accounts.json` import:
 | 3. Models | `models`, `model_aliases`, `supply_offers`; curated `models.json`; `/api/models` with ranking | browser-side `routes()` |
 | 4. Native modules | providers ported one by one into `providers/<id>` with `Collector` + `Fetch` (Z.ai, ChatGPT, Claude, Copilot, Bailian first); each moves only when it passes the same fixture tests its reader has today | `internal/quota`, `/api/*`, the quota net/http exemption |
 | 5. Verified facts | the `FactSource` (snapshot facts, §2.2.1) behind `ResolveScopeFact`/`ResolveDimensionalFact`; adopt-from-supply drafts pin a snapshot `factId`; pool proposal → config draft; `RecordObservation` feed for configured resources | — |
-| 6. History | burn rate, "lasts until", forecast on the timeline (reads `supply_readings`) | — |
+| 6. History | burn rate, "lasts until", forecast (reads `supply_readings`) — **done 2026-10-08** on cards (`supply/outlook.go`); the timeline doesn't show forecasts yet | — |
 
 Phase 2 progress (one commit per step): **1. discovery and scheduling — done 2026-10-08**
 ([evidence](../evidence/WORK/SUPPLY-ENGINE/README.md); `Service.refresh`'s read loop is gone, the

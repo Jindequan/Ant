@@ -13,6 +13,7 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/quota"
+	"ant/server/internal/store"
 	"ant/server/internal/supply"
 )
 
@@ -198,3 +199,64 @@ func (r Reader) Refresh(ctx context.Context, only []string) {
 	}
 	_ = r.Engine.RunNow(ctx, ids)
 }
+
+// Insights turns the engine's outlooks into the page's insights, matching
+// each meter back to its card row by the names the reader gave it.
+func (r Reader) Insights(ctx context.Context) (map[string][]quota.Insight, error) {
+	outlooks, err := r.Engine.Outlooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]quota.Insight, len(outlooks))
+	for cred, meters := range outlooks {
+		for _, m := range meters {
+			out[string(cred)] = append(out[string(cred)], insight(m))
+		}
+	}
+	return out, nil
+}
+
+func insight(m supply.MeterOutlook) quota.Insight {
+	var ev struct {
+		Name  string `json:"name"`
+		Label string `json:"label"`
+	}
+	_ = json.Unmarshal(m.Latest.EvidenceJSON, &ev)
+	var sc struct {
+		Model string `json:"model"`
+	}
+	_ = json.Unmarshal(m.Resource.ScopeJSON, &sc)
+	in := quota.Insight{Outlook: m.Outlook.Kind, Unit: m.Resource.Unit}
+	if m.Resource.Currency != "" {
+		in.Currency, in.Label = m.Resource.Currency, ev.Label
+	} else {
+		in.Window, in.Model = ev.Name, sc.Model
+	}
+	if m.Outlook.At != nil {
+		t := time.UnixMilli(int64(*m.Outlook.At)).UTC()
+		in.At = &t
+	}
+	if m.Outlook.PerDay != nil {
+		f := fromUnits(*m.Outlook.PerDay)
+		in.PerDay = &f
+	}
+	for _, p := range m.Points {
+		if left, ok := remaining(p); ok {
+			in.Points = append(in.Points, [2]float64{float64(p.ObservedAt), fromUnits(left)})
+		}
+	}
+	return in
+}
+
+func remaining(r store.SupplyReadingRecord) (domain.Units, bool) {
+	switch {
+	case r.Remaining != nil:
+		return *r.Remaining, true
+	case r.Limit != nil && r.Used != nil:
+		return *r.Limit - *r.Used, true
+	}
+	return 0, false
+}
+
+// fromUnits is an adapter meter's units (quantumExp) as a number.
+func fromUnits(u domain.Units) float64 { return float64(u) / 1e6 }

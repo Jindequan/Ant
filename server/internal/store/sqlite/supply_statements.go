@@ -262,6 +262,50 @@ func (r *readerTx) GetSupplyReading(ns, readingID domain.ID) (store.SupplyReadin
 	return rec, err == nil, err
 }
 
+func (r *readerTx) ListSupplyPackages(ns domain.ID) ([]store.SupplyPackageRecord, error) {
+	rows, err := r.tx.QueryContext(r.ctx, `SELECT namespace,package_id,account_id,template_ref,kind,basis,plan,starts_at,renews_at,ends_at,auto_renew,live,definition_json,updated_at
+FROM supply_packages WHERE namespace=? ORDER BY account_id,package_id`, string(ns))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []store.SupplyPackageRecord
+	for rows.Next() {
+		var p store.SupplyPackageRecord
+		var starts, renews, ends, autoRenew sql.NullInt64
+		var live int64
+		var def string
+		if err := rows.Scan(&p.Namespace, &p.PackageID, &p.AccountID, &p.TemplateRef, &p.Kind, &p.Basis, &p.Plan, &starts, &renews, &ends, &autoRenew, &live, &def, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		p.StartsAt, p.RenewsAt, p.EndsAt, p.Live, p.DefinitionJSON = millisPtr(starts), millisPtr(renews), millisPtr(ends), live == 1, []byte(def)
+		if autoRenew.Valid {
+			b := autoRenew.Int64 == 1
+			p.AutoRenew = &b
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+func (r *readerTx) ListSupplyReadings(ns, resourceID domain.ID, since domain.Millis) ([]store.SupplyReadingRecord, error) {
+	rows, err := r.tx.QueryContext(r.ctx, `SELECT `+supplyReadingColumns+` FROM supply_readings
+WHERE namespace=? AND resource_id=? AND observed_at>=? ORDER BY observed_at`, string(ns), string(resourceID), int64(since))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []store.SupplyReadingRecord
+	for rows.Next() {
+		rec, err := scanSupplyReading(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rec)
+	}
+	return out, rows.Err()
+}
+
 func (w *writerTx) AppendSupplyReadingIfChanged(r store.SupplyReadingRecord) (bool, error) {
 	latest, found, err := latestSupplyReading(w.ctx, w.tx, r.Namespace, r.ResourceID)
 	if err != nil {

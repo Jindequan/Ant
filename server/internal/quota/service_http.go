@@ -27,6 +27,20 @@ func (s *Service) Handler() http.Handler {
 		defer cancel()
 		writeJSON(w, http.StatusOK, s.Refresh(ctx))
 	}))
+	mux.HandleFunc("GET /api/insights", func(w http.ResponseWriter, r *http.Request) {
+		out := map[string][]Insight{}
+		if s.demo {
+			out = demoInsights(s.Snapshot().Accounts, s.local.Now())
+		} else if s.insights != nil {
+			got, err := s.insights.Insights(r.Context())
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "Couldn't read the history: "+err.Error())
+				return
+			}
+			out = got
+		}
+		writeJSON(w, http.StatusOK, out)
+	})
 	mux.HandleFunc("GET /api/providers", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, s.providers)
 	})
