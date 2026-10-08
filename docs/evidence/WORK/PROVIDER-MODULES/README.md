@@ -103,3 +103,15 @@ Paused by you"; Resume → back. Kling (no models): Edit · Hide only. Escape cl
 deadline exceeded" (a write budget under concurrent load). This slice doesn't touch the ledger or
 preparation. Re-run alone with `-race -count=10`: 10/10 pass; the full gates were then re-run from
 the start before committing. Recorded as a load-sensitive test in accepted code, not fixed here.
+
+## Review REVIEW-DESIGN12-SLICE: housekeeping (2026-10-08)
+
+One commit per step, four gates green each: (1) Fetch without environment proxy, checked headers,
+explicit transport, default port (M-1, L1, L2, L5) + the STATUS follow-up item for the
+load-sensitive ledger test (M-3); (2) one canonical fixture per provider reply, proven by mutation
+(M-2); (3) "last checked" wording and design-order exclusion reasons (M-4 — pushback on the
+suggested data change, with reasons in design 12 §5 — and L7, with a test that fails on the old
+order); (4) one plan-name helper, no request without a key (L3, L4); (5) the card menu follows its
+card through filters (checked in demo: closes when a search hides the card, stays when it doesn't),
+DemoSource tests including "has no network field", the table-count test renamed, and the
+quotasource/provider-package rule explained in `check-deps.py` (L6, L8, L9, L10).

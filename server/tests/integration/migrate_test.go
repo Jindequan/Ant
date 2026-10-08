@@ -15,7 +15,7 @@ import (
 	"ant/server/internal/store/sqlite"
 )
 
-func TestMigrateFreshDatabaseCreates41Tables(t *testing.T) {
+func TestMigrateFreshDatabaseCreatesEveryTable(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ant.db")
 	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
 	if err != nil {

@@ -495,9 +495,19 @@ function renderTimeline(accounts) {
 
 // ---------- the page ----------
 
+// render draws the page, then keeps an open card menu on its card: re-anchored
+// when the card is still shown, closed when a filter, search or view hid it.
 function render() {
+  draw();
+  if (!menuFor) return;
+  const id = menuFor;
+  const button = [...document.querySelectorAll("[data-menu]")].find((x) => x.dataset.menu === id);
+  if (button) openMenu(button, true);
+  else closeMenu();
+}
+
+function draw() {
   const snap = state.snap;
-  if (state.view !== "cards" && menuFor) closeMenu();
   document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.filter === state.filter)));
   document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
   $("sort").value = state.sort;
@@ -544,12 +554,6 @@ function render() {
     <section class="section">${sec.title ? `<h2>${esc(sec.title)} <span class="n">${sec.items.length}</span></h2>` : ""}
       <div class="cards">${sec.items.map(renderCard).join("")}</div>
     </section>`).join("");
-  if (menuFor) {
-    const id = menuFor;
-    const button = [...document.querySelectorAll("[data-menu]")].find((x) => x.dataset.menu === id);
-    if (button) openMenu(button, true);
-    else closeMenu();
-  }
 }
 
 // ---------- server ----------

@@ -50,7 +50,10 @@ ALLOWED_INTERNAL = {
     # types: no provider package, no quota, no network, no SQL. quotasource is
     # the phase-2 adapter onto today's quota readers and is the only package
     # allowed to join the two; it goes with internal/quota in phase 4. (More
-    # specific prefixes first: the first match wins.)
+    # specific prefixes first: the first match wins.) quotasource may not
+    # import provider packages: modules (and their endpoints, for demo mode)
+    # are handed to it by the composition root, so the adapter never depends
+    # on any one provider.
     "ant/server/internal/supply/quotasource": ["ant/server/internal/supply", "ant/server/internal/quota", "ant/server/internal/domain", "ant/server/internal/store", "ant/server/internal/providers/catalog"],
     "ant/server/internal/supply": ["ant/server/internal/supply", "ant/server/internal/domain", "ant/server/internal/store"],
     # test-only contract package may import anything internal

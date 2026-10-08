@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 housekeeping step 5 (L6, L8, L9, L10): the card menu closes when a filter or search hides its card (checked in demo); DemoSource has tests, including that it has no network field; the table-count test no longer carries a stale number; check-deps explains why the adapter may not import provider packages. Review REVIEW-DESIGN12-SLICE housekeeping complete: M-1…M-4 and L1–L10 addressed (M-4 by wording, with evidence). Gates pass. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).
+
 2026-10-08 housekeeping step 4 (L3, L4): one plan-name helper (`catalog.PlanName`) replaces Z.ai's `capitalize` and quota's `planName`; Z.ai's model list refuses an empty key like its plan read does, and a test shows no request goes out without a key. Gates pass.
 
 2026-10-08 housekeeping step 3 (M-4, L7): the preview's freshness note now says what it measures — "last checked 2h ago", from the last successful read. **Pushback on M-4's suggested fix, with evidence:** readings are stored only on change, so a reading's `observed_at` is when its value last changed; ageing on it would mark a balance confirmed a minute ago as hours old. The data was right, the words weren't (design 12 §5 records why). Exclusion reasons follow design 12 §5's order across all of a route's meters (used up → too low to call → declared), with a test that fails on the old order. Gates pass.
