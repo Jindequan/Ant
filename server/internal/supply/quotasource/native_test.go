@@ -120,4 +120,11 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	if n := count(`SELECT COUNT(*) FROM supply_readings r JOIN supply_resources s USING(namespace,resource_id) WHERE s.template_ref='balance/cny' AND s.quantum_exp=-2 AND r.remaining_units=2340`); n != 1 {
 		t.Fatalf("DeepSeek balance readings = %d, want 1", n)
 	}
+	// offers: each key serves its listed models, drawing on the right meters
+	if n := count(`SELECT COUNT(*) FROM supply_offers WHERE model_id='glm-5.3' AND protocol='openai-chat' AND draws_json='["window/short","window/week"]' AND endpoint LIKE '%/api/coding/paas/v4'`); n != 2 {
+		t.Fatalf("Z.ai offers = %d, want 2 (one per key)", n)
+	}
+	if n := count(`SELECT COUNT(*) FROM supply_offers WHERE model_id='deepseek-v4' AND draws_json='["balance/cny","balance/usd"]'`); n != 1 {
+		t.Fatalf("DeepSeek offers = %d, want 1", n)
+	}
 }

@@ -78,7 +78,7 @@ VALUES(?,?,?,?,?,?,CAST(? AS TEXT),?,?,?,?,?,?) ON CONFLICT(namespace,credential
 }
 
 func listSupplyCredentials(ctx context.Context, q queryer, ns domain.ID) ([]store.SupplyCredentialRecord, error) {
-	rows, err := q.QueryContext(ctx, `SELECT namespace,credential_id,provider_id,kind,origin,strategy,locator_json,COALESCE(secret_ref,''),COALESCE(account_id,''),status,status_detail,verified_at,created_at
+	rows, err := q.QueryContext(ctx, `SELECT namespace,credential_id,provider_id,kind,origin,strategy,locator_json,COALESCE(secret_ref,''),COALESCE(account_id,''),status,status_detail,verified_at,created_at,paused
 FROM supply_credentials WHERE namespace=? ORDER BY provider_id,credential_id`, string(ns))
 	if err != nil {
 		return nil, err
@@ -89,10 +89,11 @@ FROM supply_credentials WHERE namespace=? ORDER BY provider_id,credential_id`, s
 		var r store.SupplyCredentialRecord
 		var locator string
 		var verified sql.NullInt64
-		if err := rows.Scan(&r.Namespace, &r.CredentialID, &r.ProviderID, &r.Kind, &r.Origin, &r.Strategy, &locator, &r.SecretRef, &r.AccountID, &r.Status, &r.StatusDetail, &verified, &r.CreatedAt); err != nil {
+		var paused int64
+		if err := rows.Scan(&r.Namespace, &r.CredentialID, &r.ProviderID, &r.Kind, &r.Origin, &r.Strategy, &locator, &r.SecretRef, &r.AccountID, &r.Status, &r.StatusDetail, &verified, &r.CreatedAt, &paused); err != nil {
 			return nil, err
 		}
-		r.LocatorJSON, r.VerifiedAt = []byte(locator), millisPtr(verified)
+		r.LocatorJSON, r.VerifiedAt, r.Paused = []byte(locator), millisPtr(verified), paused == 1
 		out = append(out, r)
 	}
 	return out, rows.Err()
@@ -304,6 +305,59 @@ WHERE namespace=? AND resource_id=? AND observed_at>=? ORDER BY observed_at`, st
 		out = append(out, rec)
 	}
 	return out, rows.Err()
+}
+
+func (r *readerTx) ListSupplyOffers(ns domain.ID, modelID string) ([]store.SupplyOfferRecord, error) {
+	rows, err := r.tx.QueryContext(r.ctx, `SELECT namespace,offer_id,credential_id,endpoint,protocol,upstream_model,model_id,draws_json,verified_at
+FROM supply_offers WHERE namespace=? AND model_id=? ORDER BY credential_id,endpoint`, string(ns), modelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []store.SupplyOfferRecord
+	for rows.Next() {
+		var o store.SupplyOfferRecord
+		var draws string
+		if err := rows.Scan(&o.Namespace, &o.OfferID, &o.CredentialID, &o.Endpoint, &o.Protocol, &o.UpstreamModel, &o.ModelID, &draws, &o.VerifiedAt); err != nil {
+			return nil, err
+		}
+		o.DrawsJSON = []byte(draws)
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
+func (w *writerTx) ReplaceSupplyOffers(ns, credentialID domain.ID, offers []store.SupplyOfferRecord) error {
+	if _, err := w.tx.ExecContext(w.ctx, `DELETE FROM supply_offers WHERE namespace=? AND credential_id=?`, string(ns), string(credentialID)); err != nil {
+		return err
+	}
+	for _, o := range offers {
+		if o.Namespace != ns || o.CredentialID != credentialID {
+			return store.ErrSupplyIdentityConflict
+		}
+		_, err := w.tx.ExecContext(w.ctx, `INSERT INTO supply_offers(namespace,offer_id,credential_id,endpoint,protocol,upstream_model,model_id,draws_json,verified_at)
+VALUES(?,?,?,?,?,?,?,CAST(? AS TEXT),?)`, string(o.Namespace), string(o.OfferID), string(o.CredentialID), o.Endpoint, o.Protocol, o.UpstreamModel, o.ModelID, jsonParam(o.DrawsJSON), int64(o.VerifiedAt))
+		if err != nil {
+			return supplyError(err)
+		}
+	}
+	return nil
+}
+
+func (w *writerTx) SetSupplyPaused(ns domain.ID, credentialIDs []domain.ID, paused bool) (int, error) {
+	n := 0
+	for _, id := range credentialIDs {
+		result, err := w.tx.ExecContext(w.ctx, `UPDATE supply_credentials SET paused=? WHERE namespace=? AND credential_id=?`, boolInt(paused), string(ns), string(id))
+		if err != nil {
+			return n, err
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return n, err
+		}
+		n += int(changed)
+	}
+	return n, nil
 }
 
 func (w *writerTx) AppendSupplyReadingIfChanged(r store.SupplyReadingRecord) (bool, error) {

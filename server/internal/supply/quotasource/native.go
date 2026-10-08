@@ -65,13 +65,22 @@ func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quo
 	}
 	a.Status = quota.StatusOK
 	project(&a, inv)
-	a.Models = n.listModels(ctx, c, s, nat, now)
+	listed := n.listModels(ctx, c, s, nat, now)
+	a.Models = make([]quota.Model, len(listed))
+	for i, m := range listed {
+		a.Models[i] = quota.Model{ID: m.ID, Name: m.Name, Media: m.Media}
+	}
 	r := result(a) // cadence from what the card shows
 	r.Inventory = &inv
+	if listed != nil {
+		r.Offers = catalog.Offers(nat.Module.Supply, listed)
+	}
 	return a, r
 }
 
-func (n *natives) listModels(ctx context.Context, c quota.Connection, s catalog.Session, nat Native, now time.Time) []quota.Model {
+// listModels is the credential's model list, read at most every modelsTTL;
+// nil when it was never read.
+func (n *natives) listModels(ctx context.Context, c quota.Connection, s catalog.Session, nat Native, now time.Time) []observed.UpstreamModel {
 	n.mu.Lock()
 	cached, ok := n.models[c.ID]
 	n.mu.Unlock()
@@ -83,11 +92,7 @@ func (n *natives) listModels(ctx context.Context, c quota.Connection, s catalog.
 			n.mu.Unlock()
 		}
 	}
-	out := make([]quota.Model, len(cached.models))
-	for i, m := range cached.models {
-		out[i] = quota.Model{ID: m.ID, Name: m.Name, Media: m.Media}
-	}
-	return out
+	return cached.models
 }
 
 // project shows an inventory on its card: windows for allowances, balances

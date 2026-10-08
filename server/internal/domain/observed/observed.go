@@ -91,3 +91,13 @@ type Response struct {
 // (internal/transport) enforces the module's origins, HTTPS, redirects,
 // size and time.
 type Fetch func(ctx context.Context, r Request) (Response, error)
+
+// Offer is a model an account can call at an endpoint, and the meters
+// (resource template refs) a call there draws on.
+type Offer struct {
+	Endpoint      string
+	Protocol      string
+	UpstreamModel string
+	ModelID       string // canonical
+	Draws         []string
+}

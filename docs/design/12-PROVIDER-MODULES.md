@@ -92,8 +92,12 @@ type Collector interface {
   resolved to, and `draws`: the meters a call through it draws on (Z.ai: both plan windows;
   DeepSeek: the balance). Written by the reconciler from `Collector.Models`; refreshed every 6 h.
 
-Migration v7 adds `models`, `model_aliases`, `supply_offers` and `supply_credentials.paused`
-(0/1). Table count 41 → 44.
+Migration v7 adds `supply_offers` and `supply_credentials.paused` (0/1); table count 41 → 42.
+**Changed while building (step 4):** canonical model ids come from one rule in code
+(`catalog.ModelID`: lower-case, drop a `vendor/` prefix, nothing guessed beyond that), and there
+are no `models`/`model_aliases` tables or curated `models.json` yet: nothing in this slice shows
+model metadata or lets the user set an alias, so storing them would be speculative. They land with
+the first feature that needs them.
 
 ## 5. Route preview
 

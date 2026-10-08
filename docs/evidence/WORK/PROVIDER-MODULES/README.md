@@ -40,3 +40,13 @@ two Z.ai keys of one plan shown as one card but stored as two accounts. `TestDec
 
 Also: the catalog's own test moved to an external test package (it imported `deepseek`, which now
 imports `catalog`).
+
+## Step 4: offers and pause in the store
+
+Migration v7 (`supply_offers`, `supply_credentials.paused`; 42 tables): a native read records one
+offer per (endpoint, listed model) with the meters a call draws on (Z.ai: both plan windows;
+DeepSeek: the balances); the set is replaced each time; the model id is canonical by one rule
+(`catalog.ModelID`). Pause is the user's: an engine re-recording a credential leaves it alone.
+Models/aliases tables deferred (design 12 §4 note). Tests: migration v6→v7 on a real v6 database
+built from the migration files (credentials kept, unpaused), rollback tests forget v7, offers and
+pause in the store, offers end to end for both providers, the model-id rule.

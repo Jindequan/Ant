@@ -3,6 +3,7 @@ package supply
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -85,4 +86,20 @@ func (e *Engine) reconcile(tx store.SupplyWriterTx, cred Credential, inv observe
 		}
 	}
 	return accountID, skipped, nil
+}
+
+func (e *Engine) offerRecords(cred domain.ID, offers []observed.Offer, at domain.Millis) []store.SupplyOfferRecord {
+	out := make([]store.SupplyOfferRecord, 0, len(offers))
+	seen := map[domain.ID]bool{}
+	for _, o := range offers {
+		id := stableID("offer-", string(cred), o.Endpoint, o.UpstreamModel)
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		draws, _ := json.Marshal(o.Draws)
+		out = append(out, store.SupplyOfferRecord{Namespace: e.ns, OfferID: id, CredentialID: cred, Endpoint: o.Endpoint, Protocol: o.Protocol,
+			UpstreamModel: o.UpstreamModel, ModelID: o.ModelID, DrawsJSON: draws, VerifiedAt: at})
+	}
+	return out
 }

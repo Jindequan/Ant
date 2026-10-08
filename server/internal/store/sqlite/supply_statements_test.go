@@ -312,3 +312,56 @@ func TestCollectorRunFinishesOnce(t *testing.T) {
 		t.Fatalf("finishing a finished run: %v, want ErrCollectorRunNotOpen", err)
 	}
 }
+
+func TestSupplyOffersAndPause(t *testing.T) {
+	st := newSupplyStore(t)
+	seedSupply(t, st)
+	offer := func(id, model string) store.SupplyOfferRecord {
+		return store.SupplyOfferRecord{Namespace: "ns", OfferID: domain.ID(id), CredentialID: "cred-1", Endpoint: "https://api.z.ai/api/coding/paas/v4",
+			Protocol: "openai-chat", UpstreamModel: model, ModelID: model, DrawsJSON: []byte(`["window/short","window/week"]`), VerifiedAt: 1}
+	}
+	for _, set := range [][]store.SupplyOfferRecord{{offer("o1", "glm-5.3"), offer("o2", "glm-5.3-air")}, {offer("o1", "glm-5.3")}} {
+		if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) error { return tx.ReplaceSupplyOffers("ns", "cred-1", set) }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	other := offer("o3", "glm-5.3")
+	other.CredentialID = "cred-2"
+	if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) error {
+		return tx.ReplaceSupplyOffers("ns", "cred-1", []store.SupplyOfferRecord{other})
+	}); !errors.Is(err, store.ErrSupplyIdentityConflict) {
+		t.Fatalf("an offer of another credential: %v", err)
+	}
+	var n int
+	if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) (e error) {
+		n, e = tx.SetSupplyPaused("ns", []domain.ID{"cred-1", "missing"}, true)
+		return e
+	}); err != nil || n != 1 {
+		t.Fatalf("pause: %d %v", n, err)
+	}
+	// an upsert (the engine recording a read) leaves the user's pause alone
+	if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) error {
+		return tx.UpsertSupplyCredential(store.SupplyCredentialRecord{Namespace: "ns", CredentialID: "cred-1", ProviderID: "zai", Kind: "api_key", Origin: "found",
+			Strategy: "env", LocatorJSON: []byte(`{}`), AccountID: "acct-1", Status: "ok", CreatedAt: 1})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := st.Read(context.Background(), func(rx store.ReaderTx) error {
+		sx := rx.(store.SupplyReaderTx)
+		offers, err := sx.ListSupplyOffers("ns", "glm-5.3")
+		if err != nil || len(offers) != 1 || offers[0].OfferID != "o1" {
+			t.Fatalf("glm-5.3 offers = %+v %v", offers, err)
+		}
+		if air, _ := sx.ListSupplyOffers("ns", "glm-5.3-air"); len(air) != 0 {
+			t.Fatal("a replaced offer survived")
+		}
+		creds, err := sx.ListSupplyCredentials("ns")
+		if err != nil || len(creds) != 1 || !creds[0].Paused {
+			t.Fatalf("credentials = %+v %v", creds, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

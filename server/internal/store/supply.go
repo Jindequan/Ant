@@ -46,6 +46,21 @@ type SupplyCredentialRecord struct {
 	StatusDetail string
 	VerifiedAt   *domain.Millis
 	CreatedAt    domain.Millis
+	Paused       bool // read only: set with SetSupplyPaused, never by an upsert
+}
+
+// SupplyOfferRecord is a model a credential can call at an endpoint, and
+// the meters (resource template refs) a call there draws on.
+type SupplyOfferRecord struct {
+	Namespace     domain.ID
+	OfferID       domain.ID
+	CredentialID  domain.ID
+	Endpoint      string
+	Protocol      string
+	UpstreamModel string
+	ModelID       string
+	DrawsJSON     []byte
+	VerifiedAt    domain.Millis
 }
 
 // SupplyAccountRecord is one provider account: Q1 v3 VerifiedScope{kind: account}.
@@ -133,6 +148,8 @@ type SupplyReaderTx interface {
 	// ListSupplyReadings returns a resource's readings observed at or after
 	// since, oldest first.
 	ListSupplyReadings(namespace, resourceID domain.ID, since domain.Millis) ([]SupplyReadingRecord, error)
+	// ListSupplyOffers returns the offers of a canonical model.
+	ListSupplyOffers(namespace domain.ID, modelID string) ([]SupplyOfferRecord, error)
 }
 
 // SupplyWriterTx is the supply engine's write surface.
@@ -154,4 +171,9 @@ type SupplyWriterTx interface {
 	// AppendSupplyReadingIfChanged appends only when the value differs from
 	// the latest reading; appended=false means "checked, unchanged".
 	AppendSupplyReadingIfChanged(SupplyReadingRecord) (appended bool, err error)
+	// ReplaceSupplyOffers makes offers the credential's whole offer set.
+	ReplaceSupplyOffers(namespace, credentialID domain.ID, offers []SupplyOfferRecord) error
+	// SetSupplyPaused pauses or resumes credentials' part in routing; it
+	// reports how many credentials it changed.
+	SetSupplyPaused(namespace domain.ID, credentialIDs []domain.ID, paused bool) (int, error)
 }

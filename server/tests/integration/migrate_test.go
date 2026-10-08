@@ -167,7 +167,7 @@ func TestMigrateUpgradesVersionOneDatabase(t *testing.T) {
 	execOK(t, db, "DROP TABLE secret_refs")
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4,5,6)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4,5,6,7)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatalf("upgrade v1 to current: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestMigrateUpgradesVersionTwoDatabase(t *testing.T) {
 	db := openRawDB(t, path)
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4,5,6)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4,5,6,7)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatalf("upgrade v2 to current: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestMigrateUpgradesVersionThreeThroughInventoryAndDrop(t *testing.T) {
 	st, path := openTestStore(t, testConfig())
 	db := openRawDB(t, path)
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (4,5,6)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (4,5,6,7)")
 	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('preserved','{"existing":"untouched"}',1)`)
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatal(err)
@@ -312,7 +312,7 @@ func TestMigrateDropsSupplyInventoryFromVersionFour(t *testing.T) {
 		t.Fatal(err)
 	}
 	execOK(t, db, string(v4))
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (5,6)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (5,6,7)")
 	execOK(t, db, `INSERT INTO supply_inventory(namespace,version,definition_json,updated_at) VALUES('ns',1,'{}',1)`)
 	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('kept','{}',1)`)
 	if err := sqlite.Migrate(ctx, st); err != nil {
@@ -330,7 +330,7 @@ func TestMigrateDropsSupplyInventoryFromVersionFour(t *testing.T) {
 }
 
 func TestLaterMigrationCopiesMatchCanonicalFiles(t *testing.T) {
-	for _, name := range []string{"004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql"} {
+	for _, name := range []string{"004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql", "007_supply_offers.sql"} {
 		canonical, err := os.ReadFile("../../migrations/" + name)
 		if err != nil {
 			t.Fatal(err)
@@ -343,8 +343,8 @@ func TestLaterMigrationCopiesMatchCanonicalFiles(t *testing.T) {
 }
 
 const (
-	currentSchemaVersion = 6
-	currentTableCount    = 41
+	currentSchemaVersion = 7
+	currentTableCount    = 42
 )
 
 // dropSupplyStore removes everything v6 created (children first, then its
@@ -352,8 +352,46 @@ const (
 // like an older version.
 func dropSupplyStore(t *testing.T, db *sql.DB) {
 	t.Helper()
+	execOK(t, db, "DROP TABLE supply_offers") // v7
 	for _, table := range []string{"supply_readings", "collector_runs", "supply_credentials", "supply_resources", "supply_packages", "supply_accounts"} {
 		execOK(t, db, "DROP TABLE "+table)
 	}
 	execOK(t, db, "DROP INDEX IF EXISTS secret_refs_namespace_ref")
+}
+
+// A v6 database with recorded credentials upgrades to v7: offers appear,
+// and every existing credential is unpaused.
+func TestMigrateUpgradesVersionSixKeepingCredentials(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "v6.db")
+	raw := openRawDB(t, path)
+	execOK(t, raw, "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL) STRICT")
+	for v, name := range []string{"001_initial.sql", "002_secret_ownership.sql", "003_decision_trace.sql", "004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql"} {
+		script, err := os.ReadFile("../../migrations/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v == 0 {
+			// the initial script creates schema_migrations itself
+			execOK(t, raw, "DROP TABLE schema_migrations")
+		}
+		execOK(t, raw, string(script))
+		execOK(t, raw, fmt.Sprintf("INSERT INTO schema_migrations(version, applied_at) VALUES(%d, 1)", v+1))
+	}
+	execOK(t, raw, `INSERT INTO supply_credentials(namespace,credential_id,provider_id,kind,origin,strategy,locator_json,status,created_at)
+		VALUES('local','zai-1','zai','api_key','found','quota/default','{}','ok',1)`)
+	st, err := sqlite.Open(path, testConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close(ctx) }()
+	if err := sqlite.Migrate(ctx, st); err != nil {
+		t.Fatalf("upgrade v6 to v7: %v", err)
+	}
+	if got := queryInt(t, raw, "SELECT paused FROM supply_credentials WHERE credential_id='zai-1'"); got != 0 {
+		t.Fatalf("paused = %d, want 0", got)
+	}
+	if got := queryInt(t, raw, "SELECT COUNT(*) FROM sqlite_master WHERE name='supply_offers'"); got != 1 {
+		t.Fatal("supply_offers missing")
+	}
 }

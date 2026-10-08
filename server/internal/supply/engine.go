@@ -55,6 +55,7 @@ type Result struct {
 	NextReset   *domain.Millis      // the earliest window reset the provider reported
 	BalanceOnly bool                // the account holds balances and no windows
 	Inventory   *observed.Inventory // what the account holds; recorded when the read is ok
+	Offers      []observed.Offer    // what it serves; nil leaves the recorded offers as they are
 }
 
 // Source finds credentials and reads them. The engine never sees secrets
@@ -318,6 +319,11 @@ func (e *Engine) finish(ctx context.Context, s *slot, cred Credential, r Result,
 				return err
 			}
 			accountID, rec.AccountID = id, id
+			if r.Offers != nil {
+				if err := tx.ReplaceSupplyOffers(e.ns, cred.ID, e.offerRecords(cred.ID, r.Offers, end)); err != nil {
+					return err
+				}
+			}
 			if skipped > 0 {
 				detail = strings.TrimSpace(detail + " " + strconv.Itoa(skipped) + " reading(s) not newer than the stored ones: skipped")
 			}
