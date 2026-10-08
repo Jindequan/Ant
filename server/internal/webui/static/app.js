@@ -12,8 +12,8 @@ const URGENT_HOURS = 24; // a window renewing this soon with this much left is "
 const URGENT_LEFT = 30;
 const EXPIRING_DAYS = 14; // a grant ending this soon is "use it"
 
-const state = { snap: null, providers: [], filter: "all", view: "cards", group: "kind", sort: "soon", media: "all", model: "all", q: "", busy: false };
-const PREFS = ["filter", "view", "group", "sort", "media", "model"];
+const state = { snap: null, providers: [], filter: "all", view: "cards", sort: "soon", q: "", busy: false };
+const PREFS = ["filter", "view", "sort"];
 try { for (const k of PREFS) state[k] = localStorage.getItem(`ant.${k}`) || state[k]; } catch { /* storage off */ }
 function savePref(k) { try { localStorage.setItem(`ant.${k}`, state[k]); } catch { /* storage off */ } }
 
@@ -111,7 +111,7 @@ function renderSummary(accounts) {
       <div class="hint">${next ? `Next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : subs.length ? "Renewal dates not reported" : "None yet"}</div>
     </div>
     <div class="tile">
-      <div class="label">API balance</div>
+      <div class="label">API balances</div>
       <div class="value">${balance.length ? balance.join(" · ") : "—"}</div>
       <div class="hint">${balance.length ? "Prepaid, pay as you go" : "No API balances yet"}</div>
     </div>`;
@@ -237,14 +237,18 @@ function renderCard(a) {
 const norm = (x) => String(x ?? "").toLowerCase();
 
 // matches narrows an account to the search: the whole account when its
-// provider, plan or user matches, else only the rows (models, windows)
-// whose names match. null when nothing does.
+// provider, plan, user, what it makes or one of its models matches, else
+// only the allowances whose name, model or media match. null when nothing
+// does. One search box replaces separate type and model pickers.
 function matches(a, q) {
   if (!a || !q) return a;
   const words = q.split(/\s+/).filter(Boolean);
-  const hay = norm([a.name, a.label, a.plan, a.modeName, a.user, a.provider, a.source, KIND_LABEL[a.kind]].join(" "));
+  const makes = (a.media || ["text"]).map((m) => MEDIA_LABEL[m] || m);
+  const hay = norm([a.name, a.label, a.plan, a.modeName, a.user, a.provider, a.source, KIND_LABEL[a.kind], ...makes,
+    ...(a.models || []).map((m) => m.id)].join(" "));
   if (words.every((w) => hay.includes(w))) return a;
-  const hit = (w) => words.every((x) => norm(w.name).includes(x) || hay.includes(x)) && words.some((x) => norm(w.name).includes(x));
+  const rowHay = (w) => norm([w.name, w.model, w.media && MEDIA_LABEL[w.media]].join(" "));
+  const hit = (w) => words.every((x) => rowHay(w).includes(x) || hay.includes(x)) && words.some((x) => rowHay(w).includes(x));
   const windows = (a.windows || []).filter(hit);
   const groups = (a.groups || []).map((g) => ({ ...g, windows: (g.windows || []).filter(hit), balances: [] })).filter((g) => g.windows.length);
   if (!windows.length && !groups.length) return null;
@@ -253,34 +257,6 @@ function matches(a, q) {
 
 // mediaOf is what an allowance makes: its own media, else its account's.
 const mediaOf = (w, a) => w.media || (a.media || ["text"])[0];
-
-// narrow keeps the allowances of an account that pass keep; an account
-// that passes as a whole is kept whole. null when nothing is left.
-function narrow(a, whole, keep) {
-  if (whole) return a;
-  const windows = (a.windows || []).filter((w) => keep(w));
-  const groups = (a.groups || []).map((g) => ({ ...g, windows: (g.windows || []).filter((w) => keep(w)), balances: [] })).filter((g) => g.windows.length);
-  if (!windows.length && !groups.length) return null;
-  return { ...a, windows, groups, balances: [], message: "", narrowed: true };
-}
-
-// byMedia keeps what makes the chosen type: the whole account when all it
-// makes is that, else the allowances that do.
-function byMedia(a, m) {
-  if (!a || m === "all") return a;
-  const media = a.media || ["text"];
-  const perWindow = allWindows(a).some((w) => w.media);
-  if (!perWindow) return media.includes(m) ? a : null;
-  return narrow(a, false, (w) => mediaOf(w, a) === m);
-}
-
-// byModel keeps the allowances of the chosen model.
-function byModel(a, m) {
-  if (!a || m === "all") return a;
-  const own = allWindows(a).some((w) => w.model && modelKey(w.model) === modelKey(m));
-  if (own) return narrow(a, false, (w) => w.model && modelKey(w.model) === modelKey(m));
-  return (a.models || []).some((x) => modelKey(x.id) === modelKey(m)) ? { ...a, models: (a.models || []).filter((x) => modelKey(x.id) === modelKey(m)) } : null;
-}
 
 // leftOf is how much of an account is left, 0–100, for sorting; balances
 // sort after allowances, unknown last.
@@ -301,20 +277,15 @@ const SORTS = {
 const KIND_ORDER = ["subscription", "free", "api"];
 const KIND_TITLE = { subscription: "Subscriptions", free: "Free allowances", api: "API balances" };
 
+// sections groups cards by category, the same categories as the tabs.
 function sections(accounts) {
-  if (state.group === "none") return [{ title: "", items: accounts }];
   const by = new Map();
   for (const a of accounts) {
-    const key = state.group === "kind" ? a.kind : state.group === "media" ? (a.media || ["text"])[0] : a.name;
-    if (!by.has(key)) by.set(key, []);
-    by.get(key).push(a);
+    if (!by.has(a.kind)) by.set(a.kind, []);
+    by.get(a.kind).push(a);
   }
-  const keys = [...by.keys()];
-  if (state.group === "kind") keys.sort((x, y) => KIND_ORDER.indexOf(x) - KIND_ORDER.indexOf(y));
-  else if (state.group === "media") keys.sort((x, y) => MEDIA_ORDER.indexOf(x) - MEDIA_ORDER.indexOf(y));
-  else keys.sort((x, y) => x.localeCompare(y));
-  const title = (k) => state.group === "kind" ? KIND_TITLE[k] || k : state.group === "media" ? MEDIA_LABEL[k] || k : k;
-  return keys.map((k) => ({ title: title(k), items: by.get(k) }));
+  return [...by.keys()].sort((x, y) => KIND_ORDER.indexOf(x) - KIND_ORDER.indexOf(y))
+    .map((k) => ({ title: KIND_TITLE[k] || k, items: by.get(k) }));
 }
 
 // ---------- the models view: who can serve each model ----------
@@ -402,36 +373,6 @@ function renderModels(accounts) {
   </div>`;
 }
 
-// fillPickers lists the types and models present, with counts.
-function fillPickers(accounts) {
-  const media = new Map(), models = new Map();
-  for (const a of accounts) {
-    const own = new Set(a.media || ["text"]);
-    for (const w of allWindows(a)) {
-      if (w.media) own.add(w.media);
-      if (w.model && !models.has(modelKey(w.model))) models.set(modelKey(w.model), { media: mediaOf(w, a) });
-    }
-    for (const m of a.models || []) if (!models.has(modelKey(m.id))) models.set(modelKey(m.id), { media: m.media || "text" });
-    for (const m of own) media.set(m, (media.get(m) || 0) + 1);
-  }
-  const mediaKeys = [...media.keys()].sort((x, y) => MEDIA_ORDER.indexOf(x) - MEDIA_ORDER.indexOf(y));
-  $("media").innerHTML = `<option value="all">All types</option>` + mediaKeys.map((m) => `<option value="${esc(m)}">${esc(MEDIA_LABEL[m] || m)} (${media.get(m)})</option>`).join("");
-  if (state.media !== "all" && !media.has(state.media)) state.media = "all";
-  $("media").value = state.media;
-  const groups = new Map();
-  for (const [m, x] of [...models].sort((p, q) => p[0].localeCompare(q[0]))) {
-    if (state.media !== "all" && x.media !== state.media) continue;
-    if (!groups.has(x.media)) groups.set(x.media, []);
-    groups.get(x.media).push(m);
-  }
-  $("model").innerHTML = `<option value="all">All models${models.size ? ` (${models.size})` : ""}</option>` +
-    [...groups].sort((p, q) => MEDIA_ORDER.indexOf(p[0]) - MEDIA_ORDER.indexOf(q[0])).map(([g, ms]) =>
-      `<optgroup label="${esc(MEDIA_LABEL[g] || g)}">${ms.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("")}</optgroup>`).join("");
-  if (state.model !== "all" && !models.has(state.model)) state.model = "all";
-  $("model").value = state.model;
-  $("model-wrap").hidden = !models.size;
-}
-
 // ---------- the timeline ----------
 
 function events(accounts) {
@@ -499,9 +440,7 @@ function render() {
   const snap = state.snap;
   document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.filter === state.filter)));
   document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
-  $("group").value = state.group;
   $("sort").value = state.sort;
-  $("group-wrap").hidden = state.view !== "cards";
   $("sort-wrap").hidden = state.view === "timeline";
   const refreshed = snap && time(snap.refreshedAt);
   $("updated").textContent = state.busy || snap?.refreshing ? "Reading your accounts…" : refreshed ? `Updated ${ago(refreshed)}` : "";
@@ -515,12 +454,11 @@ function render() {
   const all = [...(snap.accounts || [])];
   renderSummary(all);
   const q = norm(state.q).trim();
-  fillPickers(all);
-  const found = all.map((a) => byModel(byMedia(matches(a, q), state.media), state.model)).filter(Boolean);
+  const found = all.map((a) => matches(a, q)).filter(Boolean);
   const counts = { all: found.length };
   for (const a of found) counts[a.kind] = (counts[a.kind] || 0) + 1;
   document.querySelectorAll(".filters button").forEach((b) => {
-    const label = { all: "All", subscription: "Subscriptions", api: "API balance", free: "Free" }[b.dataset.filter];
+    const label = { all: "All", ...KIND_TITLE }[b.dataset.filter];
     b.innerHTML = `${label}<span class="count">${counts[b.dataset.filter] || 0}</span>`;
   });
   const shown = found.filter((a) => state.filter === "all" || a.kind === state.filter).sort(SORTS[state.sort] || SORTS.soon);
@@ -599,12 +537,30 @@ function showStep(title, html, back) {
 
 function stepProviders() {
   sheetStack = [];
+  const have = new Set((state.snap?.accounts || []).filter((a) => a.status === "ok").map((a) => a.provider));
   showStep("Add account", `
-    <p class="sheet-lead">Ant already looks in Claude Code, Codex, Copilot, Gemini CLI, ZCode, OpenCode, the Bailian, Volcengine and aliyun CLIs, and your browser. Add anything it didn't find.</p>
+    <p class="sheet-lead">Ant already finds the sign-ins of apps on this Mac. Add anything it didn't find.</p>
+    <label class="search sheet-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="provider-search" type="search" placeholder="Provider, or image, video…" aria-label="Search providers" autocomplete="off" spellcheck="false">
+    </label>
     <div class="pick">${state.providers.map((p) => `
-      <button type="button" data-provider="${esc(p.id)}" style="--hue:${HUES[p.id] ?? 30}">
+      <button type="button" data-provider="${esc(p.id)}" data-hay="${esc(norm([p.name, p.id, ...(p.media || ["text"]).map((m) => MEDIA_LABEL[m] || m)].join(" ")))}" style="--hue:${HUES[p.id] ?? 30}">
         <span class="mark" aria-hidden="true">${esc(p.name.slice(0, 1))}</span><span class="n">${esc(p.name)}</span>
-      </button>`).join("")}</div>`, false);
+        ${have.has(p.id) ? '<span class="kind">Connected</span>' : ""}
+      </button>`).join("")}</div>
+    <p class="empty" id="provider-none" hidden>No provider matches. Ant reads only the providers listed here.</p>`, false);
+  const input = $("provider-search");
+  input.addEventListener("input", () => {
+    const words = norm(input.value).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const b of $("sheet-body").querySelectorAll("[data-provider]")) {
+      b.hidden = !words.every((w) => b.dataset.hay.includes(w));
+      if (!b.hidden) shown++;
+    }
+    $("provider-none").hidden = shown > 0;
+  });
+  input.focus();
 }
 
 function stepModes(p) {
@@ -911,9 +867,7 @@ document.querySelector(".views").addEventListener("click", (e) => {
   savePref("view");
   render();
 });
-for (const k of ["group", "sort", "media", "model"]) {
-  $(k).addEventListener("change", () => { state[k] = $(k).value; savePref(k); render(); });
-}
+$("sort").addEventListener("change", () => { state.sort = $("sort").value; savePref("sort"); render(); });
 $("search").addEventListener("input", () => { state.q = $("search").value; render(); });
 document.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && !sheet.open) { e.preventDefault(); $("search").focus(); }

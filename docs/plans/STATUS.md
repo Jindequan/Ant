@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 stage 1 clarity pass 1 (page): toolbar reduced to one row (tabs · search · sort · views); search absorbs the Type/Model pickers and narrows cards; one vocabulary (Subscriptions · API balances · Free allowances); Add account gets search and Connected marks. Checked in demo mode at desktop and 375 px; gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md) lists what is still to judge.
+
 2026-10-08 design 11 phase 2 step 3 (R6, per-site browser opt-in): **implemented and locally verified**. No everyday-browser cookie store or Keychain item is opened for a site the user hasn't allowed; on the page, a site's "Your browser" way asks once (Allow and read) and removing the account takes the permission back. User direction received the same day — **stage 1: manage providers and resources smoothly; complex to simple, chaotic to clear** — now the bar for every page change. Gates pass. [Evidence](../evidence/WORK/SUPPLY-ENGINE/README.md).
 
 2026-10-08 design 11 phase 2 step 2 (reconciler): **implemented and locally verified**. Good reads are recorded as accounts, packages, resources and change-only readings in one transaction with the run; credentials merge only on provider-reported identities (Z.ai's reset-time inference and Claude's constant identity are display-only, per §2.6); declared packages never get readings; adapter meters are marked unmodeled and are not verified facts. Gates pass. [Evidence](../evidence/WORK/SUPPLY-ENGINE/README.md). Next: step 3, per-site browser opt-in (R6).

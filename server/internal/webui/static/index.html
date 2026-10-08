@@ -38,27 +38,18 @@
     <nav class="filters" role="tablist" aria-label="Filter accounts">
       <button role="tab" data-filter="all">All</button>
       <button role="tab" data-filter="subscription">Subscriptions</button>
-      <button role="tab" data-filter="api">API balance</button>
-      <button role="tab" data-filter="free">Free</button>
+      <button role="tab" data-filter="api">API balances</button>
+      <button role="tab" data-filter="free">Free allowances</button>
     </nav>
     <label class="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="search" type="search" placeholder="Provider, plan or model id" aria-label="Search accounts and models" autocomplete="off" spellcheck="false">
+      <input id="search" type="search" placeholder="Provider, model, image…" aria-label="Search accounts, models and what they make" autocomplete="off" spellcheck="false">
     </label>
     <div class="views" role="tablist" aria-label="View">
       <button role="tab" data-view="cards">Cards</button>
       <button role="tab" data-view="models">Models</button>
       <button role="tab" data-view="timeline">Timeline</button>
     </div>
-    <label class="pick-select" id="media-wrap">Type
-      <select id="media"><option value="all">All types</option></select>
-    </label>
-    <label class="pick-select" id="model-wrap">Model
-      <select id="model"><option value="all">All models</option></select>
-    </label>
-    <label class="pick-select" id="group-wrap">Group
-      <select id="group"><option value="kind">Category</option><option value="media">Type</option><option value="provider">Provider</option><option value="none">None</option></select>
-    </label>
     <label class="pick-select" id="sort-wrap">Sort
       <select id="sort">
         <option value="soon">Lost soonest</option>
