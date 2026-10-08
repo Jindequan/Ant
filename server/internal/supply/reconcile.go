@@ -49,7 +49,7 @@ func (e *Engine) reconcile(tx store.SupplyWriterTx, cred Credential, inv observe
 		packageID := stableID("pkg-", string(accountID), p.TemplateRef)
 		err := tx.UpsertSupplyPackage(store.SupplyPackageRecord{Namespace: e.ns, PackageID: packageID, AccountID: accountID, TemplateRef: p.TemplateRef,
 			Kind: p.Kind, Basis: p.Basis, Plan: p.Plan, StartsAt: p.StartsAt, RenewsAt: p.RenewsAt, EndsAt: p.EndsAt, AutoRenew: p.AutoRenew,
-			Live: p.Basis == "observed", DefinitionJSON: []byte(`{}`), UpdatedAt: at})
+			Live: p.Basis == "observed", DefinitionJSON: packageDefinition(p), UpdatedAt: at})
 		if err != nil {
 			return "", 0, err
 		}
@@ -102,4 +102,14 @@ func (e *Engine) offerRecords(cred domain.ID, offers []observed.Offer, at domain
 			UpstreamModel: o.UpstreamModel, ModelID: o.ModelID, DrawsJSON: draws, VerifiedAt: at})
 	}
 	return out
+}
+
+// packageDefinition keeps what the provider said about the package beyond
+// its columns: whether it accepts calls now.
+func packageDefinition(p observed.PackageReading) []byte {
+	if p.Usable == nil {
+		return []byte(`{}`)
+	}
+	b, _ := json.Marshal(map[string]bool{"usable": *p.Usable})
+	return b
 }

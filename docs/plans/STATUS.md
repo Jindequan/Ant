@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 design 12 steps 4–5: offers and pause stored (migration v7, 42 tables); read-only route preview for any model — accounts in the order Ant would use them and why, excluded ones and why — plus pause/resume per card, through the loopback page API. No request goes to any model. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md). Next: step 6, the page.
+
 2026-10-08 design 12 steps 2–3: Z.ai and DeepSeek are now read through their own provider modules (`providers/zai`, `providers/deepseek`) via an origin-pinned Fetch; one shared Z.ai parser and one model-list parser; the other providers unchanged. The live check found Z.ai refuses bad keys inside an HTTP 200 body — both paths now say "signed out". [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).
 
 2026-10-08 next slice chosen (review of 617f407, verified accurate): pause provider additions and broad UI polish; settle the provider-module design and build one provider-native slice ending in a read-only route preview. **User choice: Z.ai + DeepSeek.** [Design 12](../design/12-PROVIDER-MODULES.md) fixes the module contract, the two provider contracts, models/offers, route-preview rules, pause/resume and six steps. The stage-1 open items (Add-flow rule repeat, card menu) are folded into its page step.

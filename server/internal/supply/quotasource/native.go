@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -145,7 +144,7 @@ func scaledPtr(u *domain.Units, exp int) *float64 {
 func balanceOf(r observed.ResourceReading) quota.Balance {
 	b := quota.Balance{Currency: r.Currency}
 	if r.Remaining != nil {
-		b.Amount = decimal(*r.Remaining, r.QuantumExp)
+		b.Amount = supply.Decimal(*r.Remaining, r.QuantumExp)
 	}
 	var ev struct {
 		Granted  string `json:"granted"`
@@ -165,26 +164,4 @@ func scaled(u domain.Units, exp int) float64 {
 		f *= 10
 	}
 	return f
-}
-
-// decimal writes units at their quantum exponent exactly: 2340 at −2 is
-// "23.40", never through floating point.
-func decimal(u domain.Units, exp int) string {
-	neg := u < 0
-	if neg {
-		u = -u
-	}
-	s := strconv.FormatInt(int64(u), 10)
-	if exp >= 0 {
-		s += strings.Repeat("0", exp)
-	} else {
-		if len(s) <= -exp {
-			s = strings.Repeat("0", -exp-len(s)+1) + s
-		}
-		s = s[:len(s)+exp] + "." + s[len(s)+exp:]
-	}
-	if neg {
-		s = "-" + s
-	}
-	return s
 }

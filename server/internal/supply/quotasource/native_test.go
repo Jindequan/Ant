@@ -3,13 +3,14 @@ package quotasource
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
-	"ant/server/internal/domain"
 	"ant/server/internal/providers/deepseek"
 	"ant/server/internal/providers/zai"
 	"ant/server/internal/quota"
@@ -18,14 +19,6 @@ import (
 	"ant/server/internal/supply"
 	"ant/server/internal/transport"
 )
-
-func TestDecimalIsExact(t *testing.T) {
-	for in, want := range map[[2]int64]string{{2340, -2}: "23.40", {5, -2}: "0.05", {-1500, -2}: "-15.00", {7, 0}: "7", {3, 2}: "300", {0, -2}: "0.00"} {
-		if got := decimal(domain.Units(in[0]), int(in[1])); got != want {
-			t.Errorf("decimal(%d, %d) = %s, want %s", in[0], in[1], got, want)
-		}
-	}
-}
 
 // Z.ai and DeepSeek are read through their modules: the cards, the stored
 // facts, and Z.ai's display-only grouping of two keys of one plan.
@@ -75,7 +68,8 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 		t.Fatal(err)
 	}
 	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
-	page := quota.NewService(local, accounts, quota.Options{Reader: Reader{Source: src, Engine: engine}})
+	reader := Reader{Source: src, Engine: engine}
+	page := quota.NewService(local, accounts, quota.Options{Reader: reader, Router: reader})
 
 	snap := page.Refresh(context.Background())
 	var z, d *quota.Account
@@ -126,5 +120,43 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	}
 	if n := count(`SELECT COUNT(*) FROM supply_offers WHERE model_id='deepseek-v4' AND draws_json='["balance/cny","balance/usd"]'`); n != 1 {
 		t.Fatalf("DeepSeek offers = %d, want 1", n)
+	}
+
+	// the page's route preview and pause, through its own API
+	h := page.Handler()
+	call := func(method, target, body string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(method, "http://127.0.0.1:8080"+target, strings.NewReader(body))
+		req.RemoteAddr = "127.0.0.1:50000"
+		req.Header.Set("X-Ant", "1")
+		if body != "" {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		var out map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil || rec.Code != 200 {
+			t.Fatalf("%s %s: %d %s", method, target, rec.Code, rec.Body.String())
+		}
+		return out
+	}
+	route := call("GET", "/api/route?model=GLM-5.3", "")
+	use, notUsed := route["use"].([]any), route["notUsed"].([]any)
+	if len(use) != 2 || len(notUsed) != 0 || use[0].(map[string]any)["class"] != "plan" || use[0].(map[string]any)["name"] != "Z.ai" ||
+		!strings.HasPrefix(use[0].(map[string]any)["reason"].(string), "Plan: 5 hours 88% left, Week 60% left") {
+		t.Fatalf("route = %v", route)
+	}
+	snap2 := call("POST", "/api/pause", `{"id":"`+z.ID+`","paused":true}`)
+	if paused := snap2["paused"].([]any); len(paused) != 1 || paused[0] != z.ID {
+		t.Fatalf("paused cards = %v", snap2["paused"])
+	}
+	route = call("GET", "/api/route?model=glm-5.3", "")
+	use, notUsed = route["use"].([]any), route["notUsed"].([]any)
+	if len(use) != 0 || len(notUsed) != 2 || notUsed[0].(map[string]any)["reason"] != "Paused by you" {
+		t.Fatalf("route after pausing = %v", route)
+	}
+	call("POST", "/api/pause", `{"id":"`+z.ID+`","paused":false}`)
+	if use := call("GET", "/api/route?model=glm-5.3", "")["use"].([]any); len(use) != 2 {
+		t.Fatalf("after resuming: %v", use)
 	}
 }

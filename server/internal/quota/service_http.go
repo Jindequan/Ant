@@ -90,6 +90,41 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("POST /api/signin/cancel", s.change(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"open": CancelSignIn()})
 	}))
+	mux.HandleFunc("GET /api/route", func(w http.ResponseWriter, r *http.Request) {
+		model := strings.TrimSpace(r.URL.Query().Get("model"))
+		if model == "" || len(model) > 256 {
+			writeError(w, http.StatusBadRequest, "Name a model.")
+			return
+		}
+		if s.router == nil {
+			writeJSON(w, http.StatusOK, RoutePreview{Model: model, Use: []RouteChoice{}, NotUsed: []RouteChoice{}})
+			return
+		}
+		p, err := s.router.Preview(r.Context(), model)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Couldn't work out the route: "+err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, p)
+	})
+	mux.HandleFunc("POST /api/pause", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			ID     string `json:"id"`
+			Paused bool   `json:"paused"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		keys := s.cardKeys(in.ID)
+		switch {
+		case s.router == nil:
+			s.answer(w, inputError("routing isn't available here"))
+		case keys == nil:
+			s.answer(w, inputError("no such account"))
+		default:
+			s.answer(w, s.router.SetPaused(r.Context(), keys, in.Paused))
+		}
+	}))
 	mux.HandleFunc("PUT /api/prices/{id}", s.change(func(w http.ResponseWriter, r *http.Request) {
 		var in Price
 		if !decode(w, r, &in) {

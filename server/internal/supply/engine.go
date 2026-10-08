@@ -463,3 +463,31 @@ func clip(s string) string {
 	}
 	return s
 }
+
+// SetPaused pauses or resumes credentials' part in routing (design 12 §6).
+// Reading them goes on; only route previews (and, later, routing) skip them.
+func (e *Engine) SetPaused(ctx context.Context, ids []domain.ID, paused bool) error {
+	return e.write(ctx, "supply-pause", func(tx store.SupplyWriterTx) error {
+		_, err := tx.SetSupplyPaused(e.ns, ids, paused)
+		return err
+	})
+}
+
+// Paused is every paused credential.
+func (e *Engine) Paused(ctx context.Context) (map[domain.ID]bool, error) {
+	out := map[domain.ID]bool{}
+	err := e.st.Read(ctx, func(rx store.ReaderTx) error {
+		sx, ok := rx.(store.SupplyReaderTx)
+		if !ok {
+			return errNoSupplyStore
+		}
+		creds, err := sx.ListSupplyCredentials(e.ns)
+		for _, c := range creds {
+			if c.Paused {
+				out[c.CredentialID] = true
+			}
+		}
+		return err
+	})
+	return out, err
+}

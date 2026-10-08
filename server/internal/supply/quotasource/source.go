@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/providers/catalog"
 	"ant/server/internal/quota"
 	"ant/server/internal/store"
 	"ant/server/internal/supply"
@@ -276,3 +277,51 @@ func remaining(r store.SupplyReadingRecord) (domain.Units, bool) {
 
 // fromUnits is an adapter meter's units (quantumExp) as a number.
 func fromUnits(u domain.Units) float64 { return float64(u) / 1e6 }
+
+// Preview is the engine's route preview for a model named any way the user
+// or a provider names it, with each account as its card calls it.
+func (r Reader) Preview(ctx context.Context, model string) (quota.RoutePreview, error) {
+	p, err := r.Engine.Preview(ctx, catalog.ModelID(model))
+	if err != nil {
+		return quota.RoutePreview{}, err
+	}
+	out := quota.RoutePreview{Model: p.Model, Use: []quota.RouteChoice{}, NotUsed: []quota.RouteChoice{}}
+	for _, c := range p.Eligible {
+		out.Use = append(out.Use, r.choice(c.Route, c.Class, c.Reason, c.Stale))
+	}
+	for _, x := range p.Excluded {
+		out.NotUsed = append(out.NotUsed, r.choice(x.Route, "", x.Reason, ""))
+	}
+	return out, nil
+}
+
+func (r Reader) choice(route supply.Route, class, reason, stale string) quota.RouteChoice {
+	c := quota.RouteChoice{ID: string(route.CredentialID), Provider: string(route.ProviderID), Name: string(route.ProviderID),
+		Endpoint: route.Endpoint, Model: route.UpstreamModel, Class: class, Reason: reason, Stale: stale}
+	r.Source.mu.Lock()
+	if a, ok := r.Source.latest[c.ID]; ok {
+		c.Name = a.Name
+		if a.Label != "" {
+			c.Name = a.Label
+		}
+	}
+	r.Source.mu.Unlock()
+	return c
+}
+
+func (r Reader) SetPaused(ctx context.Context, ids []string, paused bool) error {
+	cred := make([]domain.ID, len(ids))
+	for i, id := range ids {
+		cred[i] = domain.ID(id)
+	}
+	return r.Engine.SetPaused(ctx, cred, paused)
+}
+
+func (r Reader) Paused(ctx context.Context) (map[string]bool, error) {
+	got, err := r.Engine.Paused(ctx)
+	out := make(map[string]bool, len(got))
+	for id := range got {
+		out[string(id)] = true
+	}
+	return out, err
+}

@@ -58,7 +58,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	src := quotasource.New(local, accounts, quota.Providers(), natives...)
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
 	reader := quotasource.Reader{Source: src, Engine: engine}
-	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}}), engine, nil
+	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}, Router: reader}), engine, nil
 }
 
 // providerModules are the providers read through their own module (design

@@ -17,6 +17,7 @@ type Snapshot struct {
 	BrowserSites []string         `json:"browserSites"`
 	Notify       bool             `json:"notify"`
 	Prices       map[string]Price `json:"prices"`
+	Paused       []string         `json:"paused"` // card ids the user paused
 }
 
 // Reading is the latest read of every connection, as whoever schedules the
@@ -47,6 +48,7 @@ type Service struct {
 	reader      Reader
 	insights    InsightSource
 	notifier    Notifier
+	router      Router
 	sent        map[string]bool // alert keys already shown
 	interval    time.Duration
 	readTimeout time.Duration
@@ -66,6 +68,7 @@ type Options struct {
 	Reader      Reader        // required unless Demo
 	Insights    InsightSource // optional: history-based outlooks
 	Notifier    Notifier      // optional: notifications on this computer (never in demo)
+	Router      Router        // optional: route previews and pauses
 	Interval    time.Duration // demo refresh; default 10 minutes
 	ReadTimeout time.Duration // a page-triggered refresh waits this plus 5s; default 20 seconds
 	Demo        bool          // sample accounts; reads nothing, keeps additions in memory
@@ -78,7 +81,7 @@ func NewService(local Local, store *Store, opt Options) *Service {
 	if opt.ReadTimeout <= 0 {
 		opt.ReadTimeout = 20 * time.Second
 	}
-	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, insights: opt.Insights, notifier: opt.Notifier, sent: map[string]bool{}, interval: opt.Interval,
+	return &Service{local: local, providers: Providers(), store: store, reader: opt.Reader, insights: opt.Insights, notifier: opt.Notifier, router: opt.Router, sent: map[string]bool{}, interval: opt.Interval,
 		readTimeout: opt.ReadTimeout, demo: opt.Demo, conns: map[string]Connection{}}
 }
 
@@ -137,6 +140,7 @@ func (s *Service) Snapshot() Snapshot {
 	}
 	out.Notify = s.store.NotifyOn()
 	out.Prices = s.store.Prices()
+	out.Paused = s.pausedCards(out.Accounts)
 	return out
 }
 

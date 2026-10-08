@@ -50,3 +50,23 @@ DeepSeek: the balances); the set is replaced each time; the model id is canonica
 Models/aliases tables deferred (design 12 §4 note). Tests: migration v6→v7 on a real v6 database
 built from the migration files (credentials kept, unpaused), rollback tests forget v7, offers and
 pause in the store, offers end to end for both providers, the model-id rule.
+
+## Step 5: route preview and pause/resume
+
+`supply/preview.go`: for a canonical model, every offer is judged — excluded in design 12 §5's
+order (paused by you; signed out / couldn't read, with the provider's words; not read yet; a drawn
+meter used up, with when it resets; balance too low to call; declared only) — or ordered: use
+before it's lost (a drawn window resetting within 24 h with ≥ 30 % left, unless the pace uses it
+up first) → plan headroom (tightest drawn window, most left first) → prepaid (lasts longest at its
+recent pace first; no spending lasts longest) → pay-as-you-go; ties to the fresher reading;
+readings older than 30 min are marked. Only the meters an endpoint declares a call draws on are
+judged (Z.ai's MCP calls never are). The package's `usable` flag is now stored.
+
+Page API (loopback only): `GET /api/route?model=…` (any casing or vendor prefix), `POST /api/pause`
+(pauses every connection on the card), `paused` in the snapshot.
+
+**Tests.** `TestRoutePreview` (one account per rule: use-before-lost, two plans ordered by headroom
+with the stale one marked, pay-as-you-go, used up with reset, paused; DeepSeek prepaid and too low
+to call; an unknown model), `…SignedOutAfterReading`, `…OrdersBalancesByHowLongTheyLast`; end to
+end through the page API with both modules: preview, pause both Z.ai keys, preview again, resume;
+the page API without a router. `TestDecimalIsExact` and `TestSpan` moved with the shared helpers.
