@@ -7,26 +7,27 @@ import (
 	"testing"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 )
 
 func u(v int64) *domain.Units { x := domain.Units(v); return &x }
 
-func window(remaining int64) ResourceReading {
-	return ResourceReading{TemplateRef: "5h", MetricID: "prompts", Unit: "count", QuantumExp: -6,
+func window(remaining int64) observed.ResourceReading {
+	return observed.ResourceReading{TemplateRef: "5h", MetricID: "prompts", Unit: "count", QuantumExp: -6,
 		SemanticsRef: "quota.adapter.window", SemanticsRevision: "v1",
 		WindowJSON: []byte(`{"kind":"unmodeled","name":"5 hours"}`), ScopeJSON: []byte(`{"kind":"all"}`),
 		ResetBasis: "reported", Limit: u(150_000_000), Remaining: u(remaining)}
 }
 
-func plan(basis string, resources ...ResourceReading) PackageReading {
-	return PackageReading{TemplateRef: "quota/zai/coding-plan", Kind: "subscription", Basis: basis, Plan: "Pro", Resources: resources}
+func plan(basis string, resources ...observed.ResourceReading) observed.PackageReading {
+	return observed.PackageReading{TemplateRef: "quota/zai/coding-plan", Kind: "subscription", Basis: basis, Plan: "Pro", Resources: resources}
 }
 
 // inventorySource answers each credential with its own inventory.
 type inventorySource struct {
 	mu    sync.Mutex
 	creds []Credential
-	inv   map[domain.ID]*Inventory
+	inv   map[domain.ID]*observed.Inventory
 }
 
 func (s *inventorySource) Discover(context.Context) ([]Credential, error) { return s.creds, nil }
@@ -35,17 +36,17 @@ func (s *inventorySource) Collect(_ context.Context, c Credential) Result {
 	defer s.mu.Unlock()
 	return Result{Outcome: OutcomeOK, Inventory: s.inv[c.ID]}
 }
-func (s *inventorySource) set(id domain.ID, inv *Inventory) {
+func (s *inventorySource) set(id domain.ID, inv *observed.Inventory) {
 	s.mu.Lock()
 	s.inv[id] = inv
 	s.mu.Unlock()
 }
 
 func TestReconcileMergesOnlyOnReportedIdentity(t *testing.T) {
-	src := &inventorySource{creds: []Credential{found("key-1"), found("key-2"), found("key-3")}, inv: map[domain.ID]*Inventory{
-		"key-1": {Identity: "instance-42", Packages: []PackageReading{plan("observed", window(100_000_000))}},
-		"key-2": {Identity: "instance-42", Packages: []PackageReading{plan("observed", window(100_000_000))}},
-		"key-3": {Packages: []PackageReading{plan("observed", window(100_000_000))}}, // no reported identity
+	src := &inventorySource{creds: []Credential{found("key-1"), found("key-2"), found("key-3")}, inv: map[domain.ID]*observed.Inventory{
+		"key-1": {Identity: "instance-42", Packages: []observed.PackageReading{plan("observed", window(100_000_000))}},
+		"key-2": {Identity: "instance-42", Packages: []observed.PackageReading{plan("observed", window(100_000_000))}},
+		"key-3": {Packages: []observed.PackageReading{plan("observed", window(100_000_000))}}, // no reported identity
 	}}
 	e, path, clock := newTestEngine(t, src, DefaultPolicy())
 	for _, id := range []domain.ID{"key-1", "key-2", "key-3"} {
@@ -73,11 +74,11 @@ func TestReconcileMergesOnlyOnReportedIdentity(t *testing.T) {
 }
 
 func TestReconcileAppendsOnlyChangesAndNeverReadsDeclared(t *testing.T) {
-	declared := PackageReading{TemplateRef: "quota/figma/starter", Kind: "free_grant", Basis: "declared", Resources: []ResourceReading{window(5)}}
-	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*Inventory{}}
+	declared := observed.PackageReading{TemplateRef: "quota/figma/starter", Kind: "free_grant", Basis: "declared", Resources: []observed.ResourceReading{window(5)}}
+	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*observed.Inventory{}}
 	e, path, clock := newTestEngine(t, src, DefaultPolicy())
 	for _, remaining := range []int64{100, 100, 90} {
-		src.set("k", &Inventory{Identity: "acct", Packages: []PackageReading{plan("observed", window(remaining)), declared}})
+		src.set("k", &observed.Inventory{Identity: "acct", Packages: []observed.PackageReading{plan("observed", window(remaining)), declared}})
 		clock.now.Add(1000)
 		if err := e.RunNow(context.Background(), []domain.ID{"k"}); err != nil {
 			t.Fatal(err)
@@ -100,10 +101,10 @@ func TestReconcileAppendsOnlyChangesAndNeverReadsDeclared(t *testing.T) {
 // Two reads in the same millisecond: the second's reading is skipped and
 // the run says so, without failing.
 func TestReconcileSkipsAReadingThatIsNotNewer(t *testing.T) {
-	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*Inventory{}}
+	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*observed.Inventory{}}
 	e, path, _ := newTestEngine(t, src, DefaultPolicy())
 	for _, remaining := range []int64{100, 90} {
-		src.set("k", &Inventory{Identity: "acct", Packages: []PackageReading{plan("observed", window(remaining))}})
+		src.set("k", &observed.Inventory{Identity: "acct", Packages: []observed.PackageReading{plan("observed", window(remaining))}})
 		if err := e.RunNow(context.Background(), []domain.ID{"k"}); err != nil {
 			t.Fatal(err)
 		}
@@ -119,15 +120,15 @@ func TestReconcileSkipsAReadingThatIsNotNewer(t *testing.T) {
 // A read whose inventory can't be recorded (here: a meter changing its unit)
 // still closes its run, as an error saying why; the stored facts stay.
 func TestReconcileFailureClosesTheRun(t *testing.T) {
-	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*Inventory{}}
+	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*observed.Inventory{}}
 	e, path, clock := newTestEngine(t, src, DefaultPolicy())
-	src.set("k", &Inventory{Identity: "acct", Packages: []PackageReading{plan("observed", window(100))}})
+	src.set("k", &observed.Inventory{Identity: "acct", Packages: []observed.PackageReading{plan("observed", window(100))}})
 	if err := e.RunNow(context.Background(), []domain.ID{"k"}); err != nil {
 		t.Fatal(err)
 	}
 	changed := window(50)
 	changed.Unit = "token"
-	src.set("k", &Inventory{Identity: "acct", Packages: []PackageReading{plan("observed", changed)}})
+	src.set("k", &observed.Inventory{Identity: "acct", Packages: []observed.PackageReading{plan("observed", changed)}})
 	clock.now.Add(1000)
 	if err := e.RunNow(context.Background(), []domain.ID{"k"}); err != nil {
 		t.Fatal(err)

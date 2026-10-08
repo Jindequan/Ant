@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/store"
 )
 
@@ -61,14 +62,14 @@ func TestBalanceForecastIgnoresTopUps(t *testing.T) {
 // The query gives each credential its account's meters, paced up to the
 // account's last good read.
 func TestOutlooksThroughTheEngine(t *testing.T) {
-	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*Inventory{}}
+	src := &inventorySource{creds: []Credential{found("k")}, inv: map[domain.ID]*observed.Inventory{}}
 	e, _, clock := newTestEngine(t, src, DefaultPolicy())
 	start := clock.Now()
 	end := start + 300*minute
 	for i, remaining := range []int64{100, 80, 60} {
 		w := window(remaining)
 		w.WindowEnd = &end
-		src.set("k", &Inventory{Identity: "acct", Packages: []PackageReading{plan("observed", w)}})
+		src.set("k", &observed.Inventory{Identity: "acct", Packages: []observed.PackageReading{plan("observed", w)}})
 		clock.now.Store(int64(start + domain.Millis(i)*30*minute))
 		if err := e.RunNow(context.Background(), []domain.ID{"k"}); err != nil {
 			t.Fatal(err)

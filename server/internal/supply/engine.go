@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/store"
 )
 
@@ -51,9 +52,9 @@ type Credential struct {
 type Result struct {
 	Outcome     string
 	Detail      string
-	NextReset   *domain.Millis // the earliest window reset the provider reported
-	BalanceOnly bool           // the account holds balances and no windows
-	Inventory   *Inventory     // what the account holds; recorded when the read is ok
+	NextReset   *domain.Millis      // the earliest window reset the provider reported
+	BalanceOnly bool                // the account holds balances and no windows
+	Inventory   *observed.Inventory // what the account holds; recorded when the read is ok
 }
 
 // Source finds credentials and reads them. The engine never sees secrets

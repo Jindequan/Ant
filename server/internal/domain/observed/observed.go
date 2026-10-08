@@ -1,6 +1,13 @@
-package supply
+// Package observed holds what a provider read observes and the network seam
+// it reads through (design 12 §2). It is a leaf: the supply engine, provider
+// modules and the transport all use it, and it uses only domain.
+package observed
 
-import "ant/server/internal/domain"
+import (
+	"context"
+
+	"ant/server/internal/domain"
+)
 
 // Inventory is what one read says the account holds (design 11 §3.2).
 type Inventory struct {
@@ -45,3 +52,30 @@ type ResourceReading struct {
 	Remaining   *domain.Units
 	Evidence    []byte // JSON, ≤ evidenceLimit
 }
+
+// UpstreamModel is a model an account lists, as the provider names it.
+type UpstreamModel struct {
+	ID    string // what requests name
+	Name  string // as the provider shows it
+	Media string // text, image, video, speech, embedding…
+}
+
+// Request is one HTTP request a collector makes.
+type Request struct {
+	Method string
+	URL    string
+	Header map[string]string
+	Body   []byte
+}
+
+// Response is the reply; Body is bounded by the Fetch implementation.
+type Response struct {
+	Status int
+	Header map[string][]string
+	Body   []byte
+}
+
+// Fetch is the only network access a collector has. The implementation
+// (internal/transport) enforces the module's origins, HTTPS, redirects,
+// size and time.
+type Fetch func(ctx context.Context, r Request) (Response, error)

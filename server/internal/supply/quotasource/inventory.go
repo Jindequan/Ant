@@ -8,8 +8,8 @@ import (
 	"unicode"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/quota"
-	"ant/server/internal/supply"
 )
 
 // Adapter facts are honest about what they are: quota readers report
@@ -38,15 +38,15 @@ func reportedIdentity(a quota.Account) string {
 }
 
 // inventory is what a good read says the account holds.
-func inventory(a quota.Account) *supply.Inventory {
-	inv := &supply.Inventory{Identity: reportedIdentity(a), DisplayName: firstOf(a.User, a.Label)}
+func inventory(a quota.Account) *observed.Inventory {
+	inv := &observed.Inventory{Identity: reportedIdentity(a), DisplayName: firstOf(a.User, a.Label)}
 	base := "quota/" + a.Provider + "/" + a.Mode
-	main := supply.PackageReading{TemplateRef: base, Kind: packageKind(a), Basis: basis(a), Plan: a.Plan,
+	main := observed.PackageReading{TemplateRef: base, Kind: packageKind(a), Basis: basis(a), Plan: a.Plan,
 		RenewsAt: millis(a.RenewsAt), EndsAt: millis(a.EndsAt), AutoRenew: a.AutoRenew}
 	main.Resources = meters(a.Windows, a.Balances)
 	inv.Packages = append(inv.Packages, main)
 	for _, g := range a.Groups {
-		p := supply.PackageReading{TemplateRef: base + "/" + slug(g.Title), Kind: main.Kind, Basis: main.Basis, Plan: g.Title}
+		p := observed.PackageReading{TemplateRef: base + "/" + slug(g.Title), Kind: main.Kind, Basis: main.Basis, Plan: g.Title}
 		p.Resources = meters(g.Windows, g.Balances)
 		inv.Packages = append(inv.Packages, p)
 	}
@@ -73,8 +73,8 @@ func packageKind(a quota.Account) string {
 	return "payg"
 }
 
-func meters(windows []quota.Window, balances []quota.Balance) []supply.ResourceReading {
-	var out []supply.ResourceReading
+func meters(windows []quota.Window, balances []quota.Balance) []observed.ResourceReading {
+	var out []observed.ResourceReading
 	for _, w := range windows {
 		out = append(out, windowMeter(w))
 	}
@@ -84,8 +84,8 @@ func meters(windows []quota.Window, balances []quota.Balance) []supply.ResourceR
 	return out
 }
 
-func windowMeter(w quota.Window) supply.ResourceReading {
-	r := supply.ResourceReading{TemplateRef: "window/" + slug(w.Name), MetricID: domain.ID(slug(w.Name)), Unit: firstOf(w.Unit, "count"),
+func windowMeter(w quota.Window) observed.ResourceReading {
+	r := observed.ResourceReading{TemplateRef: "window/" + slug(w.Name), MetricID: domain.ID(slug(w.Name)), Unit: firstOf(w.Unit, "count"),
 		QuantumExp: quantumExp, SemanticsRef: semanticsWindow, SemanticsRevision: semanticsRev,
 		WindowJSON: mustJSON(struct {
 			Kind string `json:"kind"`
@@ -115,9 +115,9 @@ func windowMeter(w quota.Window) supply.ResourceReading {
 	return r
 }
 
-func balanceMeter(b quota.Balance) supply.ResourceReading {
+func balanceMeter(b quota.Balance) observed.ResourceReading {
 	name := firstOf(b.Label, b.Currency)
-	r := supply.ResourceReading{TemplateRef: "balance/" + slug(name), MetricID: "balance", Unit: b.Currency, Currency: b.Currency,
+	r := observed.ResourceReading{TemplateRef: "balance/" + slug(name), MetricID: "balance", Unit: b.Currency, Currency: b.Currency,
 		QuantumExp: quantumExp, SemanticsRef: semanticsBalance, SemanticsRevision: semanticsRev,
 		WindowJSON: []byte(`{"kind":"lifetime"}`), ScopeJSON: scope(""), ResetBasis: "none"}
 	r.Remaining = decimalUnits(b.Amount)

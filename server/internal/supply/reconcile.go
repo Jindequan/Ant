@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/store"
 )
 
@@ -23,7 +24,7 @@ func stableID(prefix string, parts ...string) domain.ID {
 // accountIdentity is the identity an inventory's account is stored under: the
 // provider-reported one, or the credential itself when there is none, so
 // credentials are merged only on what the provider said (§2.6).
-func accountIdentity(cred Credential, inv Inventory) string {
+func accountIdentity(cred Credential, inv observed.Inventory) string {
 	if inv.Identity != "" {
 		return inv.Identity
 	}
@@ -35,7 +36,7 @@ func accountIdentity(cred Credential, inv Inventory) string {
 // every observed resource whose value changed. A reading not newer than the
 // stored one is skipped, not an error (§3.3, reading order). It returns the
 // account id and how many readings were skipped.
-func (e *Engine) reconcile(tx store.SupplyWriterTx, cred Credential, inv Inventory, runID domain.ID, at domain.Millis) (domain.ID, int, error) {
+func (e *Engine) reconcile(tx store.SupplyWriterTx, cred Credential, inv observed.Inventory, runID domain.ID, at domain.Millis) (domain.ID, int, error) {
 	identity := accountIdentity(cred, inv)
 	accountID, err := tx.UpsertSupplyAccount(store.SupplyAccountRecord{Namespace: e.ns, AccountID: stableID("acct-", string(cred.ProviderID), identity),
 		ProviderID: cred.ProviderID, ProviderIdentity: identity, DisplayName: inv.DisplayName, UpdatedAt: at})
