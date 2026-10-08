@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 stage 1 clarity pass 2: forecasts on the Timeline, a labelled summary count, no repeated rule in the Add flow; fixed doubled forecast rows. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
+
 2026-10-08 ability: prices — what you pay per subscription (month/year, any currency), shown on the card, totalled per month on the summary, mentioned in renewal notifications. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).
 
 2026-10-08 ability: notifications on this Mac — use-it-or-lose-it, running out early, low balance, renewals/endings, sign-outs; once per event, at most 5 a minute, bell switch on the page. Gates pass. [Stage 1 record](../evidence/WORK/STAGE-1/README.md).

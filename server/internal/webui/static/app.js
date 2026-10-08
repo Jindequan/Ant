@@ -105,7 +105,7 @@ function renderSummary(accounts) {
   $("summary").innerHTML = `
     <div class="tile ${urgent.length ? "urgent" : ""}">
       <div class="label">Use before it's gone</div>
-      <div class="value">${urgent.length || "Nothing"}</div>
+      <div class="value">${urgent.length ? `${urgent.length}<span class="unit">${urgent.length === 1 ? "allowance" : "allowances"}</span>` : "Nothing"}</div>
       <div class="hint">${firstText || "Nothing unused resets or expires soon"}</div>
     </div>
     <div class="tile">
@@ -123,7 +123,7 @@ function renderSummary(accounts) {
 // insightsOf is what the history says about an account's rows: its own
 // connection's and those merged into its card.
 function insightsOf(a) {
-  return [a.id, ...(a.keys || [])].flatMap((id) => state.insights[id] || []);
+  return [...new Set([a.id, ...(a.keys || [])])].flatMap((id) => state.insights[id] || []); // keys include a.id
 }
 
 function windowInsight(a, w) {
@@ -434,6 +434,14 @@ function events(accounts) {
       out.push({ t, a, w, verb: w.expires ? "expires" : "resets" });
       seen.add(t);
     }
+    // forecasts: when the recent pace runs something out
+    for (const i of insightsOf(a)) {
+      const t = time(i.at);
+      if (i.outlook !== "runs_out" || !t) continue;
+      const w = i.window ? allWindows(a).find((x) => x.name === i.window && (x.model || "") === (i.model || "")) : null;
+      if (i.window && !w) continue;
+      out.push({ t, a, w, balance: i.currency ? i : null, verb: "runs out", forecast: true });
+    }
     const r = time(a.renewsAt), e = time(a.endsAt);
     if (r && !seen.has(r)) out.push({ t: r, a, verb: "renews" });
     else if (e && !r && !seen.has(e)) out.push({ t: e, a, verb: "ends" });
@@ -454,7 +462,7 @@ function bucketOf(t) {
 
 function renderTimeline(accounts) {
   const evs = events(accounts);
-  if (!evs.length) return '<p class="empty">Nothing resets, renews or expires in what is shown.</p>';
+  if (!evs.length) return '<p class="empty">Nothing resets, renews, expires or runs out in what is shown.</p>';
   const buckets = new Map();
   for (const ev of evs) {
     const b = bucketOf(ev.t);
@@ -472,9 +480,11 @@ function renderTimeline(accounts) {
       else if (p != null) val = p === 0 ? "<b>Used up</b>" : `<b>${Math.round(p)}%</b> left`;
       else if (ev.verb === "ends" && a.autoRenew === false) val = "auto-renew off";
       const name = esc(a.label || a.name);
-      const what = w ? `${esc(w.name)} <span>${ev.verb}</span>` : `${esc(a.plan || a.modeName || "Plan")} <span>${ev.verb}</span>`;
-      const tag = w && urgency(w, a) ? ` <span class="tag">${urgency(w, a)}</span>` : "";
-      return `<div class="tl-row" style="--hue:${HUES[a.provider] ?? 30}">
+      const subject = ev.balance ? `${esc(ev.balance.label || "Balance")}` : w ? esc(w.name) : esc(a.plan || a.modeName || "Plan");
+      const what = `${subject} <span${ev.forecast ? ' class="soon"' : ""}>${ev.verb}${ev.forecast ? " at this pace" : ""}</span>`;
+      if (ev.balance) val = `<b>${money(ev.balance.currency, ev.balance.perDay.toFixed(2))}</b>/day`;
+      const tag = w && !ev.forecast && urgency(w, a) ? ` <span class="tag">${urgency(w, a)}</span>` : "";
+      return `<div class="tl-row ${ev.forecast ? "forecast" : ""}" style="--hue:${HUES[a.provider] ?? 30}">
         <span class="t">${when}</span>
         <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
         <span class="what">${what}${tag}<span class="sub">${name}${a.modeName ? " · " + esc(a.modeName) : ""}</span></span>
@@ -659,7 +669,7 @@ function stepWays(p, m, back) {
   const have = new Set((state.snap?.accounts || [])
     .filter((a) => a.provider === p.id && a.mode === m.id && a.status === "ok").map((a) => a.way || ""));
   showStep(`${p.name} · ${m.name}`, `
-    <div class="rule"><b>${esc(m.name)}.</b> ${esc(m.rule)}</div>
+    ${back ? "" : `<div class="rule"><b>${esc(m.name)}.</b> ${esc(m.rule)}</div>`}
     <p class="sheet-lead">Ant can read this several ways, easiest first. One is enough.</p>
     <div class="modes ways">${m.ways.map((w) => `
       <button type="button" data-way="${esc(w.id)}">

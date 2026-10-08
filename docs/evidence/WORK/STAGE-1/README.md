@@ -92,3 +92,16 @@ value could have sent a later Save to the wrong place), and Enter submits whiche
 Tests: `TestPricesAreCheckedAndKept` (valid, too precise, zero, bad currency, bad period, delete),
 renewal alert wording with a price. Checked in demo mode: add a monthly USD price with Enter, a
 yearly CNY price; the tile reads "¥100.00 + $20.00 a month".
+
+## Pass 2 (2026-10-08): timeline, summary, Add flow
+
+- The Timeline now shows forecasts beside resets and renewals: "Week runs out at this pace" (in
+  warning colour), and for balances the day they run out with what they cost per day. Design 11
+  phase 6's "forecast on the timeline" is done.
+- The first summary tile says what it counts: "14 allowances", not a bare "14".
+- The Add flow no longer repeats a plan's rule on the step after the one that showed it.
+- Fixed: a card's insights were looked up twice (a card's merged ids include its own), which
+  doubled every forecast row on the Timeline (55 rows, no duplicates now).
+
+Still open for a later pass: the final form step still restates the rule; card menu ("…") reviewed
+only as edit.

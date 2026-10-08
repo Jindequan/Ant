@@ -324,3 +324,6 @@ main#cards { display: block; }
 .link:hover { color: var(--text); }
 .price-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
 @media (max-width: 520px) { .price-row { grid-template-columns: 1fr 1fr; } .price-row .field:first-child { grid-column: 1 / -1; } }
+
+.tl-row.forecast .what span.soon { color: var(--warn); font-weight: 600; }
+.tile .value .unit { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
