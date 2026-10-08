@@ -1,0 +1,16 @@
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	1.842s
+ok  	ant/server/internal/config	2.033s
+ok  	ant/server/internal/contracttest	2.493s
+ok  	ant/server/internal/domain	1.676s
+ok  	ant/server/internal/domain/pools	1.650s
+ok  	ant/server/internal/domain/resources	11.021s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	1.668s
+ok  	ant/server/internal/providers/localtest	1.796s
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+ok  	ant/server/internal/store/sqlite	2.003s
+ok  	ant/server/internal/transport	1.800s
+ok  	ant/server/tests/integration	4.919s

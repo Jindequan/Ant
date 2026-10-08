@@ -1,0 +1,32 @@
+PASS rolling self equal=true identity={kind:rolling period: zone: phase:0 day:0 duration:60000} / {kind:rolling period: zone: phase:0 day:0 duration:60000}
+PASS rolling duration equal=false identity={kind:rolling period: zone: phase:0 day:0 duration:60000} / {kind:rolling period: zone: phase:0 day:0 duration:60001}
+PASS lifetime equal=true identity={kind:lifetime period: zone: phase:0 day:0 duration:0} / {kind:lifetime period: zone: phase:0 day:0 duration:0}
+PASS UTC alias  equal=true identity={kind:fixed period:day zone:UTC phase:0 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:0 day:0 duration:0}
+PASS UTC alias UTC equal=true identity={kind:fixed period:day zone:UTC phase:0 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:0 day:0 duration:0}
+PASS UTC alias Etc/UTC equal=true identity={kind:fixed period:day zone:UTC phase:0 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:0 day:0 duration:0}
+PASS UTC alias Etc/GMT equal=true identity={kind:fixed period:day zone:UTC phase:0 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:0 day:0 duration:0}
+PASS UTC alias GMT equal=true identity={kind:fixed period:day zone:UTC phase:0 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:0 day:0 duration:0}
+PASS default minute equal=true identity={kind:fixed period:minute zone:Asia/Singapore phase:0 day:0 duration:0} / {kind:fixed period:minute zone:Asia/Singapore phase:0 day:0 duration:0}
+PASS default hour equal=true identity={kind:fixed period:hour zone:Asia/Singapore phase:0 day:0 duration:0} / {kind:fixed period:hour zone:Asia/Singapore phase:0 day:0 duration:0}
+PASS default day equal=true identity={kind:fixed period:day zone:Asia/Singapore phase:0 day:0 duration:0} / {kind:fixed period:day zone:Asia/Singapore phase:0 day:0 duration:0}
+PASS default week equal=true identity={kind:fixed period:week zone:Asia/Singapore phase:0 day:1 duration:0} / {kind:fixed period:week zone:Asia/Singapore phase:0 day:1 duration:0}
+PASS default month equal=true identity={kind:fixed period:month zone:Asia/Singapore phase:0 day:1 duration:0} / {kind:fixed period:month zone:Asia/Singapore phase:0 day:1 duration:0}
+PASS minute ignores date hour minute equal=true identity={kind:fixed period:minute zone:UTC phase:12345 day:0 duration:0} / {kind:fixed period:minute zone:UTC phase:12345 day:0 duration:0}
+PASS hour ignores date hour equal=true identity={kind:fixed period:hour zone:UTC phase:1212345 day:0 duration:0} / {kind:fixed period:hour zone:UTC phase:1212345 day:0 duration:0}
+PASS day ignores date equal=true identity={kind:fixed period:day zone:UTC phase:4812345 day:0 duration:0} / {kind:fixed period:day zone:UTC phase:4812345 day:0 duration:0}
+PASS millisecond difference equal=false identity={kind:fixed period:hour zone:UTC phase:1212345 day:0 duration:0} / {kind:fixed period:hour zone:UTC phase:1212346 day:0 duration:0}
+PASS zone conversion crosses date equal=true identity={kind:fixed period:week zone:Asia/Singapore phase:0 day:1 duration:0} / {kind:fixed period:week zone:Asia/Singapore phase:0 day:1 duration:0}
+PASS trailing zero precision equal=true identity={kind:fixed period:minute zone:UTC phase:1123 day:0 duration:0} / {kind:fixed period:minute zone:UTC phase:1123 day:0 duration:0}
+PASS week Thursday differs equal=false identity={kind:fixed period:week zone:UTC phase:0 day:4 duration:0} / {kind:fixed period:week zone:UTC phase:0 day:1 duration:0}
+PASS month day15 differs equal=false identity={kind:fixed period:month zone:UTC phase:0 day:15 duration:0} / {kind:fixed period:month zone:UTC phase:0 day:1 duration:0}
+PASS month day30 day31 distinct equal=false identity={kind:fixed period:month zone:UTC phase:0 day:30 duration:0} / {kind:fixed period:month zone:UTC phase:0 day:31 duration:0}
+PASS Casablanca Lagos equal=false identity={kind:fixed period:day zone:Africa/Casablanca phase:0 day:0 duration:0} / {kind:fixed period:day zone:Africa/Lagos phase:0 day:0 duration:0}
+PASS refusal 0 {kind:unknown period: zone: anchor: duration:0}
+PASS refusal 1 {kind:rolling period: zone: anchor: duration:0}
+PASS refusal 2 {kind:rolling period: zone: anchor: duration:-1}
+PASS refusal 3 {kind:fixed period:year zone:UTC anchor: duration:0}
+PASS refusal 4 {kind:fixed period:day zone:No/SuchZone anchor: duration:0}
+PASS refusal 5 {kind:fixed period:day zone:Local anchor: duration:0}
+PASS refusal 6 {kind:fixed period:day zone:UTC anchor:malformed duration:0}
+PASS refusal 7 {kind:fixed period:day zone:UTC anchor:2026-01-01T00:00:00.000001Z duration:0}
+PASS total=31; no WindowAt date sampling

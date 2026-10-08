@@ -1,0 +1,51 @@
+[
+  {
+    "name": "check",
+    "command": [
+      "make",
+      "check"
+    ],
+    "exitCode": 0,
+    "seconds": 6.149
+  },
+  {
+    "name": "go",
+    "command": [
+      "go",
+      "test",
+      "-race",
+      "-count=1",
+      "./internal/...",
+      "./tests/integration/..."
+    ],
+    "exitCode": 0,
+    "seconds": 19.854
+  },
+  {
+    "name": "web",
+    "command": [
+      "make",
+      "test-web"
+    ],
+    "exitCode": 0,
+    "seconds": 2.99
+  },
+  {
+    "name": "build",
+    "command": [
+      "make",
+      "build"
+    ],
+    "exitCode": 0,
+    "seconds": 1.108
+  },
+  {
+    "name": "manifest",
+    "command": [
+      "make",
+      "verify-manifest"
+    ],
+    "exitCode": 0,
+    "seconds": 0.152
+  }
+]

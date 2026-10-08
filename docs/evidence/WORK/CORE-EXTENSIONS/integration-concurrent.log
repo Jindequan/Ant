@@ -1,0 +1,9 @@
+cd server && go test -race -count=1 -timeout 300s ./tests/integration/...
+--- FAIL: TestPreparationRejectsAuthorizationAfterPoolOrderChanges (0.39s)
+    prepare_test.go:295: store: command exceeded budget: context deadline exceeded
+--- FAIL: TestPreparationAuthorizationFailureRetryDoesNotLeakPermit (0.53s)
+    prepare_test.go:529: retry stuck store: command exceeded budget: context deadline exceeded
+FAIL
+FAIL	ant/server/tests/integration	25.304s
+FAIL
+make: *** [test-integration] Error 1

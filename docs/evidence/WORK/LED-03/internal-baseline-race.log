@@ -1,0 +1,52 @@
+=== RUN   TestSettlementAtomicReplayConflict
+--- PASS: TestSettlementAtomicReplayConflict (0.14s)
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy/unknown
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy/known_success
+--- PASS: TestSettlementUnknownAndSuccessConserveOccupancy (0.24s)
+    --- PASS: TestSettlementUnknownAndSuccessConserveOccupancy/unknown (0.12s)
+    --- PASS: TestSettlementUnknownAndSuccessConserveOccupancy/known_success (0.12s)
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/resource_events
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/encumbrances
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/holds
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/operation_events
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/command_receipts
+--- PASS: TestSettlementRollbackAtEveryDurableBoundary (0.74s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/resource_events (0.14s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/encumbrances (0.15s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/holds (0.15s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/operation_events (0.15s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/command_receipts (0.15s)
+=== RUN   TestSettlementOverrunAcceptedAndHeld
+--- PASS: TestSettlementOverrunAcceptedAndHeld (0.12s)
+=== RUN   TestSettlementConcurrentReportsExactlyOnce
+--- PASS: TestSettlementConcurrentReportsExactlyOnce (0.19s)
+=== RUN   TestSettlementContinueThenFinalAllFacts
+--- PASS: TestSettlementContinueThenFinalAllFacts (0.17s)
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/cancel
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/deadline
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/disable
+--- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts (0.36s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/cancel (0.12s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/deadline (0.12s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/disable (0.12s)
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/0
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/1
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/2
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/3
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/4
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/5
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/6
+--- PASS: TestSettlementInvalidReportsAndStaleEvidence (0.89s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/0 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/1 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/2 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/3 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/4 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/5 (0.11s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/6 (0.11s)
+PASS
+ok  	ant/server/internal/ledger/commands	4.269s

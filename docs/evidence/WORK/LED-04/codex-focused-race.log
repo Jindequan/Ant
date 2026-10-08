@@ -1,0 +1,50 @@
+=== RUN   TestAbortPreparedWithoutPermit
+--- PASS: TestAbortPreparedWithoutPermit (0.00s)
+=== RUN   TestAbortGrantedUnconsumed
+--- PASS: TestAbortGrantedUnconsumed (0.00s)
+=== RUN   TestAbortConsumedWithReliableUnsentProof
+--- PASS: TestAbortConsumedWithReliableUnsentProof (0.00s)
+=== RUN   TestAbortConsumedWithoutProofConservesUnknown
+--- PASS: TestAbortConsumedWithoutProofConservesUnknown (0.00s)
+=== RUN   TestAbortInvalidCombinationsAreHardErrors
+--- PASS: TestAbortInvalidCombinationsAreHardErrors (0.00s)
+=== RUN   TestAbortAlreadyClosedIsIdempotent
+--- PASS: TestAbortAlreadyClosedIsIdempotent (0.00s)
+=== RUN   TestAbortReasonsAreDiagnostic
+--- PASS: TestAbortReasonsAreDiagnostic (0.00s)
+PASS
+ok  	ant/server/internal/ledger	1.384s
+=== RUN   TestReleaseTerminalAttemptDropsHandleAndRegistryRecord
+--- PASS: TestReleaseTerminalAttemptDropsHandleAndRegistryRecord (0.00s)
+=== RUN   TestAbortClosesPreparedAttempt
+--- PASS: TestAbortClosesPreparedAttempt (0.18s)
+=== RUN   TestAbortRevokesGrantedPermit
+--- PASS: TestAbortRevokesGrantedPermit (0.17s)
+=== RUN   TestAbortAfterConsumeWithoutProofConserves
+--- PASS: TestAbortAfterConsumeWithoutProofConserves (0.12s)
+=== RUN   TestAbortReliableUnsentProof
+--- PASS: TestAbortReliableUnsentProof (0.21s)
+=== RUN   TestCancelPreparedClosesAndCancels
+--- PASS: TestCancelPreparedClosesAndCancels (0.15s)
+=== RUN   TestCancelExecutingIntentOnlyThenSuccessWins
+--- PASS: TestCancelExecutingIntentOnlyThenSuccessWins (0.12s)
+=== RUN   TestCancelAcks
+--- PASS: TestCancelAcks (0.12s)
+=== RUN   TestCancelEventEscapesCommandID
+--- PASS: TestCancelEventEscapesCommandID (0.11s)
+=== RUN   TestRenewLeaseCompetesWithSweep
+--- PASS: TestRenewLeaseCompetesWithSweep (0.12s)
+=== RUN   TestRenewLeaseCapsBeforeAdditionOverflow
+--- PASS: TestRenewLeaseCapsBeforeAdditionOverflow (0.11s)
+=== RUN   TestSweepPreparedReleasesAndCompletesInterrupted
+--- PASS: TestSweepPreparedReleasesAndCompletesInterrupted (0.15s)
+=== RUN   TestSweepExecutingGrantedRevokesAndParksAtDeadline
+--- PASS: TestSweepExecutingGrantedRevokesAndParksAtDeadline (0.16s)
+=== RUN   TestSweepExecutingConsumedConservesUnknown
+--- PASS: TestSweepExecutingConsumedConservesUnknown (0.12s)
+=== RUN   TestSweepBatchLimitAndInterruptedCompletion
+--- PASS: TestSweepBatchLimitAndInterruptedCompletion (0.14s)
+=== RUN   TestRecoveryFailsClosedOnDrift
+--- PASS: TestRecoveryFailsClosedOnDrift (0.22s)
+PASS
+ok  	ant/server/internal/ledger/commands	3.595s

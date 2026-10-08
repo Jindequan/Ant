@@ -1,0 +1,6 @@
+{
+  "server/internal/domain/resources/window_identity.go": "2b9f7b9160189449bb9e8be7fd71949cc88390a2bd970ef24b388cc2ca7b22b6",
+  "server/internal/domain/resources/window_identity_test.go": "96895b3b922bd8cb4729f351678012614e29d1d44999a997d543535b876348b7",
+  "server/internal/config/compile.go": "66dd92fcdf07e03f578ebf55095b09b2603d07f943857182d624b5782d6b9261",
+  "server/internal/config/compiled_window_test.go": "cf85279fde3cf13c52c08c5b234dab88943e48eaf70d731aa42786a1d3d2bb7f"
+}

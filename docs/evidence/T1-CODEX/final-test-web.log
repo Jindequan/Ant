@@ -1,0 +1,14 @@
+cd web && npm test -- --run
+
+> ant-web@0.1.0 test
+> vitest run --run
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+
+ Test Files  6 passed (6)
+      Tests  235 passed (235)
+   Start at  11:40:11
+   Duration  7.90s (environment 41%, transform 24%, tests 14%, import 11%, setup 9%, worker 1%)
+

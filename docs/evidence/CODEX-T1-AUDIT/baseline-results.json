@@ -1,0 +1,42 @@
+[
+  {
+    "command": [
+      "make",
+      "check"
+    ],
+    "exit": 0,
+    "seconds": 3.43,
+    "log": "docs/evidence/CODEX-T1-AUDIT/baseline-1.log"
+  },
+  {
+    "command": [
+      "go",
+      "test",
+      "-race",
+      "-count=1",
+      "./internal/...",
+      "./tests/integration/..."
+    ],
+    "exit": 0,
+    "seconds": 5.43,
+    "log": "docs/evidence/CODEX-T1-AUDIT/baseline-2.log"
+  },
+  {
+    "command": [
+      "make",
+      "test-web"
+    ],
+    "exit": 0,
+    "seconds": 1.19,
+    "log": "docs/evidence/CODEX-T1-AUDIT/baseline-3.log"
+  },
+  {
+    "command": [
+      "make",
+      "build"
+    ],
+    "exit": 0,
+    "seconds": 0.38,
+    "log": "docs/evidence/CODEX-T1-AUDIT/baseline-4.log"
+  }
+]

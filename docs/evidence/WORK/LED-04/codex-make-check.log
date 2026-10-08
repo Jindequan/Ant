@@ -1,0 +1,19 @@
+python3 scripts/render_stage_runbooks.py --check
+stage runbooks current (9 files)
+cd server && test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
+cd server && go vet ./...
+cd server && go build ./...
+python3 scripts/check-deps.py
+check-deps: dependency boundaries OK (19 packages)
+cd web && npm run typecheck
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+cd web && npm run guard:gen
+
+> ant-web@0.1.0 guard:gen
+> node scripts/check-generated.mjs
+
+guard:gen: src/api/schema.d.ts up to date (60499 bytes)
+guard:gen: src/api/config-document.gen.d.ts up to date (4085 bytes)

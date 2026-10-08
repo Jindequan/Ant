@@ -1,0 +1,55 @@
+{
+  "pool": {
+    "poolId": "pool-main",
+    "namespace": "ns-demo",
+    "name": "演示主池（fixture）",
+    "enabled": true,
+    "version": 4,
+    "members": [
+      {
+        "offerId": "offer-alpha-chat-b",
+        "priority": 7,
+        "enabled": true,
+        "version": 2
+      },
+      {
+        "offerId": "offer-alpha-chat-a",
+        "priority": 20,
+        "enabled": true,
+        "version": 2
+      }
+    ]
+  },
+  "groups": [
+    {
+      "domain": "ai/text",
+      "capabilityProfile": "profile.chat.basic",
+      "members": [
+        {
+          "member": {
+            "offerId": "offer-alpha-chat-b",
+            "priority": 7,
+            "enabled": true,
+            "version": 2
+          },
+          "offer": {
+            "offerId": "offer-alpha-chat-b",
+            "bindingId": "bind-alpha-main",
+            "domain": "ai/text",
+            "capabilityProfile": "profile.chat.basic",
+            "enabled": true,
+            "resourceRefs": [
+              "res-alpha-daily-token",
+              "res-alpha-usd-entitlement",
+              "res-alpha-concurrency"
+            ],
+            "version": 1
+          },
+          "status": "available",
+          "reasons": [],
+          "resources": []
+        }
+      ]
+    }
+  ]
+}

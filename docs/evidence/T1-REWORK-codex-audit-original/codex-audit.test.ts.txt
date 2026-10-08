@@ -1,0 +1,34 @@
+import { readFileSync } from 'node:fs';
+import { describe, it, expect } from 'vitest';
+import { validateConfigDocument } from '../src/api/validate';
+const cases = JSON.parse(readFileSync('../docs/evidence/CODEX-T1-AUDIT/config-cases.json','utf8')) as {name:string;document:unknown;expected:boolean}[];
+describe('Codex audit config parity',()=>{
+ for(const c of cases) it(c.name,()=>{
+  const result=validateConfigDocument(c.document);
+  console.log(JSON.stringify({name:c.name,accepted:result.ok,expected:c.expected,result}));
+  expect(result.ok).toBe(c.expected);
+ });
+});
+import { vi, afterEach } from 'vitest';
+import { subscribeOperationEvents } from '../src/api/events';
+class AuditEventSource {
+ static instances:AuditEventSource[]=[];
+ url:string;closed=false;onmessage:unknown;onerror:unknown;
+ constructor(url:string){this.url=url;AuditEventSource.instances.push(this);}
+ addEventListener(){}
+ close(){this.closed=true;}
+}
+afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();AuditEventSource.instances=[];});
+describe('Codex audit SSE lifecycle',()=>{
+ it('preserves an absolute endpoint when API base is configured',()=>{
+  vi.stubEnv('VITE_API_BASE','https://api.fixture.invalid');vi.stubGlobal('EventSource',AuditEventSource);
+  const sub=subscribeOperationEvents({url:'https://api.fixture.invalid/v1/operations/op-1/events',onEvent:()=>{}});
+  const source=AuditEventSource.instances[0];console.log(JSON.stringify({sseUrl:source.url}));sub.close();
+  expect(source.url).toBe('https://api.fixture.invalid/v1/operations/op-1/events');
+ });
+ it('honors an already aborted signal',()=>{
+  vi.stubGlobal('EventSource',AuditEventSource);const controller=new AbortController();controller.abort();
+  const sub=subscribeOperationEvents({url:'/v1/operations/op-1/events',signal:controller.signal,onEvent:()=>{}});
+  const active=AuditEventSource.instances.filter(s=>!s.closed).length;console.log(JSON.stringify({activeSourcesAfterAlreadyAbortedSignal:active}));sub.close();expect(active).toBe(0);
+ });
+});

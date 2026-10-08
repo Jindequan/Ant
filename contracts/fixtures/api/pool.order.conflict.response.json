@@ -1,0 +1,13 @@
+{
+  "error": {
+    "code": "VersionConflict",
+    "messageKey": "ant.error.poolVersionConflict",
+    "params": {
+      "expectedPoolVersion": "3",
+      "currentPoolVersion": "5"
+    },
+    "retryable": true,
+    "action": "reload_and_recompare"
+  },
+  "requestId": "req-409ab1"
+}

@@ -1,0 +1,80 @@
+- banner:
+  - text: ANT 控制台
+  - navigation "主导航":
+    - link "供应商":
+      - /url: /providers
+    - link "资源":
+      - /url: /resources
+    - link "资源池":
+      - /url: /pools
+    - link "操作":
+      - /url: /operations
+  - generic: walkthrough
+  - button "退出登录"
+- main:
+  - heading "资源" [level=1]
+  - paragraph: 先保存订阅与资源规则，之后再连接和使用。
+  - button "保存草稿" [disabled]
+  - generic: 草稿 50152476-395a-4071-950b-35283ab49446
+  - generic: 草稿版本 4
+  - generic: 草稿 · 待验证
+  - paragraph: 这里保存的是你声明的资源规则，不是可用余额。无需访问凭证，也不会请求供应商；使用前还需核验供应商规则与额度来源。
+  - region "添加订阅账户":
+    - heading "添加订阅账户" [level=2]
+    - paragraph: 用账户名称标记订阅或套餐。可先配置尚未接入的供应商，再添加该账户的资源。
+    - text: 供应商类型标识
+    - combobox "供应商类型标识"
+    - generic: 可选已注册类型，也可填写未来供应商的标识。未接入的类型保留为草稿。
+    - text: 账户编号
+    - textbox "账户编号"
+    - text: 账户显示名称
+    - textbox "账户显示名称"
+    - button "添加到账户列表"
+  - heading "账户" [level=2]
+  - list:
+    - strong: Monthly AI subscription
+    - text: · future-provider · subscription-demo
+  - heading "资源规则" [level=2]
+  - button "添加资源规则"
+  - table:
+    - rowgroup:
+      - row "资源标识 资源所属账户或连接 声明额度（最小单位） 重置窗口 操作":
+        - columnheader "资源标识"
+        - columnheader "资源所属账户或连接"
+        - columnheader "声明额度（最小单位）"
+        - columnheader "重置窗口"
+        - columnheader "操作"
+    - rowgroup:
+      - row "monthly-tokens metric.tokens.total Monthly AI subscription 3000000 token · 限制 · 草稿 · 待验证 固定周期 · 每月 · Asia/Singapore 2026-10-07T00:00:00+08:00 2027/10/7 00:00:00 编辑规则 移除资源":
+        - cell "monthly-tokens metric.tokens.total":
+          - strong: monthly-tokens
+          - generic: metric.tokens.total
+        - cell "Monthly AI subscription"
+        - cell "3000000 token · 限制 · 草稿 · 待验证":
+          - text: "3000000"
+          - generic: token · 限制 · 草稿 · 待验证
+        - cell "固定周期 · 每月 · Asia/Singapore 2026-10-07T00:00:00+08:00 2027/10/7 00:00:00":
+          - text: 固定周期 · 每月 · Asia/Singapore
+          - generic: 2026-10-07T00:00:00+08:00
+          - generic: 2027/10/7 00:00:00
+        - cell "编辑规则 移除资源":
+          - button "编辑规则"
+          - button "移除资源"
+      - row "subscription-credit metric.usd.cents Monthly AI subscription 2500 usd_cents · USD · 额度 · 草稿 · 待验证 不重置 编辑规则 移除资源":
+        - cell "subscription-credit metric.usd.cents":
+          - strong: subscription-credit
+          - generic: metric.usd.cents
+        - cell "Monthly AI subscription"
+        - cell "2500 usd_cents · USD · 额度 · 草稿 · 待验证":
+          - text: "2500"
+          - generic: usd_cents · USD · 额度 · 草稿 · 待验证
+        - cell "不重置"
+        - cell "编辑规则 移除资源":
+          - button "编辑规则"
+          - button "移除资源"
+  - generic "使用前待完成的检查：6 项"
+  - link "返回供应商配置":
+    - /url: /providers?draft=50152476-395a-4071-950b-35283ab49446
+  - link "查看已激活资源":
+    - /url: /resources
+  - button "重新载入已保存版本"

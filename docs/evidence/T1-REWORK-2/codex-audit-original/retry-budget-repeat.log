@@ -1,0 +1,22 @@
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.15s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.19s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.11s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.10s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.10s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.10s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.10s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.13s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.13s)
+=== RUN   TestCodexRegressionRetryBudget
+--- PASS: TestCodexRegressionRetryBudget (0.11s)
+PASS
+ok  	ant/server/tests/integration	2.732s

@@ -1,0 +1,6 @@
+package config
+import("encoding/json";"os";"testing";"ant/server/internal/providers/localtest")
+func TestCodexCurrentTrustedResourceRole(t *testing.T){
+b,e:=os.ReadFile("../../../docs/evidence/CODEX-T1-CURRENT-2026-10-03/role-cases.json");if e!=nil{t.Fatal(e)}
+var cs []struct{Name string;Document json.RawMessage;Expected bool};if e=json.Unmarshal(b,&cs);e!=nil{t.Fatal(e)};cat,e:=localtest.New();if e!=nil{t.Fatal(e)}
+for _,c:=range cs{t.Run(c.Name,func(t *testing.T){r:=Compile(c.Document,cat);t.Logf("issues=%+v compiled=%+v",r.Issues,r.Compiled);if (len(r.Issues)==0)!=c.Expected{t.Fail()}})}}

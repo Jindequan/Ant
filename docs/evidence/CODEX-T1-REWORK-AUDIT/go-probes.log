@@ -1,0 +1,67 @@
+=== RUN   TestCodexReworkConfigBoundary
+=== RUN   TestCodexReworkConfigBoundary/full-boundary-valid
+    rework_audit_test.go:18: accepted=false expected=true issues=[{/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/required-account-enabled-missing
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/ ant.config.rootSchemaViolation} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/required-account-enabled-null
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/ ant.config.rootSchemaViolation} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/required-resource-semantics-missing
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/ ant.config.rootSchemaViolation} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/required-resource-quantum-missing
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/ ant.config.rootSchemaViolation} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/required-resource-metered-missing
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/ ant.config.rootSchemaViolation} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/dangling-grant-scope
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/grants/1/scopeId ant.config.unknownGrantScope} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/initial-state-wrong-resource
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/0/initialStateEvidenceRef ant.config.evidenceNotApplicable} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/capacity-wrong-owner-and-metric
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/0/capacityEvidenceRef ant.config.evidenceNotApplicable} {/resources/0/capacityEvidenceRef ant.config.evidenceNotApplicable} {/resources/1/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/binding-owned-extension-unknown
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/1/providerFactId ant.config.providerFactRequired} {/resources/2/providerExtensions ant.config.extensionSchemaViolation}]
+=== RUN   TestCodexReworkConfigBoundary/catalog-unsupported-domain
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/bindings/0/domain ant.config.unsupportedDomain} {/resources/1/providerFactId ant.config.providerFactRequired} {/offers/0/domain ant.config.unsupportedDomain} {/offers/1/domain ant.config.unsupportedDomain}]
+=== RUN   TestCodexReworkConfigBoundary/catalog-fact-metric-mismatch
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/1/capacityEvidenceRef ant.config.evidenceNotApplicable} {/resources/1/providerFactId ant.config.providerFactMetadataMismatch}]
+=== RUN   TestCodexReworkConfigBoundary/same-bucket-cloned-with-different-order
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/3 ant.config.duplicateCommercialFact} {/resources/1/providerFactId ant.config.providerFactRequired} {/resources/3/providerFactId ant.config.providerFactRequired}]
+=== RUN   TestCodexReworkConfigBoundary/valid-catalog-two-facts
+    rework_audit_test.go:18: accepted=true expected=true issues=[]
+=== RUN   TestCodexReworkConfigBoundary/same-group-incompatible-quantum
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/entitlementGroups/0/order/1/resourceId ant.config.groupQuantumMismatch}]
+=== RUN   TestCodexReworkConfigBoundary/same-limit-equivalent-anchor-spelling
+    rework_audit_test.go:18: accepted=false expected=false issues=[{/resources/3 ant.config.duplicateCommercialFact} {/resources/3/initialStateEvidenceRef ant.config.evidenceNotApplicable} {/resources/1/providerFactId ant.config.providerFactRequired}]
+--- FAIL: TestCodexReworkConfigBoundary (0.01s)
+    --- FAIL: TestCodexReworkConfigBoundary/full-boundary-valid (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/required-account-enabled-missing (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/required-account-enabled-null (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/required-resource-semantics-missing (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/required-resource-quantum-missing (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/required-resource-metered-missing (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/dangling-grant-scope (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/initial-state-wrong-resource (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/capacity-wrong-owner-and-metric (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/binding-owned-extension-unknown (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/catalog-unsupported-domain (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/catalog-fact-metric-mismatch (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/same-bucket-cloned-with-different-order (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/valid-catalog-two-facts (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/same-group-incompatible-quantum (0.00s)
+    --- PASS: TestCodexReworkConfigBoundary/same-limit-equivalent-anchor-spelling (0.00s)
+=== RUN   TestCodexReworkDescriptorDelivery
+    rework_audit_test.go:22: ConfigSchema=344 ResourceSchema=327 CapabilitySchema=298 ExtensionSchema=869
+--- PASS: TestCodexReworkDescriptorDelivery (0.00s)
+=== RUN   TestCodexReworkWindowSemantics
+=== RUN   TestCodexReworkWindowSemantics/current-zone-natural-hour
+    rework_audit_test.go:26: now=2026-10-02 12:20:00 +0545 +0545 start=2026-10-02 12:00:00 +0545 +0545 end=2026-10-02 13:00:00 +0545 +0545 err=<nil>
+=== RUN   TestCodexReworkWindowSemantics/berlin-fall-back-earlier-anchor
+    rework_audit_test.go:27: now=2026-10-25 02:30:00 +0200 +0200 start=2026-10-25 02:00:00 +0200 CEST end=2026-10-26 02:00:00 +0100 CET earlier-anchor=2026-10-25 02:00:00 +0200 +0200 err=<nil>
+=== RUN   TestCodexReworkWindowSemantics/fractional-anchor-not-truncated
+    rework_audit_test.go:28: start=2026-10-02 17:00:00.5 +0800 +08 expected=2026-10-02 09:00:00.5 +0000 UTC err=<nil>
+--- PASS: TestCodexReworkWindowSemantics (0.00s)
+    --- PASS: TestCodexReworkWindowSemantics/current-zone-natural-hour (0.00s)
+    --- PASS: TestCodexReworkWindowSemantics/berlin-fall-back-earlier-anchor (0.00s)
+    --- PASS: TestCodexReworkWindowSemantics/fractional-anchor-not-truncated (0.00s)
+FAIL
+FAIL	ant/server/tests/integration	0.470s
+FAIL

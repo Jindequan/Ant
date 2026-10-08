@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ant-demo",
+      "runtimeExecutable": "./bin/ant-server",
+      "runtimeArgs": ["-db", "./data/demo.db", "-demo", "-addr", "127.0.0.1:8787"],
+      "port": 8787
+    }
+  ]
+}

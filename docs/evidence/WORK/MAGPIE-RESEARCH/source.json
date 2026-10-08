@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-07",
+  "repository": "https://github.com/yetone/magpie",
+  "commit": "cd8d64a9fcb79afe3d9fa9e27857210f719d8eda",
+  "method": "Read-only documentation/code/test-fixture inspection. No test execution or live provider validation.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "fff7482404c533707a8693d8e97e2610aedac1526c3f1d6269d9e7859f060917",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/README.md"
+    },
+    {
+      "path": "docs/reference.md",
+      "sha256": "17e58267e50fe616008d3864413c83158f70cabd7d4639028bf01ef6de66b977",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/docs/reference.md"
+    },
+    {
+      "path": "docs/subsystems/provider-plugins.md",
+      "sha256": "1db372c2627fe34bfdfc2591a602bc9225964ca1bca18b20ecdacea1fa512403",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/docs/subsystems/provider-plugins.md"
+    },
+    {
+      "path": "internal/provider/account.go",
+      "sha256": "c836cc659580f8178c71bbcc129782a1c203eb52f5bfc798dfb649ee6db40549",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/account.go"
+    },
+    {
+      "path": "internal/provider/provider.go",
+      "sha256": "fb8c6f9313f9951e6124e03b84f2b462247a059f27d8b527ee9f2ed68db9e994",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/provider.go"
+    },
+    {
+      "path": "internal/provider/subscription_usage.go",
+      "sha256": "d9640f920904e9d438adaf0278317e7345817aa08196db1da119f6e94d3f057b",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/subscription_usage.go"
+    },
+    {
+      "path": "internal/provider/planquota.go",
+      "sha256": "cb695f671fc4f0c29d8e383ea5e204c11235d245f286af8778a61eeb12d8753b",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/planquota.go"
+    },
+    {
+      "path": "internal/provider/routing.go",
+      "sha256": "17f80e6a7981a4cd59005ce732f7a1371da77c4717c4aa4172c3995772c4e8e7",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/routing.go"
+    },
+    {
+      "path": "internal/provider/quota_last.go",
+      "sha256": "eb8091fa7da9be6fc90cc9088860fddc9871e65e7552296a254de0d29d4d8ba6",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/quota_last.go"
+    },
+    {
+      "path": "internal/provider/quota_refresh.go",
+      "sha256": "586b17831657935e8025ce94679f02afc9325549fa379d9a21a7460f3457906d",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/quota_refresh.go"
+    },
+    {
+      "path": "internal/provider/claude_limits.go",
+      "sha256": "b91898c531eb86cc4c2de09f0500fa69d30bde2ff79361cccb6c7caff44c40c5",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/claude_limits.go"
+    },
+    {
+      "path": "internal/provider/codex_credits.go",
+      "sha256": "ddf0a40d28a8cbd6600cac48f051b93fbe750a1ddb0fc2e59e9f8c7d968aa6b7",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/codex_credits.go"
+    },
+    {
+      "path": "internal/provider/keep_login_as.go",
+      "sha256": "55feb0278c4d79fc29ed4c3d46349ea5f21de2ed9a452dcf1b28e4055fa82fba",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/keep_login_as.go"
+    },
+    {
+      "path": "internal/provider/plugin_usage.go",
+      "sha256": "f196655495009eddaf474f8b7b2b92edcb680296a67ac0de6246b78545d77123",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/plugin_usage.go"
+    },
+    {
+      "path": "internal/provider/allowance_pooled_test.go",
+      "sha256": "892d6638580deeab77157fdd42aa156144a3305f53577c78db3ce523ffdf3bde",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/allowance_pooled_test.go"
+    },
+    {
+      "path": "internal/provider/allowance_last_test.go",
+      "sha256": "8ea01a67c24c02c9bfb764ca3cf08378ece3feba928c4b612d68755b78b685f3",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/allowance_last_test.go"
+    },
+    {
+      "path": "internal/provider/antigravity_quota_routing_test.go",
+      "sha256": "c44fb9284630115a23c0a433c6752e65930865ddfa54ef430b496dea2e054423",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/provider/antigravity_quota_routing_test.go"
+    },
+    {
+      "path": "internal/gateway/routing.go",
+      "sha256": "1821389f701cc16eff2a15bfec6be78527c348636abd21fb588a4f56a02e7c0a",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/routing.go"
+    },
+    {
+      "path": "internal/gateway/fallback.go",
+      "sha256": "529c0861c6609b9476668ce7ef14de13366d8d19a7ac258843ff244e993e1939",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/fallback.go"
+    },
+    {
+      "path": "internal/gateway/affinity.go",
+      "sha256": "13543297ee81f8f2705aafaccd88276e68c3604e46081998666653cb4e7d7aa6",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/affinity.go"
+    },
+    {
+      "path": "internal/gateway/trace.go",
+      "sha256": "1e04444d344b6ff6d935704f7c568f73185cb5150fbe167d8d44d2d80e006983",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/trace.go"
+    },
+    {
+      "path": "internal/gateway/routing_test.go",
+      "sha256": "5351353cdebe940732821b37c5e85381e4eca5d4b99053c8b9bf2622d98a0c98",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/routing_test.go"
+    },
+    {
+      "path": "internal/gateway/fallback_test.go",
+      "sha256": "4a7df63d25f3d3a4d9aaa50e79cbcaaac972cd38cbde9642f7fb8764d9484125",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/fallback_test.go"
+    },
+    {
+      "path": "internal/gateway/rate_backoff_test.go",
+      "sha256": "27142848dbdc6aa42af8556fe713ba42254af742d9a5d7727b9916012a2c412c",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/rate_backoff_test.go"
+    },
+    {
+      "path": "internal/gateway/stream_cut_test.go",
+      "sha256": "3235fef47942c21011a06b02d61f4f26c10b403d34456bb66310a97b636980f4",
+      "source": "https://github.com/yetone/magpie/blob/cd8d64a9fcb79afe3d9fa9e27857210f719d8eda/internal/gateway/stream_cut_test.go"
+    }
+  ]
+}

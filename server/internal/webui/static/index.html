@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ant</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23191917'/%3E%3Ccircle cx='11' cy='16' r='3.2' fill='%23f2efe8'/%3E%3Ccircle cx='17.5' cy='16' r='2.4' fill='%23f2efe8'/%3E%3Ccircle cx='23' cy='16' r='3' fill='%23f2efe8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <h1>Ant</h1>
+        <p class="tagline">Everything you pay for, and everything you get free</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="updated" class="muted" aria-live="polite"></span>
+      <button id="refresh" type="button" class="btn" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+      </button>
+      <button id="add" type="button" class="btn primary">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Add account</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="demo" class="demo" hidden>Sample data. Start Ant without <code>-demo</code> to read your own accounts.</div>
+
+  <section id="summary" class="summary" aria-label="Summary"></section>
+
+  <div class="toolbar">
+    <nav class="filters" role="tablist" aria-label="Filter accounts">
+      <button role="tab" data-filter="all">All</button>
+      <button role="tab" data-filter="subscription">Subscriptions</button>
+      <button role="tab" data-filter="api">API balance</button>
+      <button role="tab" data-filter="free">Free</button>
+    </nav>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="search" type="search" placeholder="Provider, plan or model id" aria-label="Search accounts and models" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="views" role="tablist" aria-label="View">
+      <button role="tab" data-view="cards">Cards</button>
+      <button role="tab" data-view="models">Models</button>
+      <button role="tab" data-view="timeline">Timeline</button>
+    </div>
+    <label class="pick-select" id="media-wrap">Type
+      <select id="media"><option value="all">All types</option></select>
+    </label>
+    <label class="pick-select" id="model-wrap">Model
+      <select id="model"><option value="all">All models</option></select>
+    </label>
+    <label class="pick-select" id="group-wrap">Group
+      <select id="group"><option value="kind">Category</option><option value="media">Type</option><option value="provider">Provider</option><option value="none">None</option></select>
+    </label>
+    <label class="pick-select" id="sort-wrap">Sort
+      <select id="sort">
+        <option value="soon">Lost soonest</option>
+        <option value="least">Least left</option>
+        <option value="most">Most left</option>
+        <option value="renewal">Renewal date</option>
+        <option value="name">Provider A–Z</option>
+      </select>
+    </label>
+  </div>
+
+  <main id="cards" class="cards" aria-live="polite"></main>
+
+  <footer class="foot-note">
+    Ant finds accounts in the apps on this computer, and you can add any by hand. It only asks each provider what you have left; it never spends it.
+  </footer>
+</div>
+
+<dialog id="sheet" class="sheet" aria-labelledby="sheet-title">
+  <form method="dialog" class="sheet-inner" id="sheet-form" novalidate>
+    <header class="sheet-head">
+      <button type="button" class="icon-btn" id="sheet-back" aria-label="Back" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <h2 id="sheet-title">Add account</h2>
+      <button type="button" class="icon-btn" id="sheet-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div id="sheet-body" class="sheet-body"></div>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>

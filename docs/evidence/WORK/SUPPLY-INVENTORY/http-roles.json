@@ -1,0 +1,14 @@
+{
+  "read": {
+    "status": 200,
+    "packages": 2
+  },
+  "write": {
+    "status": 403
+  },
+  "otherNamespace": {
+    "status": 200,
+    "version": 0,
+    "accounts": 0
+  }
+}

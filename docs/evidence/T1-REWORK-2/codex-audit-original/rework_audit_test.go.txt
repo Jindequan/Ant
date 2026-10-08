@@ -1,0 +1,29 @@
+package integration
+
+import (
+ "encoding/json"
+ "os"
+ "testing"
+ "time"
+
+ "ant/server/internal/config"
+ "ant/server/internal/domain"
+ "ant/server/internal/domain/resources"
+ "ant/server/internal/providers/localtest"
+)
+func TestCodexReworkConfigBoundary(t *testing.T){
+ b,err:=os.ReadFile("../../../docs/evidence/CODEX-T1-REWORK-AUDIT/config-cases.json");if err!=nil{t.Fatal(err)}
+ var cases []struct{Name string;Document json.RawMessage;Expected bool};if err=json.Unmarshal(b,&cases);err!=nil{t.Fatal(err)}
+ cat,err:=localtest.New();if err!=nil{t.Fatal(err)}
+ for _,c:=range cases{t.Run(c.Name,func(t *testing.T){result:=config.Validate(c.Document,cat);accepted:=len(result.Issues)==0;t.Logf("accepted=%t expected=%t issues=%v",accepted,c.Expected,result.Issues);if accepted!=c.Expected{t.Fail()}})}
+}
+func TestCodexReworkDescriptorDelivery(t *testing.T){
+ cat,err:=localtest.New();if err!=nil{t.Fatal(err)};d,ok:=cat.Descriptor("provider-alpha");if !ok{t.Fatal("missing descriptor")}
+ t.Logf("ConfigSchema=%d ResourceSchema=%d CapabilitySchema=%d ExtensionSchema=%d",len(d.ConfigSchema),len(d.ResourceSchema),len(d.CapabilitySchema),len(d.ExtensionSchema))
+ if len(d.ConfigSchema)==0||len(d.ResourceSchema)==0||len(d.CapabilitySchema)==0{t.Error("schema container has files on disk but delivered descriptor drops the schemas")}
+}
+func TestCodexReworkWindowSemantics(t *testing.T){
+ t.Run("current-zone-natural-hour",func(t *testing.T){loc,_:=time.LoadLocation("Asia/Kathmandu");now:=time.Date(2026,10,2,12,20,0,0,loc);_,s,e,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:"hour",TimeZone:"Asia/Kathmandu"},"rev-1");start:=time.UnixMilli(s).In(loc);t.Logf("now=%v start=%v end=%v err=%v",now,start,time.UnixMilli(e).In(loc),err);if err!=nil||start.Hour()!=12||start.Minute()!=0{t.Fail()}})
+ t.Run("berlin-fall-back-earlier-anchor",func(t *testing.T){now,_:=time.Parse(time.RFC3339,"2026-10-25T02:30:00+02:00");expected,_:=time.Parse(time.RFC3339,"2026-10-25T02:00:00+02:00");_,s,e,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"Europe/Berlin",AnchorISO:"2026-01-01T02:00:00+01:00"},"rev-1");loc,_:=time.LoadLocation("Europe/Berlin");t.Logf("now=%v start=%v end=%v earlier-anchor=%v err=%v",now,time.UnixMilli(s).In(loc),time.UnixMilli(e).In(loc),expected,err);if err!=nil||s!=expected.UnixMilli(){t.Fail()}})
+ t.Run("fractional-anchor-not-truncated",func(t *testing.T){now,_:=time.Parse(time.RFC3339,"2026-10-02T12:00:00Z");expected,_:=time.Parse(time.RFC3339,"2026-10-02T09:00:00.500Z");_,s,_,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"UTC",AnchorISO:"2026-01-01T09:00:00.500Z"},"rev-1");t.Logf("start=%v expected=%v err=%v",time.UnixMilli(s),expected,err);if err!=nil||s!=expected.UnixMilli(){t.Fail()}})
+}

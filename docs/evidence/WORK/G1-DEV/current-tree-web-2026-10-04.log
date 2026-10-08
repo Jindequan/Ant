@@ -1,0 +1,13 @@
+
+> ant-web@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+
+ Test Files  6 passed (6)
+      Tests  235 passed (235)
+   Start at  16:36:21
+   Duration  2.42s (environment 67%, tests 14%, import 8%, setup 5%, transform 5%, worker 1%)
+

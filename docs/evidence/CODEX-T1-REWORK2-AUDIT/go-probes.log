@@ -1,0 +1,80 @@
+=== RUN   TestCodexThirdReviewConfigBoundary
+=== RUN   TestCodexThirdReviewConfigBoundary/control-completed-verified-fact
+    rework3_audit_test.go:22: accepted=true expected=true issues=[]
+=== RUN   TestCodexThirdReviewConfigBoundary/limit-no-anchor-vs-explicit-natural-anchor
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/3/providerFactId MessageKey:ant.config.duplicateCommercialFact}]
+=== RUN   TestCodexThirdReviewConfigBoundary/limit-hour-anchor-irrelevant-hour
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/providerFactId MessageKey:ant.config.factUnresolved} {Path:/resources/3/providerFactId MessageKey:ant.config.factUnresolved} {Path:/offers/0/resourceRefs MessageKey:ant.config.incompleteRequiredBundle} {Path:/offers/1/resourceRefs MessageKey:ant.config.incompleteRequiredBundle}]
+=== RUN   TestCodexThirdReviewConfigBoundary/limit-timezone-equivalent-alias
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/providerFactId MessageKey:ant.config.factUnresolved} {Path:/resources/3/providerFactId MessageKey:ant.config.factUnresolved} {Path:/offers/0/resourceRefs MessageKey:ant.config.incompleteRequiredBundle} {Path:/offers/1/resourceRefs MessageKey:ant.config.incompleteRequiredBundle}]
+=== RUN   TestCodexThirdReviewConfigBoundary/limit-changing-unit-cannot-mint-capacity
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/3/providerFactId MessageKey:ant.config.factUnresolved}]
+=== RUN   TestCodexThirdReviewConfigBoundary/unregistered-dimension-default-bucket
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/1/providerFactId MessageKey:ant.config.factUnresolved} {Path:/offers/0/resourceRefs MessageKey:ant.config.incompleteRequiredBundle} {Path:/offers/1/resourceRefs MessageKey:ant.config.incompleteRequiredBundle}]
+=== RUN   TestCodexThirdReviewConfigBoundary/default-bucket-cloned-by-window-only
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/1/providerFactId MessageKey:ant.config.factUnresolved} {Path:/resources/3/providerFactId MessageKey:ant.config.factUnresolved} {Path:/offers/0/resourceRefs MessageKey:ant.config.incompleteRequiredBundle} {Path:/offers/1/resourceRefs MessageKey:ant.config.incompleteRequiredBundle}]
+=== RUN   TestCodexThirdReviewConfigBoundary/configured-capacity-exceeds-evidence-bound
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/configuredCapacity MessageKey:ant.config.capacityExceedsVerifiedBound}]
+=== RUN   TestCodexThirdReviewConfigBoundary/malformed-quantity-in-bound-evidence
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable}]
+=== RUN   TestCodexThirdReviewConfigBoundary/known-usd-fact-relabelled-eur
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/1/currency MessageKey:ant.config.providerFactMetadataMismatch}]
+=== RUN   TestCodexThirdReviewConfigBoundary/verified-fact-relabelled-quantum
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/1/quantumExp MessageKey:ant.config.providerFactMetadataMismatch}]
+=== RUN   TestCodexThirdReviewConfigBoundary/evidence-wrong-precision-window-and-revision
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable}]
+=== RUN   TestCodexThirdReviewConfigBoundary/unregistered-resource-semantics
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/semanticsRef MessageKey:ant.config.providerFactMetadataMismatch} {Path:/resources/0/semanticsRef MessageKey:ant.config.unregisteredResourceSemantics}]
+=== RUN   TestCodexThirdReviewConfigBoundary/unregistered-capability-profile
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/bindings/0/capabilityProfiles MessageKey:ant.config.unregisteredCapabilityProfile} {Path:/offers/0/capabilityProfile MessageKey:ant.config.unregisteredCapabilityProfile} {Path:/offers/1/capabilityProfile MessageKey:ant.config.unregisteredCapabilityProfile}]
+=== RUN   TestCodexThirdReviewConfigBoundary/offer-omits-required-billing-and-concurrency
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/offers/0/resourceRefs MessageKey:ant.config.incompleteRequiredBundle} {Path:/offers/1/resourceRefs MessageKey:ant.config.incompleteRequiredBundle}]
+=== RUN   TestCodexThirdReviewConfigBoundary/resource-extension-in-wrong-context
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/1/providerExtensions MessageKey:ant.config.extensionSchemaViolation}]
+=== RUN   TestCodexThirdReviewConfigBoundary/nested-schema-error-must-locate-field
+    rework3_audit_test.go:22: accepted=false expected=false issues=[{Path:/resources/0/metered MessageKey:ant.config.rootSchemaViolation}]
+--- PASS: TestCodexThirdReviewConfigBoundary (0.01s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/control-completed-verified-fact (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/limit-no-anchor-vs-explicit-natural-anchor (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/limit-hour-anchor-irrelevant-hour (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/limit-timezone-equivalent-alias (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/limit-changing-unit-cannot-mint-capacity (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/unregistered-dimension-default-bucket (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/default-bucket-cloned-by-window-only (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/configured-capacity-exceeds-evidence-bound (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/malformed-quantity-in-bound-evidence (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/known-usd-fact-relabelled-eur (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/verified-fact-relabelled-quantum (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/evidence-wrong-precision-window-and-revision (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/unregistered-resource-semantics (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/unregistered-capability-profile (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/offer-omits-required-billing-and-concurrency (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/resource-extension-in-wrong-context (0.00s)
+    --- PASS: TestCodexThirdReviewConfigBoundary/nested-schema-error-must-locate-field (0.00s)
+=== RUN   TestCodexThirdReviewWindowControls
+=== RUN   TestCodexThirdReviewWindowControls/kathmandu-natural-hour
+    rework3_audit_test.go:35: start=2026-10-02 14:15:00 +0800 +08 end=2026-10-02 15:15:00 +0800 +08 err=<nil>
+=== RUN   TestCodexThirdReviewWindowControls/berlin-first-fold-daily-anchor
+    rework3_audit_test.go:35: start=2026-10-25 08:00:00 +0800 +08 end=2026-10-26 09:00:00 +0800 +08 err=<nil>
+=== RUN   TestCodexThirdReviewWindowControls/millisecond-preserved
+    rework3_audit_test.go:35: start=2026-10-02 17:00:00.5 +0800 +08 end=2026-10-03 17:00:00.5 +0800 +08 err=<nil>
+=== RUN   TestCodexThirdReviewWindowControls/lord-howe-half-hour-gap-hour
+    rework3_audit_test.go:35: start=2026-10-03 22:30:00 +0800 +08 end=2026-10-04 00:00:00 +0800 +08 err=<nil>
+--- PASS: TestCodexThirdReviewWindowControls (0.00s)
+    --- PASS: TestCodexThirdReviewWindowControls/kathmandu-natural-hour (0.00s)
+    --- PASS: TestCodexThirdReviewWindowControls/berlin-first-fold-daily-anchor (0.00s)
+    --- PASS: TestCodexThirdReviewWindowControls/millisecond-preserved (0.00s)
+    --- PASS: TestCodexThirdReviewWindowControls/lord-howe-half-hour-gap-hour (0.00s)
+=== RUN   TestCodexThirdReviewEquivalentWindowControls
+=== RUN   TestCodexThirdReviewEquivalentWindowControls/natural-midnight-equals-explicit-midnight
+    rework3_audit_test.go:45: a=rev-1:1790870400000:1790956800000 b=rev-1:1790870400000:1790956800000 errors=<nil>/<nil>
+=== RUN   TestCodexThirdReviewEquivalentWindowControls/hour-phase-ignores-anchor-hour
+    rework3_audit_test.go:45: a=rev-1:1790943300000:1790946900000 b=rev-1:1790943300000:1790946900000 errors=<nil>/<nil>
+=== RUN   TestCodexThirdReviewEquivalentWindowControls/utc-zone-aliases
+    rework3_audit_test.go:45: a=rev-1:1790899200000:1790985600000 b=rev-1:1790899200000:1790985600000 errors=<nil>/<nil>
+--- PASS: TestCodexThirdReviewEquivalentWindowControls (0.00s)
+    --- PASS: TestCodexThirdReviewEquivalentWindowControls/natural-midnight-equals-explicit-midnight (0.00s)
+    --- PASS: TestCodexThirdReviewEquivalentWindowControls/hour-phase-ignores-anchor-hour (0.00s)
+    --- PASS: TestCodexThirdReviewEquivalentWindowControls/utc-zone-aliases (0.00s)
+PASS
+ok  	ant/server/tests/integration	0.655s

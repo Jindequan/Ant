@@ -1,0 +1,28 @@
+# T1.1 server 冒烟：启动/迁移/健康/优雅关闭/重启幂等/缺参报错
+时间: 2026-10-02T10:34:40+0800  二进制: bin/ant-server (go build -o bin/ant-server ./cmd/ant-server)
+
+$ rm -f /tmp/ant-t11-smoke.db*; ./bin/ant-server -addr 127.0.0.1:18099 -db /tmp/ant-t11-smoke.db &
+$ curl /healthz -> {"status":"ok"}
+$ curl /readyz  -> {"status":"ready"}
+$ kill -TERM -> "ant-server stopped"; 重连 connection refused as expected
+$ 再次启动同 -db -> {"status":"ok"}  (迁移幂等)
+$ ./bin/ant-server (无 -db) -> err="-db is required", exit=1
+
+server log (首次启动):
+{"time":"2026-10-02T10:32:19.722538+08:00","level":"INFO","msg":"store ready","dsn":"/tmp/ant-t11-smoke.db"}
+{"time":"2026-10-02T10:32:19.722818+08:00","level":"INFO","msg":"http ready","addr":"127.0.0.1:18099"}
+{"time":"2026-10-02T10:32:20.862093+08:00","level":"INFO","msg":"ant-server stopped"}
+
+## 按设计失败的未实现目标（空测试非零退出）
+--- make test-fault
+test-fault: no tests yet (T3 scope) — failing by design
+make: *** [test-fault] Error 1
+[make exit=1]
+--- make test-e2e
+test-e2e: no specs yet (T5 scope) — failing by design
+make: *** [test-e2e] Error 1
+[make exit=1]
+--- make bench
+bench: no benchmarks yet (T6 scope) — failing by design
+make: *** [bench] Error 1
+[make exit=1]

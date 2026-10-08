@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 4,
+  "inventoryVersion": 8,
+  "document": {
+    "schemaVersion": 1,
+    "accounts": [
+      {
+        "id": "57845d0f-6962-49af-bd67-61a81c752644",
+        "providerId": "custom.57845d0f-6962-49af-bd67-61a81c752644",
+        "providerName": "Example provider",
+        "name": "Example team account"
+      }
+    ],
+    "packages": [
+      {
+        "id": "43a23ffc-0a42-40f1-98f4-869a04fec07e",
+        "accountId": "57845d0f-6962-49af-bd67-61a81c752644",
+        "name": "Example monthly plan",
+        "kind": "subscription",
+        "capability": "ai.chat",
+        "status": "configured",
+        "timeZone": "Asia/Singapore",
+        "renewsOn": "2026-11-07",
+        "price": {
+          "amount": "12",
+          "currency": "USD",
+          "cadence": "month"
+        },
+        "resourceRefs": [
+          "54ed8c1a-3bb0-475c-8369-266519dba2a4",
+          "148f2406-0500-49b3-987d-6994a5d4c30c"
+        ]
+      },
+      {
+        "id": "0e7014a3-6779-4982-a23a-c760b14b68a3",
+        "accountId": "57845d0f-6962-49af-bd67-61a81c752644",
+        "name": "Example prepaid credits",
+        "kind": "credit",
+        "capability": "ai.chat",
+        "status": "configured",
+        "timeZone": "Asia/Singapore",
+        "expiresOn": "2027-01-01",
+        "resourceRefs": [
+          "148f2406-0500-49b3-987d-6994a5d4c30c",
+          "4be85ab1-4190-4c15-a294-f86347b1a15c"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "54ed8c1a-3bb0-475c-8369-266519dba2a4",
+        "accountId": "57845d0f-6962-49af-bd67-61a81c752644",
+        "packageId": "43a23ffc-0a42-40f1-98f4-869a04fec07e",
+        "name": "Token \u989d\u5ea6",
+        "metric": "tokens",
+        "unit": "tokens",
+        "quantity": "3000000",
+        "role": "allowance",
+        "reset": {
+          "kind": "calendar",
+          "period": "month",
+          "timeZone": "Asia/Singapore"
+        }
+      },
+      {
+        "id": "148f2406-0500-49b3-987d-6994a5d4c30c",
+        "accountId": "57845d0f-6962-49af-bd67-61a81c752644",
+        "name": "\u8bf7\u6c42\u6b21\u6570",
+        "metric": "requests",
+        "unit": "requests",
+        "quantity": "120",
+        "role": "rate",
+        "reset": {
+          "kind": "calendar",
+          "period": "minute",
+          "timeZone": "Asia/Singapore"
+        }
+      },
+      {
+        "id": "4be85ab1-4190-4c15-a294-f86347b1a15c",
+        "accountId": "57845d0f-6962-49af-bd67-61a81c752644",
+        "packageId": "0e7014a3-6779-4982-a23a-c760b14b68a3",
+        "name": "\u4f59\u989d\uff0f\u9884\u7b97",
+        "metric": "money",
+        "unit": "USD",
+        "quantity": "25.01",
+        "role": "allowance",
+        "reset": {
+          "kind": "none"
+        }
+      }
+    ],
+    "pools": [
+      {
+        "id": "0e0c015d-8104-4d55-bc41-0d4f4dd2ecc3",
+        "name": "Example AI supplies",
+        "capability": "ai.chat",
+        "packageRefs": [
+          "0e7014a3-6779-4982-a23a-c760b14b68a3",
+          "43a23ffc-0a42-40f1-98f4-869a04fec07e"
+        ]
+      }
+    ]
+  },
+  "existingDraft": {
+    "draftId": "cb82497c-7646-475c-8c07-e633d0527807",
+    "version": 1,
+    "definitionSHA256": "fa43c5b42d58c1341a6c617e68a2332020b0644f2496ba080cce4764ba543811",
+    "unchanged": true
+  },
+  "liveCounts": {
+    "resources": 0,
+    "resource_pools": 0,
+    "operations": 0,
+    "secret_records": 0
+  }
+}

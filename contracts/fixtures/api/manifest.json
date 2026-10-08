@@ -1,0 +1,263 @@
+{
+  "description": "K6/R05 authoritative fixture manifest. Every fixture declares the expected verdict at each verification layer; contract tests on both sides enforce these verdicts against the same files. Layers: schema = OpenAPI/JSON Schema value validation (executable constraints only); codec = strict JSON decode into the Go wire type (unknown fields, duplicate keys, trailing data, canonical quantities); guard = hand-written union/semantic rules (Go internal/api + web validate.ts, same rules); web = ajv schema + web semantic validator. 'accept' at schema layer with 'reject' at semantic layer is normal: referential and business rules are server-authoritative semantics, not schema shapes.",
+  "version": "1.1.21",
+  "configFixtures": [
+    {
+      "file": "config-document-valid.json",
+      "expect": "accept",
+      "schema": "accept",
+      "semantic": "accept"
+    },
+    {
+      "file": "config-document-invalid-unknown-field.json",
+      "expect": "reject",
+      "schema": "reject",
+      "semantic": "accept-after-lenient-decode",
+      "strictCodec": "reject"
+    },
+    {
+      "file": "config-document-invalid-dangling-ref.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.unknownRef"
+    },
+    {
+      "file": "config-document-invalid-dangling-binding-ref.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.unknownRef"
+    },
+    {
+      "file": "config-document-invalid-unknown-entitlement-group.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.unknownEntitlementGroup"
+    },
+    {
+      "file": "config-document-invalid-secret-in-evidence.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.secretMaterialForbidden"
+    },
+    {
+      "file": "config-document-invalid-secret-in-extension.json",
+      "expect": "reject",
+      "schema": "reject",
+      "semantic": "reject",
+      "issueKey": "ant.config.secretMaterialForbidden"
+    },
+    {
+      "file": "config-document-invalid-priority-range.json",
+      "expect": "reject",
+      "schema": "reject",
+      "semantic": "reject",
+      "issueKey": "ant.config.priorityRange"
+    },
+    {
+      "file": "config-document-invalid-quantity.json",
+      "expect": "reject",
+      "schema": "reject",
+      "semantic": "reject",
+      "issueKey": "ant.config.quantityInvalid"
+    },
+    {
+      "file": "config-document-invalid-unsupported-executable.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.unsupportedProviderExecutable"
+    },
+    {
+      "file": "config-document-invalid-unknown-pool-member.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.unknownOrDuplicateOffer"
+    },
+    {
+      "file": "config-document-invalid-duplicate-commercial-fact.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.duplicateCommercialFact"
+    },
+    {
+      "file": "config-document-invalid-two-lone-buckets.json",
+      "expect": "reject",
+      "schema": "accept",
+      "semantic": "reject",
+      "issueKey": "ant.config.duplicateCommercialFact"
+    }
+  ],
+  "apiFixtures": [
+    {
+      "file": "operation.submit.request.json",
+      "role": "request",
+      "method": "POST",
+      "path": "/v1/pools/{poolId}/operations",
+      "status": 202,
+      "schemaRef": "ExecuteInput",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.submit.accepted.response.json",
+      "role": "response",
+      "schemaRef": "SubmitReply",
+      "schema": "accept",
+      "codec": "accept",
+      "guard": "accept"
+    },
+    {
+      "file": "operation.replay.response.json",
+      "role": "response",
+      "schemaRef": "SubmitReply",
+      "schema": "accept",
+      "codec": "accept",
+      "guard": "accept"
+    },
+    {
+      "file": "operation.conflict.response.json",
+      "role": "response",
+      "schemaRef": "ErrorEnvelope",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "error.envelope.json",
+      "role": "response",
+      "schemaRef": "ErrorEnvelope",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "pool.order.request.json",
+      "role": "request",
+      "method": "PUT",
+      "path": "/v1/pools/{poolId}/order",
+      "status": 200,
+      "schemaRef": "ReorderPoolInput",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "pool.order.response.json",
+      "role": "response",
+      "schemaRef": "PoolView",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "pool.order.conflict.response.json",
+      "role": "response",
+      "schemaRef": "ErrorEnvelope",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.cancel.request.json",
+      "role": "request",
+      "method": "POST",
+      "path": "/v1/operations/{operationId}/cancel",
+      "status": 200,
+      "schemaRef": "OperationCancelInput",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.cancel.ack.response.json",
+      "role": "response",
+      "schemaRef": "CancellationAck",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.cancel.conflict.response.json",
+      "role": "response",
+      "method": "POST",
+      "path": "/v1/operations/{operationId}/cancel",
+      "status": 409,
+      "schemaRef": "ErrorEnvelope",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.view.json",
+      "role": "response",
+      "schemaRef": "OperationView",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.output.page.json",
+      "role": "response",
+      "schemaRef": "OutputPage",
+      "schema": "accept",
+      "codec": "accept"
+    },
+    {
+      "file": "operation.events.json",
+      "role": "response",
+      "schemaRef": "OperationEvent",
+      "schema": "accept",
+      "codec": "accept",
+      "note": "array of OperationEvent"
+    },
+    {
+      "file": "rejection.quantity-overflow.json",
+      "role": "rejects",
+      "rule": "int64-range",
+      "schema": "reject",
+      "note": "Quantity pattern + range: overflow string rejected at schema AND codec"
+    },
+    {
+      "file": "rejection.quantity-leading-zero.json",
+      "role": "rejects",
+      "rule": "canonical-spelling",
+      "schema": "reject",
+      "codec": "reject",
+      "note": "leading zero is non-canonical everywhere (R04)"
+    },
+    {
+      "file": "rejection.accepted-with-terminal.json",
+      "role": "rejects",
+      "rule": "union-state",
+      "schema": "reject",
+      "guard": "reject",
+      "note": "SubmitReply oneOf + guards"
+    },
+    {
+      "file": "rejection.unknown-state.json",
+      "role": "rejects",
+      "rule": "enum",
+      "schema": "reject",
+      "guard": "reject"
+    },
+    {
+      "file": "rejection.command-id-conflict.json",
+      "role": "rejects",
+      "rule": "receipt-hash",
+      "schema": "accept",
+      "note": "two entries, same commandId, different bodies -> receipt hash conflict; transactional behavior lands in T2.2, this fixture documents the wire rule"
+    },
+    {
+      "file": "rejection.ifmatch-mismatch.json",
+      "role": "rejects",
+      "rule": "version-guard",
+      "schema": "accept",
+      "guard": "reject",
+      "note": "If-Match header 4 vs body 3 -> explicit rejection"
+    },
+    {
+      "file": "rejection.duplicate-key.json.txt",
+      "role": "rejects",
+      "rule": "duplicate-key",
+      "codec": "reject",
+      "note": "raw-text level; JSON.parse-based schema checks cannot see duplicate keys, only strict token decoding can"
+    }
+  ]
+}

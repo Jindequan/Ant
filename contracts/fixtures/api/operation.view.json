@@ -1,0 +1,19 @@
+{
+  "operationId": "op-20261002-0001",
+  "poolId": "pool-main",
+  "requestDomain": "ai/text",
+  "state": "running",
+  "cancelRequested": false,
+  "attempts": [
+    {
+      "attemptId": "att-0001",
+      "offerId": "offer-alpha-chat-a",
+      "bindingId": "bind-alpha-main",
+      "accountId": "acct-demo-1",
+      "phase": "executing"
+    }
+  ],
+  "resources": [],
+  "reconciliations": [],
+  "updatedAt": 1791999600000
+}

@@ -1,0 +1,20 @@
+{
+  "recordedFileCount": 239,
+  "changedFiles": [
+    "server/internal/api/dto_test.go",
+    "server/internal/api/validate.go",
+    "server/internal/config/document.go",
+    "server/internal/config/document_test.go",
+    "server/internal/domain/quantity.go",
+    "server/internal/transport/transport.go",
+    "web/src/api/validate.ts",
+    "web/tests/contract.test.ts"
+  ],
+  "unlistedFiles": [
+    "contracts/fixtures/api/rejection.duplicate-key.json.txt",
+    "server/go.mod",
+    "server/go.sum",
+    "web/src/api/schema.d.ts"
+  ],
+  "note": "Original snapshot appends an aggregate digest of stdin (-), without its reproducible input definition; per-file list is what is checked here."
+}

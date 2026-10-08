@@ -1,0 +1,24 @@
+# T1.2 Web 契约与骨架验证
+
+cd web && npm test -- --run
+
+> ant-web@0.1.0 test
+> vitest run --run
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+ ✓ tests/contract.test.ts (9 tests) 9ms
+ ✓ tests/app.test.tsx (2 tests) 74ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  10:33:30
+   Duration  775ms (environment 72%, setup 9%, import 8%, tests 6%, transform 5%)
+
+[exit=0]
+
+## 修复后重跑（2026-10-02T11:10:17+0800）
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+[exit=0]

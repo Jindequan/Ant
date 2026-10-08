@@ -1,0 +1,4 @@
+python3 scripts/render_stage_runbooks.py --check
+stale stage runbooks: docs/plans/execution/T0.md, docs/plans/execution/T1.md, docs/plans/execution/T2.md, docs/plans/execution/T3.md, docs/plans/execution/T4.md, docs/plans/execution/T5.md, docs/plans/execution/T6.md, docs/plans/execution/T7.md, docs/plans/execution/G1-DEV.md
+run: python3 scripts/render_stage_runbooks.py
+make: *** [check] Error 1

@@ -1,0 +1,27 @@
+[
+  {
+    "operationId": "op-20261002-0001",
+    "sequence": 1,
+    "type": "accepted",
+    "createdAt": 1791999500000,
+    "payload": {}
+  },
+  {
+    "operationId": "op-20261002-0001",
+    "sequence": 2,
+    "type": "attempt_prepared",
+    "createdAt": 1791999501000,
+    "payload": {
+      "attemptId": "att-0001"
+    }
+  },
+  {
+    "operationId": "op-20261002-0001",
+    "sequence": 3,
+    "type": "dispatch_authorized",
+    "createdAt": 1791999502000,
+    "payload": {
+      "attemptId": "att-0001"
+    }
+  }
+]

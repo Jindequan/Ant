@@ -1,0 +1,106 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/rework3-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-no-anchor-vs-explicit-natural-anchor
+{"name":"limit-no-anchor-vs-explicit-natural-anchor","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-hour-anchor-irrelevant-hour
+{"name":"limit-hour-anchor-irrelevant-hour","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-timezone-equivalent-alias
+{"name":"limit-timezone-equivalent-alias","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-changing-unit-cannot-mint-capacity
+{"name":"limit-changing-unit-cannot-mint-capacity","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-dimension-default-bucket
+{"name":"unregistered-dimension-default-bucket","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > default-bucket-cloned-by-window-only
+{"name":"default-bucket-cloned-by-window-only","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > configured-capacity-exceeds-evidence-bound
+{"name":"configured-capacity-exceeds-evidence-bound","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > malformed-quantity-in-bound-evidence
+{"name":"malformed-quantity-in-bound-evidence","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > known-usd-fact-relabelled-eur
+{"name":"known-usd-fact-relabelled-eur","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > verified-fact-relabelled-quantum
+{"name":"verified-fact-relabelled-quantum","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > evidence-wrong-precision-window-and-revision
+{"name":"evidence-wrong-precision-window-and-revision","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-resource-semantics
+{"name":"unregistered-resource-semantics","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-capability-profile
+{"name":"unregistered-capability-profile","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > offer-omits-required-billing-and-concurrency
+{"name":"offer-omits-required-billing-and-concurrency","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > resource-extension-in-wrong-context
+{"name":"resource-extension-in-wrong-context","accepted":true,"expected":false,"result":{"ok":true}}
+
+ ❯ tests/rework3-audit.test.ts (17 tests | 15 failed) 41ms
+   ❯ Codex third review full schema+graph+catalog entry (17)
+     × limit-no-anchor-vs-explicit-natural-anchor 4ms
+     × limit-hour-anchor-irrelevant-hour 1ms
+     × limit-timezone-equivalent-alias 1ms
+     × limit-changing-unit-cannot-mint-capacity 1ms
+     × unregistered-dimension-default-bucket 1ms
+     × default-bucket-cloned-by-window-only 0ms
+     × configured-capacity-exceeds-evidence-bound 0ms
+     × malformed-quantity-in-bound-evidence 1ms
+     × known-usd-fact-relabelled-eur 0ms
+     × verified-fact-relabelled-quantum 0ms
+     × evidence-wrong-precision-window-and-revision 0ms
+     × unregistered-resource-semantics 0ms
+     × unregistered-capability-profile 0ms
+     × offer-omits-required-billing-and-concurrency 0ms
+     × resource-extension-in-wrong-context 0ms
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 2 passed (17)
+   Start at  19:19:32
+   Duration  988ms (environment 73%, setup 8%, import 8%, transform 5%, tests 5%)
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-no-anchor-vs-explicit-natural-anchor
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-hour-anchor-irrelevant-hour
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-timezone-equivalent-alias
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-changing-unit-cannot-mint-capacity
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-dimension-default-bucket
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > default-bucket-cloned-by-window-only
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > configured-capacity-exceeds-evidence-bound
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > malformed-quantity-in-bound-evidence
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > known-usd-fact-relabelled-eur
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > verified-fact-relabelled-quantum
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > evidence-wrong-precision-window-and-revision
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-resource-semantics
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-capability-profile
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > offer-omits-required-billing-and-concurrency
+ FAIL  tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > resource-extension-in-wrong-context
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/rework3-audit.test.ts:8:203
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+

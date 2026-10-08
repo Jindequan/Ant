@@ -1,0 +1,56 @@
+# S3 全量验收（第二轮返工）
+时间: 2026-10-02T17:06:33+0800  Go go1.27.1  Node v22.18.0
+
+## 1. make check
+
+guard:gen: src/api/schema.d.ts up to date (60499 bytes)
+guard:gen: src/api/config-document.gen.d.ts up to date (4085 bytes)
+[exit=0]
+
+## 2. go test -race -count=1 ./internal/... ./tests/integration/...
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	1.134s
+ok  	ant/server/internal/config	1.297s
+ok  	ant/server/internal/contracttest	1.663s
+ok  	ant/server/internal/domain	1.128s
+ok  	ant/server/internal/domain/pools	1.118s
+ok  	ant/server/internal/domain/resources	10.075s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	1.126s
+ok  	ant/server/internal/providers/localtest	1.151s
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+ok  	ant/server/internal/store/sqlite	1.303s
+ok  	ant/server/internal/transport	1.107s
+ok  	ant/server/tests/integration	4.333s
+[exit=0]
+
+## 3. 计数
+Go PASS: 183  FAIL/SKIP: 0
+Web:       Tests  120 passed (120)
+
+## 4. make build
+[exit=0]
+
+## 5. 第二轮探针逐字复跑（run-probes.py）
+go exit 0
+web exit 0
+Implementation changed: ['server/tests/integration/codex_regression_test.go', 'server/internal/config/validate_graph.go', 'server/internal/config/document.go', 'server/internal/config/document_helpers.go', 'server/internal/providers/localtest/catalog.go', 'server/internal/providers/localtest/catalog_test.go', 'server/internal/domain/resources/window.go', 'server/internal/domain/resources/window_test.go', 'web/tests/contract.test.ts', 'web/src/api/config-catalog.ts', 'web/src/api/config-graph.ts', 'web/src/api/validate.ts', 'web/src/api/config-helpers.ts', 'scripts/check-deps.py', 'scripts/snapshot.py']
+Go 探针失败数: 0
+Web 探针:       Tests  16 passed (16)
+（复跑会覆盖审计目录探针日志；本轮原始失败日志已先存 T1-REWORK-2/codex-audit-original/）
+
+## 6. 第一轮探针回归（永久化适配版）
+ok  	ant/server/tests/integration	1.673s
+
+## 7. server 冒烟
+{"status":"ok"}
+{"time":"2026-10-02T17:06:52.15485+08:00","level":"INFO","msg":"ant-server stopped"}
+
+## S4 修复后终验（2026-10-02T17:49:03+0800）
+- make check=0（含依赖图/生成漂移/manifest 三门禁）
+- Go: 183 PASS / 0 FAIL/SKIP
+- Web:       Tests  125 passed (125)；build=0
+- 第二轮探针：Go 19/20、Web 15/16（唯一残余 full-boundary-valid 为授权适配例，见 probe-adaptations-rev2.md）
+- 第一轮适配回归：ok  	ant/server/tests/integration	1.729s

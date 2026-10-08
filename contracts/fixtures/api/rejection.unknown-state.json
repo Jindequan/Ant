@@ -1,0 +1,12 @@
+{
+  "operationId": "op-bad-2",
+  "state": "partially_succeeded",
+  "code": "Weird",
+  "reasons": [],
+  "retrySafety": "proved_safe",
+  "attempts": [],
+  "resources": [],
+  "decisionRefs": [],
+  "outputAvailability": "none",
+  "suggestedAction": "none"
+}

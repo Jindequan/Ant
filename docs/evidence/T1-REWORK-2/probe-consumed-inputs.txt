@@ -1,0 +1,119 @@
+# 永久测试输入绑定清单（probe-consumed-inputs）· 验证工程师 V · 2026-10-02
+#
+# 范围：server/tests 与 web/tests 中被永久回归读取（或 import 加载）的仓库内
+# 文件。逐一 grep 两个测试树得出；每行给出消费者位置。这些路径必须全部
+# 被 scripts/snapshot.py（D-B6-v2 覆盖集合）签入 manifest，否则门禁漂移
+# 检查对测试输入不完整。清单末尾为实际覆盖验证结果。
+#
+# 覆盖方式说明：contracts/** 由 INCLUDE_DIRS 目录全量覆盖；docs/evidence 下的
+# 两个 config-cases.json 由 CONSUMED_INPUTS 显式覆盖；server/migrations 由
+# server/ 目录覆盖；web/scripts/contract-tools.{mjs,d.mts}（测试侧工具与类型
+# 面）由 web/ 目录覆盖；web/tests import 的 ../src/** 属被测源码，由 web/ 覆盖。
+
+== A. server/tests/integration ==
+
+docs/evidence/CODEX-T1-AUDIT/config-cases.json
+    <- codex_regression_test.go:76 (TestCodexRegressionConfigCases)
+contracts/openapi.yaml
+    <- codex_regression_test.go:237 (TestCodexRegressionOpenAPIUnion, kin-openapi Loader)
+contracts/fixtures/api/rejection.accepted-with-terminal.json
+    <- codex_regression_test.go:241 (TestCodexRegressionOpenAPIUnion)
+contracts/fixtures/config-document-valid.json
+    <- helpers_test.go:23 (validConfigFixture) 消费于 config_roundtrip_test.go:20
+server/migrations/001_initial.sql
+    <- migrate_test.go:163 (迁移 canonical 字节比较)
+
+server/tests/fault：无仓库文件读取（grep ReadFile/os.Open/LoadFromFile = 0）。
+
+== B. web/tests ==
+
+contracts/fixtures/api/manifest.json
+    <- contract.test.ts:17 (fixture 矩阵驱动清单)
+contracts/providers/provider-alpha.descriptor.json
+    <- contract.test.ts:18
+contracts/fixtures/config-document-valid.json
+    <- contract.test.ts:19
+contracts/schema/config-document.schema.json
+    <- contract.test.ts:20；并经 web/scripts/contract-tools.mjs:58 二次读取
+contracts/openapi.yaml
+    <- 经 web/scripts/contract-tools.mjs:24 (loadOpenApiSchemas) 消费于 contract.test.ts:27
+docs/evidence/CODEX-T1-AUDIT/config-cases.json
+    <- contract.test.ts:77,161 (codex audit 15 例 Go/Web 同源对拍)
+contracts/fixtures/ 下由 manifest.json 驱动的逐文件读取（configFixtures 13 条直读 + apiFixtures 20 条经 path.join('api', file)）：
+contracts/fixtures/config-document-valid.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-unknown-field.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-dangling-ref.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-dangling-binding-ref.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-unknown-entitlement-group.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-secret-in-evidence.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-secret-in-extension.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-priority-range.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-quantity.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-unsupported-executable.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-unknown-pool-member.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-duplicate-commercial-fact.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/config-document-invalid-two-lone-buckets.json
+    <- contract.test.ts:123-139 readFixture* (manifest.configFixtures)
+contracts/fixtures/api/operation.submit.request.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.submit.accepted.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.replay.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.conflict.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/error.envelope.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/pool.order.request.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/pool.order.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/pool.order.conflict.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.cancel.request.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.cancel.ack.response.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.view.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.output.page.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/operation.events.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.quantity-overflow.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.quantity-leading-zero.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.accepted-with-terminal.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.unknown-state.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.command-id-conflict.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.ifmatch-mismatch.json
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+contracts/fixtures/api/rejection.duplicate-key.json.txt
+    <- contract.test.ts:272 readFixtureJson(join('api', file)) (manifest.apiFixtures)
+web/scripts/contract-tools.mjs 与 web/scripts/contract-tools.d.mts
+    <- contract.test.ts:27 import（测试侧契约工具与其类型面；B6 漏项文件）
+web/tests 另 import ../src/**（被测前端源码，非数据输入）——由 web/ 目录覆盖。
+app.test.tsx / sse.test.ts / setup.ts：无仓库数据文件读取。
+
+== C. 覆盖验证（D-B6-v2 manifest，python3 scripts/snapshot.py 实测）==
+清单声明的被消费仓库文件共 43 个；manifest 覆盖 43/43。
+结果：全部被 manifest 覆盖（0 缺失）。
+其中 docs/evidence/*/config-cases.json 与 scripts/*.py、web/scripts/*.d.mts
+为 B6 原漏项，现经 INCLUDE_DIRS 全量目录 + CONSUMED_INPUTS 显式输入覆盖；
+无害改动报漂移已由 snapshot.py --self-check 与四文件三态探针证明（见报告）。

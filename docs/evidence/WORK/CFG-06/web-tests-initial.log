@@ -1,0 +1,76 @@
+
+> ant-web@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+ ❯ tests/compiled-config-final.test.ts (45 tests | 2 failed) 402ms
+   ❯ final compiled contract D1-D4 (24)
+     × rejects unoffered kind contradiction 5ms
+     × rejects unoffered commercialRole contradiction 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compiled-config-final.test.ts > final compiled contract D1-D4 > rejects unoffered kind contradiction
+AssertionError: expected [ { path: '/', …(1) } ] to deep equally contain { path: '/resources/2/kind', …(1) }
+
+- Expected:
+{
+  "messageKey": "ant.config.providerFactMetadataMismatch",
+  "path": "/resources/2/kind",
+}
+
++ Received:
+[
+  {
+    "messageKey": "ant.config.schemaViolation",
+    "path": "/",
+  },
+]
+
+ ❯ rejected tests/compiled-config-final.test.ts:20:24
+     18|  expect(result.ok).toBe(false);
+     19|  if (result.ok) throw new Error('expected rejection');
+     20|  expect(result.issues).toContainEqual({ path, messageKey: `ant.config.…
+       |                        ^
+     21|  expect('compiled' in result).toBe(false);
+     22| }
+ ❯ tests/compiled-config-final.test.ts:39:4
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/compiled-config-final.test.ts > final compiled contract D1-D4 > rejects unoffered commercialRole contradiction
+AssertionError: expected [ { path: '/', …(1) } ] to deep equally contain { …(2) }
+
+- Expected:
+{
+  "messageKey": "ant.config.providerFactMetadataMismatch",
+  "path": "/resources/1/commercialRole",
+}
+
++ Received:
+[
+  {
+    "messageKey": "ant.config.schemaViolation",
+    "path": "/",
+  },
+]
+
+ ❯ rejected tests/compiled-config-final.test.ts:20:24
+     18|  expect(result.ok).toBe(false);
+     19|  if (result.ok) throw new Error('expected rejection');
+     20|  expect(result.issues).toContainEqual({ path, messageKey: `ant.config.…
+       |                        ^
+     21|  expect('compiled' in result).toBe(false);
+     22| }
+ ❯ tests/compiled-config-final.test.ts:39:4
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  2 failed | 209 passed (211)
+   Start at  11:36:23
+   Duration  1.91s (environment 56%, import 12%, transform 11%, tests 11%, setup 10%)
+

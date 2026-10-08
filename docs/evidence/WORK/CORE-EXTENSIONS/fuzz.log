@@ -1,0 +1,8 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/2 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 2/2 completed, now fuzzing with 10 workers
+fuzz: elapsed: 3s, execs: 629633 (209857/sec), new interesting: 65 (total: 67)
+fuzz: elapsed: 6s, execs: 1220346 (196866/sec), new interesting: 66 (total: 68)
+fuzz: elapsed: 9s, execs: 1890824 (223481/sec), new interesting: 67 (total: 69)
+fuzz: elapsed: 10s, execs: 2108513 (198091/sec), new interesting: 67 (total: 69)
+PASS
+ok  	ant/server/internal/domain/metering	10.432s

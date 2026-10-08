@@ -1,0 +1,26 @@
+
+## Q3 全量终验（2026-10-02T21:35:44+0800，C1–C4 修复后）
+- make check=0（依赖图+生成漂移两门禁；manifest 门禁为独立 target `make verify-manifest`，亦=0）
+- Go: 190 PASS / 0 FAIL/SKIP（-race -count=1）
+- Web:       Tests  156 passed (156)；typecheck/build=0
+- 第三轮探针逐字复跑：Go 27/27（17 配置+7 窗口+3 执行等价）、Web 17/17（controlBigInt 序列化修复后全过）
+- server 冒烟：
+zsh:3: no matches found: /tmp/ant-q3.db*
+{"status":"ok"}
+{"time":"2026-10-02T21:35:48.972239+08:00","level":"INFO","msg":"ant-server stopped"}
+
+## Q4 审查修复后终验（2026-10-02T22:07:15+0800）
+- Q4 发现：P1（空 capabilityProfiles 索引 panic，document.go）+ P2-1（profile 域匹配未强制/死代码）+ P2-2（manifest 门禁宣称不实）+ P3 若干
+- 修复：P1 改为遍历声明（长度检查先于索引，永不 panic）+ profileDomainMismatch 双侧强制（binding/offer）；P2-1 死代码 extCtx/profileRegistered 移除；P2-2 证据措辞更正（依赖图+生成漂移两门禁在 make check 内，manifest 为独立 target 亦=0）；P3-3 过时注释更新
+- 回归：TestQ4EmptyCapabilityProfilesNoPanic、TestQ4ProfileDomainMismatchRejected
+- 终验：make check=0；Go 192 PASS / 0 FAIL（-race -count=1）；探针 Go 27/27、Web 17/17；build=0；manifest 重签 168 文件零漂移
+
+## 交接前自查（2026-10-03T02:01:45+0800）
+自提反例发现的缺口及修复（全部有回归）：
+1. capacity 证据缺 bound 键→静默通过。修复：bound 必填（evidenceNotApplicable）。
+2. initial_state 缺 remaining 键→曾静默通过（隐式依赖）。修复：显式必填。
+3. 束覆盖只按 metricId：entitlement 维度被 limit 资源"覆盖"。修复：覆盖键=(metricId, 有效角色)（occupancy 按 kind，其余按 commercialRole），双侧镜像。
+4. 滚动窗口资源解析=factUnresolved（fail-closed，符合预期，已留断言）。
+5. 两处合法基线适配补全（引用完整）：round-1 prepaid 的 initial 证据键名 remaining/bound 词汇迁移 + 每桶独立 initial 证据克隆；prepaid 核验快照对齐 1000。
+6. 语义修正：证据 bound 低于核验值=更保守（合法），仅超出核验值才冲突（evidenceConflictsVerifiedFact），双侧镜像。
+终验：make check=0；Go 192/0（-race -count=1）；web 156；探针 Go 27/27、Web 17/17；build=0；manifest 168 文件零漂移。

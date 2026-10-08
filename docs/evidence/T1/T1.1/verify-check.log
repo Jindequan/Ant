@@ -1,0 +1,54 @@
+# T1 批次集成验证日志
+时间: 2026-10-02T10:33:21+0800  环境: darwin 27.2.0 arm64, Go go1.27.1, Node v22.18.0, npm lock
+
+## make check
+cd server && test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
+cd server && go vet ./...
+cd server && go build ./...
+bash scripts/check-deps.sh
+dependency boundaries OK
+cd web && npm run typecheck
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+[exit=0]
+
+## make test-contract
+cd server && go test ./internal/...
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	(cached)
+ok  	ant/server/internal/config	(cached)
+ok  	ant/server/internal/contracttest	(cached)
+ok  	ant/server/internal/domain	(cached)
+ok  	ant/server/internal/domain/pools	(cached)
+ok  	ant/server/internal/domain/resources	(cached)
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	(cached)
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+?   	ant/server/internal/store/sqlite	[no test files]
+?   	ant/server/internal/transport	[no test files]
+[exit=0]
+
+## 修复后重跑（独立审查 P1-1/P2-1..7 修复后，2026-10-02T11:10:05+0800）
+变更：transport.HandleTable 加锁+并发测试；quantity.SubUnits MinInt64 边界+quantity_test；api/validate.go SubmitReply 联合规则对齐 spec；config/document.go binding 引用/权益组反查/evidence 秘密键；web validate.ts 同源对齐+窗口去重键；新增 3 个非法 fixture；go mod tidy
+
+### make check
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+[exit=0]
+
+### go test -race -count=1 ./internal/...
+ok  	ant/server/internal/api	4.276s
+ok  	ant/server/internal/config	4.338s
+ok  	ant/server/internal/contracttest	4.329s
+ok  	ant/server/internal/domain	4.118s
+ok  	ant/server/internal/domain/pools	4.102s
+ok  	ant/server/internal/domain/resources	4.105s
+ok  	ant/server/internal/ledger	4.102s
+ok  	ant/server/internal/transport	4.109s
+[exit=0]

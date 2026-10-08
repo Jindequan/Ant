@@ -1,0 +1,14 @@
+bin/
+server/bin/
+web/dist/
+web/node_modules/
+server/data/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+coverage/
+*.prof
+docs/plans/AGENT-DISPATCH.json
+server/ant-server
+data/

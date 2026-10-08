@@ -1,0 +1,787 @@
+=== RUN   TestCodexCurrentTrustedResourceRole
+=== RUN   TestCodexCurrentTrustedResourceRole/valid-unoffered-resources
+    codex_current_role_audit_test.go:30: issues=[] compiled=&{Resources:[{ResourceID:res-alpha-daily-token PhysicalKey:phys-alpha:acct-demo-1:daily-token ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.tokens.total Unit:token QuantumExp:0 Currency: Metered:false Kind:counter CommercialRole:limit SemanticsRef:sem.fixed-window-counter SemanticsRevision:semrev-1 Window:{Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} Capacity:1000000 InitialRemaining:1000000 EvidenceRefs:[ev-alpha-daily-bound ev-alpha-daily-initial]} {ResourceID:res-alpha-usd-entitlement PhysicalKey:phys-alpha:acct-demo-1:usd-grant-promo ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.usd.cents Unit:usd_cents QuantumExp:0 Currency:USD Metered:true Kind:counter CommercialRole:entitlement SemanticsRef:sem.entitlement-pool SemanticsRevision:semrev-1 Window:{Kind:lifetime Period: TimeZone: AnchorISO: DurationMillis:0} Capacity:500 InitialRemaining:500 EvidenceRefs:[ev-alpha-usd-bound ev-alpha-usd-initial]} {ResourceID:res-alpha-concurrency PhysicalKey:phys-alpha:acct-demo-1:concurrency ScopeID:acct-demo-1 OwnerKind:binding OwnerID:bind-alpha-main MetricID:metric.concurrency.request Unit:slot QuantumExp:0 Currency: Metered:false Kind:occupancy CommercialRole:limit SemanticsRef:sem.occupancy-slot SemanticsRevision:semrev-1 Window:{Kind:lifetime Period: TimeZone: AnchorISO: DurationMillis:0} Capacity:1 InitialRemaining:1 EvidenceRefs:[ev-alpha-conc-bound]}] Offers:[]}
+=== RUN   TestCodexCurrentTrustedResourceRole/unoffered-occupancy-declared-counter
+    codex_current_role_audit_test.go:30: issues=[{Path:/resources/2/kind MessageKey:ant.config.providerFactMetadataMismatch}] compiled=<nil>
+=== RUN   TestCodexCurrentTrustedResourceRole/unoffered-entitlement-declared-limit
+    codex_current_role_audit_test.go:30: issues=[{Path:/resources/1/commercialRole MessageKey:ant.config.providerFactMetadataMismatch}] compiled=<nil>
+--- PASS: TestCodexCurrentTrustedResourceRole (0.02s)
+    --- PASS: TestCodexCurrentTrustedResourceRole/valid-unoffered-resources (0.01s)
+    --- PASS: TestCodexCurrentTrustedResourceRole/unoffered-occupancy-declared-counter (0.00s)
+    --- PASS: TestCodexCurrentTrustedResourceRole/unoffered-entitlement-declared-limit (0.00s)
+=== RUN   TestT1OriginalFourthConfig
+=== RUN   TestT1OriginalFourthConfig/valid-control
+    codex_fourth_regression_test.go:33: issues=[] compiled=&{Resources:[{ResourceID:res-alpha-daily-token PhysicalKey:phys-alpha:acct-demo-1:daily-token ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.tokens.total Unit:token QuantumExp:0 Currency: Metered:false Kind:counter CommercialRole:limit SemanticsRef:sem.fixed-window-counter SemanticsRevision:semrev-1 Window:{Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} Capacity:1000000 InitialRemaining:1000000 EvidenceRefs:[ev-alpha-daily-bound ev-alpha-daily-initial]} {ResourceID:res-alpha-usd-entitlement PhysicalKey:phys-alpha:acct-demo-1:usd-grant-promo ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.usd.cents Unit:usd_cents QuantumExp:0 Currency:USD Metered:true Kind:counter CommercialRole:entitlement SemanticsRef:sem.entitlement-pool SemanticsRevision:semrev-1 Window:{Kind:lifetime Period: TimeZone: AnchorISO: DurationMillis:0} Capacity:500 InitialRemaining:500 EvidenceRefs:[ev-alpha-usd-bound ev-alpha-usd-initial]} {ResourceID:res-alpha-concurrency PhysicalKey:phys-alpha:acct-demo-1:concurrency ScopeID:acct-demo-1 OwnerKind:binding OwnerID:bind-alpha-main MetricID:metric.concurrency.request Unit:slot QuantumExp:0 Currency: Metered:false Kind:occupancy CommercialRole:limit SemanticsRef:sem.occupancy-slot SemanticsRevision:semrev-1 Window:{Kind:lifetime Period: TimeZone: AnchorISO: DurationMillis:0} Capacity:1 InitialRemaining:1 EvidenceRefs:[ev-alpha-conc-bound]}] Offers:[{OfferID:offer-alpha-chat-a Domain:ai/text CapabilityProfile:profile.chat.basic PhysicalKeys:[phys-alpha:acct-demo-1:daily-token phys-alpha:acct-demo-1:usd-grant-promo phys-alpha:acct-demo-1:concurrency]} {OfferID:offer-alpha-chat-b Domain:ai/text CapabilityProfile:profile.chat.basic PhysicalKeys:[phys-alpha:acct-demo-1:daily-token phys-alpha:acct-demo-1:usd-grant-promo phys-alpha:acct-demo-1:concurrency]}]}
+=== RUN   TestT1OriginalFourthConfig/occupancy-fact-declared-counter
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/2/kind MessageKey:ant.config.providerFactMetadataMismatch}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/entitlement-fact-declared-limit
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/1/commercialRole MessageKey:ant.config.providerFactMetadataMismatch}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/capacity-evidence-bound-missing
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/0/capacityEvidenceRef MessageKey:ant.config.evidenceNotApplicable}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/initial-evidence-remaining-missing
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/1/initialStateEvidenceRef MessageKey:ant.config.evidenceNotApplicable} {Path:/resources/1/initialStateEvidenceRef MessageKey:ant.config.evidenceNotApplicable}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/initial-evidence-negative-remaining
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/1/initialStateEvidenceRef MessageKey:ant.config.evidenceNotApplicable}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/initial-evidence-conflicts-snapshot
+    codex_fourth_regression_test.go:33: issues=[{Path:/resources/1/initialStateEvidenceRef MessageKey:ant.config.evidenceConflictsVerifiedFact}] compiled=<nil>
+=== RUN   TestT1OriginalFourthConfig/compiled-resource-has-resolved-scope
+--- PASS: TestT1OriginalFourthConfig (0.03s)
+    --- PASS: TestT1OriginalFourthConfig/valid-control (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/occupancy-fact-declared-counter (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/entitlement-fact-declared-limit (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/capacity-evidence-bound-missing (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/initial-evidence-remaining-missing (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/initial-evidence-negative-remaining (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/initial-evidence-conflicts-snapshot (0.00s)
+    --- PASS: TestT1OriginalFourthConfig/compiled-resource-has-resolved-scope (0.00s)
+=== RUN   TestT1OriginalFourthWindowEquivalence
+=== RUN   TestT1OriginalFourthWindowEquivalence/rolling-rule-reflexive
+=== RUN   TestT1OriginalFourthWindowEquivalence/two-samples-do-not-prove-rule-equivalence
+    codex_fourth_regression_test.go:67: March witness a=same:1772323200000:1772409600000 b=same:1772319600000:1772406000000 comparator=false
+--- PASS: TestT1OriginalFourthWindowEquivalence (0.00s)
+    --- PASS: TestT1OriginalFourthWindowEquivalence/rolling-rule-reflexive (0.00s)
+    --- PASS: TestT1OriginalFourthWindowEquivalence/two-samples-do-not-prove-rule-equivalence (0.00s)
+=== RUN   TestCompiledEvidenceClaims
+=== RUN   TestCompiledEvidenceClaims/bound
+=== RUN   TestCompiledEvidenceClaims/bound/missing
+=== RUN   TestCompiledEvidenceClaims/bound/negative
+=== RUN   TestCompiledEvidenceClaims/bound/negative-zero
+=== RUN   TestCompiledEvidenceClaims/bound/leading-zero
+=== RUN   TestCompiledEvidenceClaims/bound/malformed
+=== RUN   TestCompiledEvidenceClaims/bound/empty
+=== RUN   TestCompiledEvidenceClaims/bound/overflow
+=== RUN   TestCompiledEvidenceClaims/bound/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/bound/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/bound/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/hard_stop
+=== RUN   TestCompiledEvidenceClaims/hard_stop/missing
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/leading-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/malformed
+=== RUN   TestCompiledEvidenceClaims/hard_stop/empty
+=== RUN   TestCompiledEvidenceClaims/hard_stop/overflow
+=== RUN   TestCompiledEvidenceClaims/hard_stop/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/hard_stop/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/hard_stop/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/initial_state
+=== RUN   TestCompiledEvidenceClaims/initial_state/missing
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/leading-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/malformed
+=== RUN   TestCompiledEvidenceClaims/initial_state/empty
+=== RUN   TestCompiledEvidenceClaims/initial_state/overflow
+=== RUN   TestCompiledEvidenceClaims/initial_state/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/initial_state/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/initial_state/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot
+=== RUN   TestCompiledEvidenceClaims/zero-remaining
+=== RUN   TestCompiledEvidenceClaims/zero-bound-and-remaining
+--- PASS: TestCompiledEvidenceClaims (0.21s)
+    --- PASS: TestCompiledEvidenceClaims/bound (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/bound/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/hard_stop (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/initial_state (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-remaining (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-bound-and-remaining (0.01s)
+=== RUN   TestCompiledProfileRoles
+=== RUN   TestCompiledProfileRoles/limit
+=== RUN   TestCompiledProfileRoles/entitlement
+=== RUN   TestCompiledProfileRoles/unknown
+--- PASS: TestCompiledProfileRoles (0.03s)
+    --- PASS: TestCompiledProfileRoles/limit (0.01s)
+    --- PASS: TestCompiledProfileRoles/entitlement (0.01s)
+    --- PASS: TestCompiledProfileRoles/unknown (0.01s)
+=== RUN   TestCompiledTrustedResourceTypes
+=== RUN   TestCompiledTrustedResourceTypes/res-alpha-concurrency-kind
+=== RUN   TestCompiledTrustedResourceTypes/res-alpha-usd-entitlement-commercialRole
+=== RUN   TestCompiledTrustedResourceTypes/res-alpha-daily-token-kind
+=== RUN   TestCompiledTrustedResourceTypes/untyped-registration
+=== RUN   TestCompiledTrustedResourceTypes/invalid-role-registration
+=== RUN   TestCompiledTrustedResourceTypes/ambiguous-registration
+--- PASS: TestCompiledTrustedResourceTypes (0.03s)
+    --- PASS: TestCompiledTrustedResourceTypes/res-alpha-concurrency-kind (0.00s)
+    --- PASS: TestCompiledTrustedResourceTypes/res-alpha-usd-entitlement-commercialRole (0.00s)
+    --- PASS: TestCompiledTrustedResourceTypes/res-alpha-daily-token-kind (0.00s)
+    --- PASS: TestCompiledTrustedResourceTypes/untyped-registration (0.00s)
+    --- PASS: TestCompiledTrustedResourceTypes/invalid-role-registration (0.00s)
+    --- PASS: TestCompiledTrustedResourceTypes/ambiguous-registration (0.00s)
+=== RUN   TestCompiledResolvedScopes
+=== RUN   TestCompiledResolvedScopes/shared-via-acct-demo-1
+=== RUN   TestCompiledResolvedScopes/shared-via-acct-demo-2
+--- PASS: TestCompiledResolvedScopes (0.02s)
+    --- PASS: TestCompiledResolvedScopes/shared-via-acct-demo-1 (0.01s)
+    --- PASS: TestCompiledResolvedScopes/shared-via-acct-demo-2 (0.01s)
+=== RUN   TestCompiledWindowIdentity
+=== RUN   TestCompiledWindowIdentity/rolling_reflexivity_dimensional
+    compiled_window_test.go:130: window={Kind:rolling Period: TimeZone: AnchorISO: DurationMillis:60000} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/rolling_reflexivity_explicit
+    compiled_window_test.go:130: window={Kind:rolling Period: TimeZone: AnchorISO: DurationMillis:60000} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/rolling_duration_mismatch_dimensional
+=== RUN   TestCompiledWindowIdentity/rolling_duration_mismatch_explicit
+=== RUN   TestCompiledWindowIdentity/Casablanca_Lagos_dimensional
+=== RUN   TestCompiledWindowIdentity/Casablanca_Lagos_explicit
+=== RUN   TestCompiledWindowIdentity/hour_date_ignored_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:UTC AnchorISO:2026-01-01T01:15:00.123Z DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/hour_date_ignored_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:UTC AnchorISO:2026-01-01T01:15:00.123Z DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/hour_millisecond_mismatch_dimensional
+=== RUN   TestCompiledWindowIdentity/hour_millisecond_mismatch_explicit
+=== RUN   TestCompiledWindowIdentity/UTC_alias__dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias__explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_UTC_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_UTC_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/UTC_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/UTC_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/GMT_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/GMT_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_GMT_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_GMT_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_minute_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:minute TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_minute_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:minute TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_hour_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_hour_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_day_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_day_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_week_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:week TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_week_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:week TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_month_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:month TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_month_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:month TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+--- PASS: TestCompiledWindowIdentity (0.31s)
+    --- PASS: TestCompiledWindowIdentity/rolling_reflexivity_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/rolling_reflexivity_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/rolling_duration_mismatch_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/rolling_duration_mismatch_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/Casablanca_Lagos_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/Casablanca_Lagos_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_date_ignored_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_date_ignored_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_millisecond_mismatch_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_millisecond_mismatch_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias__dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias__explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_UTC_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_UTC_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/UTC_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/UTC_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/GMT_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/GMT_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_GMT_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_GMT_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_minute_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_minute_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_hour_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_hour_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_day_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_day_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_week_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_week_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_month_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_month_explicit (0.01s)
+=== RUN   TestValidFixturePassesSchemaValidatorAndCodec
+--- PASS: TestValidFixturePassesSchemaValidatorAndCodec (0.01s)
+=== RUN   TestInvalidFixturesRejected
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-field.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-dangling-ref.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-dangling-binding-ref.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-entitlement-group.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-secret-in-evidence.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-secret-in-extension.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-priority-range.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-quantity.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unsupported-executable.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-pool-member.json
+--- PASS: TestInvalidFixturesRejected (0.03s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-field.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-dangling-ref.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-dangling-binding-ref.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-entitlement-group.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-secret-in-evidence.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-secret-in-extension.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-priority-range.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-quantity.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unsupported-executable.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-pool-member.json (0.00s)
+=== RUN   TestStrictDecodeRejectsUnknownExecutableField
+--- PASS: TestStrictDecodeRejectsUnknownExecutableField (0.00s)
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-duplicate-commercial-fact.json
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-two-lone-buckets.json
+--- PASS: TestIdentityFixturesRejectedAtCatalogPhase (0.01s)
+    --- PASS: TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-duplicate-commercial-fact.json (0.00s)
+    --- PASS: TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-two-lone-buckets.json (0.00s)
+=== RUN   TestQ4EmptyCapabilityProfilesNoPanic
+--- PASS: TestQ4EmptyCapabilityProfilesNoPanic (0.01s)
+=== RUN   TestQ4ProfileDomainMismatchRejected
+--- PASS: TestQ4ProfileDomainMismatchRejected (0.02s)
+=== RUN   TestRework2FullBoundaryConfigCases
+=== RUN   TestRework2FullBoundaryConfigCases/full-boundary-valid
+=== RUN   TestRework2FullBoundaryConfigCases/required-account-enabled-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-account-enabled-null
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-semantics-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-quantum-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-metered-missing
+=== RUN   TestRework2FullBoundaryConfigCases/dangling-grant-scope
+=== RUN   TestRework2FullBoundaryConfigCases/initial-state-wrong-resource
+=== RUN   TestRework2FullBoundaryConfigCases/capacity-wrong-owner-and-metric
+=== RUN   TestRework2FullBoundaryConfigCases/binding-owned-extension-unknown
+=== RUN   TestRework2FullBoundaryConfigCases/catalog-unsupported-domain
+=== RUN   TestRework2FullBoundaryConfigCases/catalog-fact-metric-mismatch
+=== RUN   TestRework2FullBoundaryConfigCases/same-bucket-cloned-with-different-order
+=== RUN   TestRework2FullBoundaryConfigCases/valid-catalog-two-facts
+=== RUN   TestRework2FullBoundaryConfigCases/same-group-incompatible-quantum
+=== RUN   TestRework2FullBoundaryConfigCases/same-limit-equivalent-anchor-spelling
+=== RUN   TestRework2FullBoundaryConfigCases/default-slot-with-registered-facts-rejected
+--- PASS: TestRework2FullBoundaryConfigCases (0.08s)
+    --- PASS: TestRework2FullBoundaryConfigCases/full-boundary-valid (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-account-enabled-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-account-enabled-null (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-semantics-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-quantum-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-metered-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/dangling-grant-scope (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/initial-state-wrong-resource (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/capacity-wrong-owner-and-metric (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/binding-owned-extension-unknown (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/catalog-unsupported-domain (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/catalog-fact-metric-mismatch (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-bucket-cloned-with-different-order (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/valid-catalog-two-facts (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-group-incompatible-quantum (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-limit-equivalent-anchor-spelling (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/default-slot-with-registered-facts-rejected (0.01s)
+=== RUN   TestRework2CloneVariants
+=== RUN   TestRework2CloneVariants/same-group-clone-same-factid
+=== RUN   TestRework2CloneVariants/renamed-resourceid-same-factid-still-clone
+=== RUN   TestRework2CloneVariants/reorganization-stays-legal
+--- PASS: TestRework2CloneVariants (0.04s)
+    --- PASS: TestRework2CloneVariants/same-group-clone-same-factid (0.01s)
+    --- PASS: TestRework2CloneVariants/renamed-resourceid-same-factid-still-clone (0.01s)
+    --- PASS: TestRework2CloneVariants/reorganization-stays-legal (0.01s)
+=== RUN   TestRework3FullBoundaryConfigCases
+=== RUN   TestRework3FullBoundaryConfigCases/control-completed-verified-fact
+=== RUN   TestRework3FullBoundaryConfigCases/limit-no-anchor-vs-explicit-natural-anchor
+=== RUN   TestRework3FullBoundaryConfigCases/limit-hour-anchor-irrelevant-hour
+=== RUN   TestRework3FullBoundaryConfigCases/limit-timezone-equivalent-alias
+=== RUN   TestRework3FullBoundaryConfigCases/limit-changing-unit-cannot-mint-capacity
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-dimension-default-bucket
+=== RUN   TestRework3FullBoundaryConfigCases/default-bucket-cloned-by-window-only
+=== RUN   TestRework3FullBoundaryConfigCases/configured-capacity-exceeds-evidence-bound
+=== RUN   TestRework3FullBoundaryConfigCases/malformed-quantity-in-bound-evidence
+=== RUN   TestRework3FullBoundaryConfigCases/known-usd-fact-relabelled-eur
+=== RUN   TestRework3FullBoundaryConfigCases/verified-fact-relabelled-quantum
+=== RUN   TestRework3FullBoundaryConfigCases/evidence-wrong-precision-window-and-revision
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-resource-semantics
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-capability-profile
+=== RUN   TestRework3FullBoundaryConfigCases/offer-omits-required-billing-and-concurrency
+=== RUN   TestRework3FullBoundaryConfigCases/resource-extension-in-wrong-context
+=== RUN   TestRework3FullBoundaryConfigCases/nested-schema-error-must-locate-field
+--- PASS: TestRework3FullBoundaryConfigCases (0.07s)
+    --- PASS: TestRework3FullBoundaryConfigCases/control-completed-verified-fact (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-no-anchor-vs-explicit-natural-anchor (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-hour-anchor-irrelevant-hour (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-timezone-equivalent-alias (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-changing-unit-cannot-mint-capacity (0.01s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-dimension-default-bucket (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/default-bucket-cloned-by-window-only (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/configured-capacity-exceeds-evidence-bound (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/malformed-quantity-in-bound-evidence (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/known-usd-fact-relabelled-eur (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/verified-fact-relabelled-quantum (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/evidence-wrong-precision-window-and-revision (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-resource-semantics (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-capability-profile (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/offer-omits-required-billing-and-concurrency (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/resource-extension-in-wrong-context (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/nested-schema-error-must-locate-field (0.00s)
+=== RUN   TestRework3ScopeIdentity
+--- PASS: TestRework3ScopeIdentity (0.01s)
+=== RUN   TestRework3WindowIdentityVariants
+=== RUN   TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger
+=== RUN   TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour
+=== RUN   TestRework3WindowIdentityVariants/zone-alias-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/unit-change-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected
+--- PASS: TestRework3WindowIdentityVariants (0.06s)
+    --- PASS: TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/zone-alias-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/unit-change-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected (0.01s)
+=== RUN   TestRework3CapacityConstraints
+=== RUN   TestRework3CapacityConstraints/conservative-lower-capacity-compiles
+=== RUN   TestRework3CapacityConstraints/capacity-above-verified-bound-rejected
+=== RUN   TestRework3CapacityConstraints/malformed-bound-rejected
+--- PASS: TestRework3CapacityConstraints (0.04s)
+    --- PASS: TestRework3CapacityConstraints/conservative-lower-capacity-compiles (0.01s)
+    --- PASS: TestRework3CapacityConstraints/capacity-above-verified-bound-rejected (0.01s)
+    --- PASS: TestRework3CapacityConstraints/malformed-bound-rejected (0.01s)
+=== RUN   TestRework3BundleCoverage
+--- PASS: TestRework3BundleCoverage (0.02s)
+=== RUN   TestT1IndependentDualRoleCoverage
+=== RUN   TestT1IndependentDualRoleCoverage/limit
+    t1_independent_review_test.go:55: compiled dual role: {ResourceID:res-alpha-concurrency PhysicalKey:phys-alpha:acct-demo-1:concurrency ScopeID:acct-demo-1 OwnerKind:binding OwnerID:bind-alpha-main MetricID:metric.concurrency.request Unit:slot QuantumExp:0 Currency: Metered:false Kind:occupancy CommercialRole:limit SemanticsRef:sem.occupancy-slot SemanticsRevision:semrev-1 Window:{Kind:lifetime Period: TimeZone: AnchorISO: DurationMillis:0} Capacity:1 InitialRemaining:1 EvidenceRefs:[ev-alpha-conc-bound]}
+=== RUN   TestT1IndependentDualRoleCoverage/entitlement
+=== RUN   TestT1IndependentDualRoleCoverage/unknown
+--- PASS: TestT1IndependentDualRoleCoverage (0.03s)
+    --- PASS: TestT1IndependentDualRoleCoverage/limit (0.01s)
+    --- PASS: TestT1IndependentDualRoleCoverage/entitlement (0.00s)
+    --- PASS: TestT1IndependentDualRoleCoverage/unknown (0.00s)
+=== RUN   TestT1IndependentEvidenceWhitespace
+=== RUN   TestT1IndependentEvidenceWhitespace/bound_500
+=== RUN   TestT1IndependentEvidenceWhitespace/bound500_
+=== RUN   TestT1IndependentEvidenceWhitespace/bound+500
+=== RUN   TestT1IndependentEvidenceWhitespace/bound5e2
+=== RUN   TestT1IndependentEvidenceWhitespace/bound500.0
+=== RUN   TestT1IndependentEvidenceWhitespace/bound500
+=== RUN   TestT1IndependentEvidenceWhitespace/bound<nil>
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining_500
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining500_
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining+500
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining5e2
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining500.0
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining500
+=== RUN   TestT1IndependentEvidenceWhitespace/remaining<nil>
+--- PASS: TestT1IndependentEvidenceWhitespace (0.19s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound_500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound500_ (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound+500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound5e2 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound500.0 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/bound<nil> (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining_500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining500_ (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining+500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining5e2 (0.02s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining500.0 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining500 (0.01s)
+    --- PASS: TestT1IndependentEvidenceWhitespace/remaining<nil> (0.01s)
+=== RUN   TestT1IndependentCalendarIdentityCompile
+=== RUN   TestT1IndependentCalendarIdentityCompile/offset_instant_conversion
+    t1_independent_review_test.go:138: compiled window: {ResourceID:res-alpha-daily-token PhysicalKey:phys-alpha:acct-demo-1:daily-token ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.tokens.total Unit:token QuantumExp:0 Currency: Metered:false Kind:counter CommercialRole:limit SemanticsRef:sem.fixed-window-counter SemanticsRevision:semrev-1 Window:{Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO:2026-01-01T00:00:00+08:00 DurationMillis:0} Capacity:1000000 InitialRemaining:1000000 EvidenceRefs:[ev-alpha-daily-bound ev-alpha-daily-initial]}
+=== RUN   TestT1IndependentCalendarIdentityCompile/millisecond_trailing_zeros
+    t1_independent_review_test.go:138: compiled window: {ResourceID:res-alpha-daily-token PhysicalKey:phys-alpha:acct-demo-1:daily-token ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.tokens.total Unit:token QuantumExp:0 Currency: Metered:false Kind:counter CommercialRole:limit SemanticsRef:sem.fixed-window-counter SemanticsRevision:semrev-1 Window:{Kind:fixed Period:hour TimeZone:UTC AnchorISO:2026-01-01T11:23:45.120Z DurationMillis:0} Capacity:1000000 InitialRemaining:1000000 EvidenceRefs:[ev-alpha-daily-bound ev-alpha-daily-initial]}
+=== RUN   TestT1IndependentCalendarIdentityCompile/different_weekday
+=== RUN   TestT1IndependentCalendarIdentityCompile/month_clamp_does_not_merge
+=== RUN   TestT1IndependentCalendarIdentityCompile/sub_millisecond
+--- PASS: TestT1IndependentCalendarIdentityCompile (0.07s)
+    --- PASS: TestT1IndependentCalendarIdentityCompile/offset_instant_conversion (0.02s)
+    --- PASS: TestT1IndependentCalendarIdentityCompile/millisecond_trailing_zeros (0.01s)
+    --- PASS: TestT1IndependentCalendarIdentityCompile/different_weekday (0.01s)
+    --- PASS: TestT1IndependentCalendarIdentityCompile/month_clamp_does_not_merge (0.01s)
+    --- PASS: TestT1IndependentCalendarIdentityCompile/sub_millisecond (0.01s)
+=== RUN   TestT1IndependentRollingInt64Boundary
+    t1_independent_review_test.go:176: compiled exact int64: {ResourceID:res-alpha-daily-token PhysicalKey:phys-alpha:acct-demo-1:daily-token ScopeID:acct-demo-1 OwnerKind:account OwnerID:acct-demo-1 MetricID:metric.tokens.total Unit:token QuantumExp:0 Currency: Metered:false Kind:counter CommercialRole:limit SemanticsRef:sem.fixed-window-counter SemanticsRevision:semrev-1 Window:{Kind:rolling Period: TimeZone: AnchorISO: DurationMillis:9007199254740992} Capacity:1000000 InitialRemaining:1000000 EvidenceRefs:[ev-alpha-daily-bound ev-alpha-daily-initial]}
+--- PASS: TestT1IndependentRollingInt64Boundary (0.02s)
+PASS
+ok  	ant/server/internal/config	2.578s
+=== RUN   TestCounterAvailableLocalBaselineOnly
+--- PASS: TestCounterAvailableLocalBaselineOnly (0.00s)
+=== RUN   TestCounterAvailableWithValidObservation
+--- PASS: TestCounterAvailableWithValidObservation (0.00s)
+=== RUN   TestCounterAvailableInvalidObservationsIgnored
+--- PASS: TestCounterAvailableInvalidObservationsIgnored (0.00s)
+=== RUN   TestCounterReserveAdmitsAndProposesDelta
+--- PASS: TestCounterReserveAdmitsAndProposesDelta (0.00s)
+=== RUN   TestCounterReserveStaleObservationIgnored
+--- PASS: TestCounterReserveStaleObservationIgnored (0.00s)
+=== RUN   TestCounterReserveRefusals
+--- PASS: TestCounterReserveRefusals (0.00s)
+=== RUN   TestCounterSettleKnownActual
+--- PASS: TestCounterSettleKnownActual (0.00s)
+=== RUN   TestCounterSettleOverrunRecordedNotTruncated
+--- PASS: TestCounterSettleOverrunRecordedNotTruncated (0.00s)
+=== RUN   TestCounterSettleUnknownActualConservativeBound
+--- PASS: TestCounterSettleUnknownActualConservativeBound (0.00s)
+=== RUN   TestCounterSettleEvidenceRefsProveNothing
+--- PASS: TestCounterSettleEvidenceRefsProveNothing (0.00s)
+=== RUN   TestCounterSettleUnattributedRequiresIsolation
+--- PASS: TestCounterSettleUnattributedRequiresIsolation (0.00s)
+=== RUN   TestCounterSettleIllegalCalls
+--- PASS: TestCounterSettleIllegalCalls (0.00s)
+=== RUN   TestCounterAvailableOverflowRejected
+--- PASS: TestCounterAvailableOverflowRejected (0.00s)
+=== RUN   TestOccupancyNormalLifecycle
+--- PASS: TestOccupancyNormalLifecycle (0.00s)
+=== RUN   TestOccupancyUnknownKeepsSlotUntilProof
+--- PASS: TestOccupancyUnknownKeepsSlotUntilProof (0.00s)
+=== RUN   TestOccupancyReserveRefusals
+--- PASS: TestOccupancyReserveRefusals (0.00s)
+=== RUN   TestOccupancyIllegalTransitionsError
+--- PASS: TestOccupancyIllegalTransitionsError (0.00s)
+=== RUN   TestOccupancyZeroQuantityNoOps
+--- PASS: TestOccupancyZeroQuantityNoOps (0.00s)
+=== RUN   TestValidateChangeAcceptsWellFormedDelta
+--- PASS: TestValidateChangeAcceptsWellFormedDelta (0.00s)
+=== RUN   TestValidateChangeRejectsWrongIdentity
+--- PASS: TestValidateChangeRejectsWrongIdentity (0.00s)
+=== RUN   TestValidateChangeRejectsStaleVersion
+--- PASS: TestValidateChangeRejectsStaleVersion (0.00s)
+=== RUN   TestValidateChangeRejectsNegativeComponents
+--- PASS: TestValidateChangeRejectsNegativeComponents (0.00s)
+=== RUN   TestValidateChangeAdjustmentRules
+--- PASS: TestValidateChangeAdjustmentRules (0.00s)
+=== RUN   TestValidateChangeRejectsOverflow
+--- PASS: TestValidateChangeRejectsOverflow (0.00s)
+=== RUN   TestValidateChangePlanRules
+--- PASS: TestValidateChangePlanRules (0.00s)
+=== RUN   TestValidateChangePlanIsolationRequests
+--- PASS: TestValidateChangePlanIsolationRequests (0.00s)
+=== RUN   TestWaterfallInputOrderImmutable
+--- PASS: TestWaterfallInputOrderImmutable (0.00s)
+=== RUN   TestWaterfallFreePoolsFirstExhaustedBeforeMetered
+--- PASS: TestWaterfallFreePoolsFirstExhaustedBeforeMetered (0.00s)
+=== RUN   TestWaterfallMeteredHardGateRefusesWholeAllocation
+--- PASS: TestWaterfallMeteredHardGateRefusesWholeAllocation (0.00s)
+=== RUN   TestWaterfallInsufficientRefusesWhole
+--- PASS: TestWaterfallInsufficientRefusesWhole (0.00s)
+=== RUN   TestWaterfallExpiredPoolsSkippedWithoutGate
+--- PASS: TestWaterfallExpiredPoolsSkippedWithoutGate (0.00s)
+=== RUN   TestWaterfallZeroNeedSucceeds
+--- PASS: TestWaterfallZeroNeedSucceeds (0.00s)
+=== RUN   TestWaterfallNegativeNeedRefused
+--- PASS: TestWaterfallNegativeNeedRefused (0.00s)
+=== RUN   TestWindowAtFallBackSecondHourContained
+--- PASS: TestWindowAtFallBackSecondHourContained (0.00s)
+=== RUN   TestWindowAtDSTPolicies
+--- PASS: TestWindowAtDSTPolicies (0.00s)
+=== RUN   TestWindowAtDSTFoldGapMultiRegion
+=== RUN   TestWindowAtDSTFoldGapMultiRegion/America/New_York
+=== RUN   TestWindowAtDSTFoldGapMultiRegion/Europe/Berlin
+--- PASS: TestWindowAtDSTFoldGapMultiRegion (0.00s)
+    --- PASS: TestWindowAtDSTFoldGapMultiRegion/America/New_York (0.00s)
+    --- PASS: TestWindowAtDSTFoldGapMultiRegion/Europe/Berlin (0.00s)
+=== RUN   TestCivilInstantsAndFirstValid
+--- PASS: TestCivilInstantsAndFirstValid (0.00s)
+=== RUN   TestWindowAtMidnightTransitionZone
+--- PASS: TestWindowAtMidnightTransitionZone (0.01s)
+=== RUN   TestWindowAtHistoricalOffsetChanges
+=== RUN   TestWindowAtHistoricalOffsetChanges/Asia/Kathmandu
+=== RUN   TestWindowAtHistoricalOffsetChanges/Pacific/Chatham
+--- PASS: TestWindowAtHistoricalOffsetChanges (0.00s)
+    --- PASS: TestWindowAtHistoricalOffsetChanges/Asia/Kathmandu (0.00s)
+    --- PASS: TestWindowAtHistoricalOffsetChanges/Pacific/Chatham (0.00s)
+=== RUN   TestWindowAtFractionalHourZones
+=== RUN   TestWindowAtFractionalHourZones/Asia/Kolkata
+=== RUN   TestWindowAtFractionalHourZones/Pacific/Chatham
+--- PASS: TestWindowAtFractionalHourZones (0.00s)
+    --- PASS: TestWindowAtFractionalHourZones/Asia/Kolkata (0.00s)
+    --- PASS: TestWindowAtFractionalHourZones/Pacific/Chatham (0.00s)
+=== RUN   TestWindowRuleIdentity
+PASS rolling self equal=true identity={Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000} / {Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000}
+PASS rolling duration equal=false identity={Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000} / {Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60001}
+PASS lifetime equal=true identity={Kind:lifetime Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:lifetime Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias  equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias UTC equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias Etc/UTC equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias Etc/GMT equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias GMT equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default minute equal=true identity={Kind:fixed Period:minute TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default hour equal=true identity={Kind:fixed Period:hour TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default day equal=true identity={Kind:fixed Period:day TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default week equal=true identity={Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS default month equal=true identity={Kind:fixed Period:month TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:month TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS minute ignores date hour minute equal=true identity={Kind:fixed Period:minute TimeZone:UTC PhaseMillis:12345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:UTC PhaseMillis:12345 CalendarDay:0 DurationMillis:0}
+PASS hour ignores date hour equal=true identity={Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0}
+PASS day ignores date equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:4812345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:4812345 CalendarDay:0 DurationMillis:0}
+PASS millisecond difference equal=false identity={Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212346 CalendarDay:0 DurationMillis:0}
+PASS zone conversion crosses date equal=true identity={Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS trailing zero precision equal=true identity={Kind:fixed Period:minute TimeZone:UTC PhaseMillis:1123 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:UTC PhaseMillis:1123 CalendarDay:0 DurationMillis:0}
+PASS week Thursday differs equal=false identity={Kind:fixed Period:week TimeZone:UTC PhaseMillis:0 CalendarDay:4 DurationMillis:0} / {Kind:fixed Period:week TimeZone:UTC PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS month day15 differs equal=false identity={Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:15 DurationMillis:0} / {Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS month day30 day31 distinct equal=false identity={Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:30 DurationMillis:0} / {Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:31 DurationMillis:0}
+PASS Casablanca Lagos equal=false identity={Kind:fixed Period:day TimeZone:Africa/Casablanca PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:Africa/Lagos PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS refusal 0 {kind:unknown period: zone: anchor: duration:0}
+PASS refusal 1 {kind:rolling period: zone: anchor: duration:0}
+PASS refusal 2 {kind:rolling period: zone: anchor: duration:-1}
+PASS refusal 3 {kind:fixed period:year zone:UTC anchor: duration:0}
+PASS refusal 4 {kind:fixed period:day zone:No/SuchZone anchor: duration:0}
+PASS refusal 5 {kind:fixed period:day zone:Local anchor: duration:0}
+PASS refusal 6 {kind:fixed period:day zone:UTC anchor:malformed duration:0}
+PASS refusal 7 {kind:fixed period:day zone:UTC anchor:2026-01-01T00:00:00.000001Z duration:0}
+PASS total=31; no WindowAt date sampling
+--- PASS: TestWindowRuleIdentity (0.00s)
+=== RUN   TestWindowAtResetPhase
+=== RUN   TestWindowAtResetPhase/UTC
+=== RUN   TestWindowAtResetPhase/Asia/Kolkata
+=== RUN   TestWindowAtResetPhase/Asia/Kathmandu
+=== RUN   TestWindowAtResetPhase/Pacific/Chatham
+=== RUN   TestWindowAtResetPhase/America/New_York
+=== RUN   TestWindowAtResetPhase/Europe/Berlin
+--- PASS: TestWindowAtResetPhase (2.34s)
+    --- PASS: TestWindowAtResetPhase/UTC (0.03s)
+    --- PASS: TestWindowAtResetPhase/Asia/Kolkata (0.24s)
+    --- PASS: TestWindowAtResetPhase/Asia/Kathmandu (0.23s)
+    --- PASS: TestWindowAtResetPhase/Pacific/Chatham (0.51s)
+    --- PASS: TestWindowAtResetPhase/America/New_York (0.77s)
+    --- PASS: TestWindowAtResetPhase/Europe/Berlin (0.56s)
+=== RUN   TestWindowAtProperties
+=== RUN   TestWindowAtProperties/minute/UTC/anchored=false
+=== RUN   TestWindowAtProperties/hour/UTC/anchored=false
+=== RUN   TestWindowAtProperties/day/UTC/anchored=false
+=== RUN   TestWindowAtProperties/week/UTC/anchored=false
+=== RUN   TestWindowAtProperties/month/UTC/anchored=false
+=== RUN   TestWindowAtProperties/minute/UTC/anchored=true
+=== RUN   TestWindowAtProperties/hour/UTC/anchored=true
+=== RUN   TestWindowAtProperties/day/UTC/anchored=true
+=== RUN   TestWindowAtProperties/week/UTC/anchored=true
+=== RUN   TestWindowAtProperties/month/UTC/anchored=true
+=== RUN   TestWindowAtProperties/minute/Asia/Kolkata/anchored=false
+=== RUN   TestWindowAtProperties/hour/Asia/Kolkata/anchored=false
+=== RUN   TestWindowAtProperties/day/Asia/Kolkata/anchored=false
+=== RUN   TestWindowAtProperties/week/Asia/Kolkata/anchored=false
+=== RUN   TestWindowAtProperties/month/Asia/Kolkata/anchored=false
+=== RUN   TestWindowAtProperties/minute/Asia/Kolkata/anchored=true
+=== RUN   TestWindowAtProperties/hour/Asia/Kolkata/anchored=true
+=== RUN   TestWindowAtProperties/day/Asia/Kolkata/anchored=true
+=== RUN   TestWindowAtProperties/week/Asia/Kolkata/anchored=true
+=== RUN   TestWindowAtProperties/month/Asia/Kolkata/anchored=true
+=== RUN   TestWindowAtProperties/minute/Asia/Kathmandu/anchored=false
+=== RUN   TestWindowAtProperties/hour/Asia/Kathmandu/anchored=false
+=== RUN   TestWindowAtProperties/day/Asia/Kathmandu/anchored=false
+=== RUN   TestWindowAtProperties/week/Asia/Kathmandu/anchored=false
+=== RUN   TestWindowAtProperties/month/Asia/Kathmandu/anchored=false
+=== RUN   TestWindowAtProperties/minute/Asia/Kathmandu/anchored=true
+=== RUN   TestWindowAtProperties/hour/Asia/Kathmandu/anchored=true
+=== RUN   TestWindowAtProperties/day/Asia/Kathmandu/anchored=true
+=== RUN   TestWindowAtProperties/week/Asia/Kathmandu/anchored=true
+=== RUN   TestWindowAtProperties/month/Asia/Kathmandu/anchored=true
+=== RUN   TestWindowAtProperties/minute/Pacific/Chatham/anchored=false
+=== RUN   TestWindowAtProperties/hour/Pacific/Chatham/anchored=false
+=== RUN   TestWindowAtProperties/day/Pacific/Chatham/anchored=false
+=== RUN   TestWindowAtProperties/week/Pacific/Chatham/anchored=false
+=== RUN   TestWindowAtProperties/month/Pacific/Chatham/anchored=false
+=== RUN   TestWindowAtProperties/minute/Pacific/Chatham/anchored=true
+=== RUN   TestWindowAtProperties/hour/Pacific/Chatham/anchored=true
+=== RUN   TestWindowAtProperties/day/Pacific/Chatham/anchored=true
+=== RUN   TestWindowAtProperties/week/Pacific/Chatham/anchored=true
+=== RUN   TestWindowAtProperties/month/Pacific/Chatham/anchored=true
+=== RUN   TestWindowAtProperties/minute/America/New_York/anchored=false
+=== RUN   TestWindowAtProperties/hour/America/New_York/anchored=false
+=== RUN   TestWindowAtProperties/day/America/New_York/anchored=false
+=== RUN   TestWindowAtProperties/week/America/New_York/anchored=false
+=== RUN   TestWindowAtProperties/month/America/New_York/anchored=false
+=== RUN   TestWindowAtProperties/minute/America/New_York/anchored=true
+=== RUN   TestWindowAtProperties/hour/America/New_York/anchored=true
+=== RUN   TestWindowAtProperties/day/America/New_York/anchored=true
+=== RUN   TestWindowAtProperties/week/America/New_York/anchored=true
+=== RUN   TestWindowAtProperties/month/America/New_York/anchored=true
+=== RUN   TestWindowAtProperties/minute/Europe/Berlin/anchored=false
+=== RUN   TestWindowAtProperties/hour/Europe/Berlin/anchored=false
+=== RUN   TestWindowAtProperties/day/Europe/Berlin/anchored=false
+=== RUN   TestWindowAtProperties/week/Europe/Berlin/anchored=false
+=== RUN   TestWindowAtProperties/month/Europe/Berlin/anchored=false
+=== RUN   TestWindowAtProperties/minute/Europe/Berlin/anchored=true
+=== RUN   TestWindowAtProperties/hour/Europe/Berlin/anchored=true
+=== RUN   TestWindowAtProperties/day/Europe/Berlin/anchored=true
+=== RUN   TestWindowAtProperties/week/Europe/Berlin/anchored=true
+=== RUN   TestWindowAtProperties/month/Europe/Berlin/anchored=true
+=== RUN   TestWindowAtProperties/minute/Asia/Singapore/anchored=false
+=== RUN   TestWindowAtProperties/hour/Asia/Singapore/anchored=false
+=== RUN   TestWindowAtProperties/day/Asia/Singapore/anchored=false
+=== RUN   TestWindowAtProperties/week/Asia/Singapore/anchored=false
+=== RUN   TestWindowAtProperties/month/Asia/Singapore/anchored=false
+=== RUN   TestWindowAtProperties/minute/Asia/Singapore/anchored=true
+=== RUN   TestWindowAtProperties/hour/Asia/Singapore/anchored=true
+=== RUN   TestWindowAtProperties/day/Asia/Singapore/anchored=true
+=== RUN   TestWindowAtProperties/week/Asia/Singapore/anchored=true
+=== RUN   TestWindowAtProperties/month/Asia/Singapore/anchored=true
+--- PASS: TestWindowAtProperties (7.40s)
+    --- PASS: TestWindowAtProperties/minute/UTC/anchored=false (0.04s)
+    --- PASS: TestWindowAtProperties/hour/UTC/anchored=false (0.00s)
+    --- PASS: TestWindowAtProperties/day/UTC/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/week/UTC/anchored=false (0.00s)
+    --- PASS: TestWindowAtProperties/month/UTC/anchored=false (0.00s)
+    --- PASS: TestWindowAtProperties/minute/UTC/anchored=true (0.04s)
+    --- PASS: TestWindowAtProperties/hour/UTC/anchored=true (0.01s)
+    --- PASS: TestWindowAtProperties/day/UTC/anchored=true (0.03s)
+    --- PASS: TestWindowAtProperties/week/UTC/anchored=true (0.01s)
+    --- PASS: TestWindowAtProperties/month/UTC/anchored=true (0.00s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Kolkata/anchored=false (0.29s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Kolkata/anchored=false (0.04s)
+    --- PASS: TestWindowAtProperties/day/Asia/Kolkata/anchored=false (0.11s)
+    --- PASS: TestWindowAtProperties/week/Asia/Kolkata/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/month/Asia/Kolkata/anchored=false (0.01s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Kolkata/anchored=true (0.28s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Kolkata/anchored=true (0.04s)
+    --- PASS: TestWindowAtProperties/day/Asia/Kolkata/anchored=true (0.11s)
+    --- PASS: TestWindowAtProperties/week/Asia/Kolkata/anchored=true (0.02s)
+    --- PASS: TestWindowAtProperties/month/Asia/Kolkata/anchored=true (0.01s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Kathmandu/anchored=false (0.26s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Kathmandu/anchored=false (0.04s)
+    --- PASS: TestWindowAtProperties/day/Asia/Kathmandu/anchored=false (0.10s)
+    --- PASS: TestWindowAtProperties/week/Asia/Kathmandu/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/month/Asia/Kathmandu/anchored=false (0.01s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Kathmandu/anchored=true (0.25s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Kathmandu/anchored=true (0.03s)
+    --- PASS: TestWindowAtProperties/day/Asia/Kathmandu/anchored=true (0.10s)
+    --- PASS: TestWindowAtProperties/week/Asia/Kathmandu/anchored=true (0.02s)
+    --- PASS: TestWindowAtProperties/month/Asia/Kathmandu/anchored=true (0.01s)
+    --- PASS: TestWindowAtProperties/minute/Pacific/Chatham/anchored=false (0.40s)
+    --- PASS: TestWindowAtProperties/hour/Pacific/Chatham/anchored=false (0.06s)
+    --- PASS: TestWindowAtProperties/day/Pacific/Chatham/anchored=false (0.15s)
+    --- PASS: TestWindowAtProperties/week/Pacific/Chatham/anchored=false (0.03s)
+    --- PASS: TestWindowAtProperties/month/Pacific/Chatham/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/minute/Pacific/Chatham/anchored=true (0.43s)
+    --- PASS: TestWindowAtProperties/hour/Pacific/Chatham/anchored=true (0.06s)
+    --- PASS: TestWindowAtProperties/day/Pacific/Chatham/anchored=true (0.17s)
+    --- PASS: TestWindowAtProperties/week/Pacific/Chatham/anchored=true (0.03s)
+    --- PASS: TestWindowAtProperties/month/Pacific/Chatham/anchored=true (0.02s)
+    --- PASS: TestWindowAtProperties/minute/America/New_York/anchored=false (0.54s)
+    --- PASS: TestWindowAtProperties/hour/America/New_York/anchored=false (0.07s)
+    --- PASS: TestWindowAtProperties/day/America/New_York/anchored=false (0.25s)
+    --- PASS: TestWindowAtProperties/week/America/New_York/anchored=false (0.04s)
+    --- PASS: TestWindowAtProperties/month/America/New_York/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/minute/America/New_York/anchored=true (0.56s)
+    --- PASS: TestWindowAtProperties/hour/America/New_York/anchored=true (0.08s)
+    --- PASS: TestWindowAtProperties/day/America/New_York/anchored=true (0.21s)
+    --- PASS: TestWindowAtProperties/week/America/New_York/anchored=true (0.04s)
+    --- PASS: TestWindowAtProperties/month/America/New_York/anchored=true (0.02s)
+    --- PASS: TestWindowAtProperties/minute/Europe/Berlin/anchored=false (0.43s)
+    --- PASS: TestWindowAtProperties/hour/Europe/Berlin/anchored=false (0.06s)
+    --- PASS: TestWindowAtProperties/day/Europe/Berlin/anchored=false (0.17s)
+    --- PASS: TestWindowAtProperties/week/Europe/Berlin/anchored=false (0.03s)
+    --- PASS: TestWindowAtProperties/month/Europe/Berlin/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/minute/Europe/Berlin/anchored=true (0.43s)
+    --- PASS: TestWindowAtProperties/hour/Europe/Berlin/anchored=true (0.06s)
+    --- PASS: TestWindowAtProperties/day/Europe/Berlin/anchored=true (0.17s)
+    --- PASS: TestWindowAtProperties/week/Europe/Berlin/anchored=true (0.03s)
+    --- PASS: TestWindowAtProperties/month/Europe/Berlin/anchored=true (0.02s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Singapore/anchored=false (0.25s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Singapore/anchored=false (0.03s)
+    --- PASS: TestWindowAtProperties/day/Asia/Singapore/anchored=false (0.10s)
+    --- PASS: TestWindowAtProperties/week/Asia/Singapore/anchored=false (0.02s)
+    --- PASS: TestWindowAtProperties/month/Asia/Singapore/anchored=false (0.01s)
+    --- PASS: TestWindowAtProperties/minute/Asia/Singapore/anchored=true (0.26s)
+    --- PASS: TestWindowAtProperties/hour/Asia/Singapore/anchored=true (0.04s)
+    --- PASS: TestWindowAtProperties/day/Asia/Singapore/anchored=true (0.10s)
+    --- PASS: TestWindowAtProperties/week/Asia/Singapore/anchored=true (0.03s)
+    --- PASS: TestWindowAtProperties/month/Asia/Singapore/anchored=true (0.02s)
+=== RUN   TestWindowAtAsiaSingaporeDayBoundary
+--- PASS: TestWindowAtAsiaSingaporeDayBoundary (0.00s)
+=== RUN   TestWindowAtNewYorkDSTDays
+--- PASS: TestWindowAtNewYorkDSTDays (0.00s)
+=== RUN   TestWindowAtMonthBoundaries
+--- PASS: TestWindowAtMonthBoundaries (0.00s)
+=== RUN   TestWindowAtISOWeekBoundaries
+--- PASS: TestWindowAtISOWeekBoundaries (0.00s)
+=== RUN   TestWindowAtAnchorOffset
+--- PASS: TestWindowAtAnchorOffset (0.00s)
+=== RUN   TestWindowAtRollingAndLifetime
+--- PASS: TestWindowAtRollingAndLifetime (0.00s)
+=== RUN   TestWindowAtValidationErrors
+--- PASS: TestWindowAtValidationErrors (0.00s)
+=== RUN   TestWindowAtSingaporeNineOClockAnchor
+--- PASS: TestWindowAtSingaporeNineOClockAnchor (0.00s)
+=== RUN   TestWindowAtRework2AuditProbes
+=== RUN   TestWindowAtRework2AuditProbes/current-zone-natural-hour
+=== RUN   TestWindowAtRework2AuditProbes/berlin-fall-back-earlier-anchor
+=== RUN   TestWindowAtRework2AuditProbes/fractional-anchor-not-truncated
+--- PASS: TestWindowAtRework2AuditProbes (0.00s)
+    --- PASS: TestWindowAtRework2AuditProbes/current-zone-natural-hour (0.00s)
+    --- PASS: TestWindowAtRework2AuditProbes/berlin-fall-back-earlier-anchor (0.00s)
+    --- PASS: TestWindowAtRework2AuditProbes/fractional-anchor-not-truncated (0.00s)
+=== RUN   TestWindowAtAnchorPrecision
+--- PASS: TestWindowAtAnchorPrecision (0.00s)
+=== RUN   TestWindowAtAnchoredWeekUsesAnchorWeekday
+--- PASS: TestWindowAtAnchoredWeekUsesAnchorWeekday (0.00s)
+=== RUN   TestWindowAtAnchoredMonthClampsShortMonths
+--- PASS: TestWindowAtAnchoredMonthClampsShortMonths (0.00s)
+=== RUN   TestWindowAtAnchoredMonthLeapDay
+--- PASS: TestWindowAtAnchoredMonthLeapDay (0.00s)
+PASS
+ok  	ant/server/internal/domain/resources	10.931s
+=== RUN   TestEmbeddedDescriptorMatchesCanonicalFile
+--- PASS: TestEmbeddedDescriptorMatchesCanonicalFile (0.00s)
+=== RUN   TestCatalogRejectsUnknownExtensionFields
+--- PASS: TestCatalogRejectsUnknownExtensionFields (0.00s)
+=== RUN   TestScopeMetadataResolution
+=== RUN   TestScopeMetadataResolution/account
+=== RUN   TestScopeMetadataResolution/second_account
+=== RUN   TestScopeMetadataResolution/shared_direct
+=== RUN   TestScopeMetadataResolution/shared_account_alias
+=== RUN   TestScopeMetadataResolution/shared_second_account_alias
+=== RUN   TestScopeMetadataResolution/shared_binding_alias
+--- PASS: TestScopeMetadataResolution (0.00s)
+    --- PASS: TestScopeMetadataResolution/account (0.00s)
+    --- PASS: TestScopeMetadataResolution/second_account (0.00s)
+    --- PASS: TestScopeMetadataResolution/shared_direct (0.00s)
+    --- PASS: TestScopeMetadataResolution/shared_account_alias (0.00s)
+    --- PASS: TestScopeMetadataResolution/shared_second_account_alias (0.00s)
+    --- PASS: TestScopeMetadataResolution/shared_binding_alias (0.00s)
+=== RUN   TestScopeMetadataExplicitMatch
+--- PASS: TestScopeMetadataExplicitMatch (0.00s)
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/child_scope
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/shared_child_account_substitution
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/child_provider
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/missing_parent_scope
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/missing_parent_provider
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/unknown_parent_provider
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/duplicate_parent_scope
+=== RUN   TestScopeMetadataRejectsInvalidSnapshot/unknown_parent_kind
+--- PASS: TestScopeMetadataRejectsInvalidSnapshot (0.03s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/child_scope (0.00s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/shared_child_account_substitution (0.00s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/child_provider (0.00s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/missing_parent_scope (0.01s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/missing_parent_provider (0.01s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/unknown_parent_provider (0.00s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/duplicate_parent_scope (0.00s)
+    --- PASS: TestScopeMetadataRejectsInvalidSnapshot/unknown_parent_kind (0.00s)
+=== RUN   TestEmbeddedVerifiedScopesMatchCanonicalFile
+--- PASS: TestEmbeddedVerifiedScopesMatchCanonicalFile (0.00s)
+PASS
+ok  	ant/server/internal/providers/localtest	1.232s

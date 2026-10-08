@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "ValidationFailed",
+    "messageKey": "ant.error.validationFailed",
+    "fieldIssues": [
+      {
+        "path": "/request/payload/maxOutputTokens",
+        "messageKey": "ant.error.fieldRequired"
+      }
+    ],
+    "retryable": false,
+    "action": "fix_fields_and_retry"
+  },
+  "requestId": "req-77aa01"
+}

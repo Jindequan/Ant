@@ -1,0 +1,46 @@
+package integration
+
+import (
+ "encoding/json"
+ "os"
+ "strings"
+ "testing"
+ "time"
+
+ "ant/server/internal/config"
+ "ant/server/internal/domain"
+ "ant/server/internal/domain/resources"
+ "ant/server/internal/providers/localtest"
+)
+
+func TestCodexThirdReviewConfigBoundary(t *testing.T) {
+ b,err:=os.ReadFile("../../../docs/evidence/CODEX-T1-REWORK2-AUDIT/config-cases.json");if err!=nil{t.Fatal(err)}
+ var cases []struct{Name string;Document json.RawMessage;Expected bool;ExpectedPathPrefix string};if err=json.Unmarshal(b,&cases);err!=nil{t.Fatal(err)}
+ cat,err:=localtest.New();if err!=nil{t.Fatal(err)}
+ for _,c:=range cases { t.Run(c.Name,func(t *testing.T){
+  result:=config.Validate(c.Document,cat);accepted:=len(result.Issues)==0
+  t.Logf("accepted=%t expected=%t issues=%+v",accepted,c.Expected,result.Issues)
+  if accepted!=c.Expected{t.Fail()}
+  if c.ExpectedPathPrefix!="" {found:=false;for _,i:=range result.Issues{if strings.HasPrefix(i.Path,c.ExpectedPathPrefix){found=true}};if !found{t.Errorf("no issue locates %s",c.ExpectedPathPrefix)}}
+ })}
+}
+
+func TestCodexThirdReviewWindowControls(t *testing.T) {
+ tests:=[]struct{name,now,zone,period,anchor,start,end string}{
+  {"kathmandu-natural-hour","2026-10-02T12:20:00+05:45","Asia/Kathmandu","hour","","2026-10-02T12:00:00+05:45","2026-10-02T13:00:00+05:45"},
+  {"berlin-first-fold-daily-anchor","2026-10-25T02:30:00+02:00","Europe/Berlin","day","2026-01-01T02:00:00+01:00","2026-10-25T02:00:00+02:00","2026-10-26T02:00:00+01:00"},
+  {"millisecond-preserved","2026-10-02T12:00:00Z","UTC","day","2026-01-01T09:00:00.500Z","2026-10-02T09:00:00.500Z","2026-10-03T09:00:00.500Z"},
+  {"lord-howe-half-hour-gap-hour","2026-10-04T02:45:00+11:00","Australia/Lord_Howe","hour","","2026-10-04T01:00:00+10:30","2026-10-04T03:00:00+11:00"},
+ }
+ for _,c:=range tests{t.Run(c.name,func(t *testing.T){now,_:=time.Parse(time.RFC3339Nano,c.now);wantS,_:=time.Parse(time.RFC3339Nano,c.start);wantE,_:=time.Parse(time.RFC3339Nano,c.end);_,s,e,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:c.period,TimeZone:c.zone,AnchorISO:c.anchor},"rev-1");t.Logf("start=%v end=%v err=%v",time.UnixMilli(s),time.UnixMilli(e),err);if err!=nil||s!=wantS.UnixMilli()||e!=wantE.UnixMilli(){t.Fail()}})}
+}
+
+func TestCodexThirdReviewEquivalentWindowControls(t *testing.T) {
+ now,_:=time.Parse(time.RFC3339,"2026-10-02T12:20:00Z")
+ pairs:=[]struct{name string;a,b domain.WindowRule}{
+  {"natural-midnight-equals-explicit-midnight",domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"Asia/Singapore"},domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"Asia/Singapore",AnchorISO:"2026-01-01T00:00:00+08:00"}},
+  {"hour-phase-ignores-anchor-hour",domain.WindowRule{Kind:"fixed",Period:"hour",TimeZone:"Asia/Singapore",AnchorISO:"2026-01-01T01:15:00+08:00"},domain.WindowRule{Kind:"fixed",Period:"hour",TimeZone:"Asia/Singapore",AnchorISO:"2026-01-01T02:15:00+08:00"}},
+  {"utc-zone-aliases",domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"UTC"},domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"Etc/UTC"}},
+ }
+ for _,c:=range pairs{t.Run(c.name,func(t *testing.T){ka,sa,ea,errA:=resources.WindowAt(domain.Millis(now.UnixMilli()),c.a,"rev-1");kb,sb,eb,errB:=resources.WindowAt(domain.Millis(now.UnixMilli()),c.b,"rev-1");t.Logf("a=%s b=%s errors=%v/%v",ka,kb,errA,errB);if errA!=nil||errB!=nil||ka!=kb||sa!=sb||ea!=eb{t.Fail()}})}
+}

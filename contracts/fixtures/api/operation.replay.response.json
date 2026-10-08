@@ -1,0 +1,34 @@
+{
+  "kind": "replay",
+  "state": "succeeded",
+  "operationId": "op-20261002-0001",
+  "result": {
+    "operationId": "op-20261002-0001",
+    "state": "succeeded",
+    "code": "Success",
+    "reasons": [],
+    "retrySafety": "proved_safe",
+    "attempts": [
+      "att-0001"
+    ],
+    "resources": [
+      {
+        "resourceId": "res-alpha-daily-token",
+        "windowKey": "semrev-1:1791916800000:1792003200000",
+        "metricId": "metric.tokens.total",
+        "unit": "token",
+        "consumed": "231",
+        "consumptionBasis": "provider_reported",
+        "occupancy": "released",
+        "evidenceRefs": [
+          "ev-attempt-0001"
+        ]
+      }
+    ],
+    "decisionRefs": [
+      "dec-0001"
+    ],
+    "outputAvailability": "available",
+    "suggestedAction": "none"
+  }
+}

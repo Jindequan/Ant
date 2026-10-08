@@ -1,0 +1,16 @@
+cd server && go build -o ../bin/ant-server ./cmd/ant-server
+cd web && npm run build
+
+> ant-web@0.1.0 build
+> vite build
+
+vite v8.3.2 building client environment for production...
+transforming...
+✓ 82 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:   0.28 kB
+dist/assets/index-5dMNeulj.css    3.07 kB │ gzip:   1.01 kB
+dist/assets/index-CZ7OE5Ow.js   344.25 kB │ gzip: 107.66 kB
+
+✓ built in 212ms

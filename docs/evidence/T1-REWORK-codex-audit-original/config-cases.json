@@ -1,0 +1,3942 @@
+[
+  {
+    "name": "valid-baseline",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "name": "dangling-offer-binding",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-missing",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "dangling-resource-owner",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-missing",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "dangling-group-scope",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-missing",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "group-unit-mismatch",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "token",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "dangling-selector-evidence",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-missing"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "dangling-evidence-subject",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-missing",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "quantity-leading-zero",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "010",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "quantity-negative",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "-1",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "quantity-negative-zero",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "-0",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "quantity-overflow",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "9223372036854775808",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "nested-secret",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "nested": {
+              "password": "synthetic-not-a-real-secret"
+            }
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "case-secret",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "APIKey": "synthetic-not-a-real-secret"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "name": "missing-required-arrays",
+    "document": {
+      "schemaVersion": 1
+    },
+    "expected": false
+  },
+  {
+    "name": "valid-gift-and-prepaid-buckets",
+    "document": {
+      "schemaVersion": 1,
+      "accounts": [
+        {
+          "accountId": "acct-demo-1",
+          "providerTypeId": "provider-alpha",
+          "displayName": "Alpha 示例账户（local/test，无真实凭证）",
+          "enabled": true,
+          "providerExtensions": {
+            "planName": "fixture-only",
+            "region": "test"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "bindingId": "bind-alpha-main",
+          "accountId": "acct-demo-1",
+          "domain": "ai/text",
+          "endpoint": "https://fixture.invalid/v1/messages",
+          "credentialRef": "secret-alpha-key",
+          "credentialRevision": "rev-1",
+          "enabled": true,
+          "capabilityProfiles": [
+            "profile.chat.basic"
+          ],
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency",
+            "res-alpha-usd-prepaid"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "res-alpha-daily-token",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "fixed",
+            "period": "day",
+            "timeZone": "Asia/Singapore"
+          },
+          "metered": false,
+          "configuredCapacity": "1000000",
+          "capacityEvidenceRef": "ev-alpha-daily-bound",
+          "initialStateEvidenceRef": "ev-alpha-daily-initial"
+        },
+        {
+          "resourceId": "res-alpha-usd-entitlement",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "currency": "USD",
+          "configuredCapacity": "500",
+          "capacityEvidenceRef": "ev-alpha-usd-bound",
+          "initialStateEvidenceRef": "ev-alpha-usd-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        },
+        {
+          "resourceId": "res-alpha-concurrency",
+          "ownerKind": "binding",
+          "ownerId": "bind-alpha-main",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "kind": "occupancy",
+          "commercialRole": "limit",
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": false,
+          "configuredCapacity": "1",
+          "capacityEvidenceRef": "ev-alpha-conc-bound"
+        },
+        {
+          "resourceId": "res-alpha-usd-prepaid",
+          "ownerKind": "account",
+          "ownerId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "kind": "counter",
+          "commercialRole": "entitlement",
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "window": {
+            "kind": "lifetime"
+          },
+          "metered": true,
+          "currency": "USD",
+          "configuredCapacity": "1000",
+          "capacityEvidenceRef": "ev-paid-bound",
+          "initialStateEvidenceRef": "ev-paid-initial",
+          "expiresAtMillis": 1893456000000,
+          "entitlementGroupId": "eg-alpha-usd"
+        }
+      ],
+      "entitlementGroups": [
+        {
+          "groupId": "eg-alpha-usd",
+          "scopeKind": "account",
+          "scopeId": "acct-demo-1",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "order": [
+            {
+              "resourceId": "res-alpha-usd-entitlement",
+              "providerOrder": 1
+            },
+            {
+              "resourceId": "res-alpha-usd-prepaid",
+              "providerOrder": 2
+            }
+          ],
+          "selectorEvidenceId": "ev-alpha-usd-selector"
+        }
+      ],
+      "offers": [
+        {
+          "offerId": "offer-alpha-chat-a",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency",
+            "res-alpha-usd-prepaid"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound",
+            "ev-paid-bound"
+          ]
+        },
+        {
+          "offerId": "offer-alpha-chat-b",
+          "bindingId": "bind-alpha-main",
+          "domain": "ai/text",
+          "capabilityProfile": "profile.chat.basic",
+          "enabled": true,
+          "resourceRefs": [
+            "res-alpha-daily-token",
+            "res-alpha-usd-entitlement",
+            "res-alpha-concurrency",
+            "res-alpha-usd-prepaid"
+          ],
+          "requiredEvidenceRefs": [
+            "ev-alpha-daily-bound",
+            "ev-alpha-usd-bound",
+            "ev-paid-bound"
+          ]
+        }
+      ],
+      "pools": [
+        {
+          "poolId": "pool-main",
+          "namespace": "ns-demo",
+          "name": "演示主池（fixture）",
+          "enabled": true,
+          "members": [
+            {
+              "offerId": "offer-alpha-chat-a",
+              "priority": 7,
+              "enabled": true
+            },
+            {
+              "offerId": "offer-alpha-chat-b",
+              "priority": 7,
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "grants": [
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "configure",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "execute",
+          "scopeKind": "pool",
+          "scopeId": "pool-main"
+        },
+        {
+          "principalId": "principal-admin",
+          "namespace": "ns-demo",
+          "permission": "read",
+          "scopeKind": "namespace",
+          "scopeId": "ns-demo"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "ev-alpha-daily-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.tokens.total",
+            "bound": "1000000",
+            "enforcement": "plan-hard-cap (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-daily-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-daily-token",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "1000000"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/billing-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "500",
+            "enforcement": "billing-hard-stop (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-entitlement",
+          "sourceRef": "fixture://provider-alpha/console",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "remaining": "500"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-usd-selector",
+          "kind": "entitlement_selector",
+          "subjectRef": "eg-alpha-usd",
+          "sourceRef": "fixture://provider-alpha/entitlement-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "note": "entitlement consumed before metered; no selectable pool parameter (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-alpha-conc-bound",
+          "kind": "bound",
+          "subjectRef": "bind-alpha-main",
+          "sourceRef": "fixture://provider-alpha/api-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.concurrency.request",
+            "bound": "1",
+            "enforcement": "429-on-second (fixture)"
+          }
+        },
+        {
+          "evidenceId": "ev-paid-bound",
+          "kind": "bound",
+          "subjectRef": "acct-demo-1",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "1000"
+          }
+        },
+        {
+          "evidenceId": "ev-paid-initial",
+          "kind": "initial_state",
+          "subjectRef": "res-alpha-usd-prepaid",
+          "sourceRef": "fixture://provider-alpha/plan-doc",
+          "verifiedAtMillis": 1759363200000,
+          "expiresAtMillis": 1790899200000,
+          "payload": {
+            "metricId": "metric.usd.cents",
+            "bound": "1000"
+          }
+        }
+      ],
+      "unsupportedDrafts": [
+        {
+          "draftId": "draft-provider-beta",
+          "providerTypeId": "provider-beta",
+          "description": "Beta 供应商描述草稿：协议适配器尚未实现",
+          "reason": "adapter-not-implemented",
+          "capturedAtMillis": 1759363200000
+        }
+      ]
+    },
+    "expected": true
+  }
+]

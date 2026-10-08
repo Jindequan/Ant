@@ -1,0 +1,144 @@
+=== RUN   TestSettlementAtomicReplayConflict
+--- PASS: TestSettlementAtomicReplayConflict (0.15s)
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy/unknown
+=== RUN   TestSettlementUnknownAndSuccessConserveOccupancy/known_success
+--- PASS: TestSettlementUnknownAndSuccessConserveOccupancy (0.27s)
+    --- PASS: TestSettlementUnknownAndSuccessConserveOccupancy/unknown (0.13s)
+    --- PASS: TestSettlementUnknownAndSuccessConserveOccupancy/known_success (0.14s)
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/resource_events
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/encumbrances
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/holds
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/operation_events
+=== RUN   TestSettlementRollbackAtEveryDurableBoundary/command_receipts
+--- PASS: TestSettlementRollbackAtEveryDurableBoundary (0.83s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/resource_events (0.16s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/encumbrances (0.16s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/holds (0.17s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/operation_events (0.18s)
+    --- PASS: TestSettlementRollbackAtEveryDurableBoundary/command_receipts (0.18s)
+=== RUN   TestSettlementOverrunAcceptedAndHeld
+--- PASS: TestSettlementOverrunAcceptedAndHeld (0.13s)
+=== RUN   TestSettlementConcurrentReportsExactlyOnce
+--- PASS: TestSettlementConcurrentReportsExactlyOnce (0.21s)
+=== RUN   TestSettlementContinueThenFinalAllFacts
+--- PASS: TestSettlementContinueThenFinalAllFacts (0.18s)
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/cancel
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/deadline
+=== RUN   TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/disable
+--- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts (0.43s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/cancel (0.14s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/deadline (0.14s)
+    --- PASS: TestSettlementCancelDeadlineAndPolicyDoNotEraseFacts/disable (0.14s)
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/0
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/1
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/2
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/3
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/4
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/5
+=== RUN   TestSettlementInvalidReportsAndStaleEvidence/6
+--- PASS: TestSettlementInvalidReportsAndStaleEvidence (1.04s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/0 (0.13s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/1 (0.13s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/2 (0.13s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/3 (0.13s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/4 (0.14s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/5 (0.13s)
+    --- PASS: TestSettlementInvalidReportsAndStaleEvidence/6 (0.13s)
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/allowed
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/policy-closed
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/retry-allowlist-nil
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/retry-allowlist-refused
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/not-proved-safe
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/not-external-ended
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/cancel-requested
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/deadline-passed
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/attempt-budget-spent
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/visible-output
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/stored-output
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/account-hold
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/binding-hold
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/credential-hold
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/domain-hold
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/resource-hold
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/open-encumbrance
+=== RUN   TestSettlementContinuationGatedByHoldsAndPolicy/expired-hold-continues
+--- PASS: TestSettlementContinuationGatedByHoldsAndPolicy (2.43s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/allowed (0.14s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/policy-closed (0.14s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/retry-allowlist-nil (0.14s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/retry-allowlist-refused (0.14s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/not-proved-safe (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/not-external-ended (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/cancel-requested (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/deadline-passed (0.12s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/attempt-budget-spent (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/visible-output (0.12s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/stored-output (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/account-hold (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/binding-hold (0.12s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/credential-hold (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/domain-hold (0.12s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/resource-hold (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/open-encumbrance (0.13s)
+    --- PASS: TestSettlementContinuationGatedByHoldsAndPolicy/expired-hold-continues (0.12s)
+=== RUN   TestSettlementWindowChargedAtAttribution
+=== RUN   TestSettlementWindowChargedAtAttribution/fixed-inside
+=== RUN   TestSettlementWindowChargedAtAttribution/fixed-outside-isolated
+=== RUN   TestSettlementWindowChargedAtAttribution/rolling-inside
+=== RUN   TestSettlementWindowChargedAtAttribution/rolling-boundary-isolated
+=== RUN   TestSettlementWindowChargedAtAttribution/rolling-outside-isolated
+--- PASS: TestSettlementWindowChargedAtAttribution (0.58s)
+    --- PASS: TestSettlementWindowChargedAtAttribution/fixed-inside (0.11s)
+    --- PASS: TestSettlementWindowChargedAtAttribution/fixed-outside-isolated (0.12s)
+    --- PASS: TestSettlementWindowChargedAtAttribution/rolling-inside (0.11s)
+    --- PASS: TestSettlementWindowChargedAtAttribution/rolling-boundary-isolated (0.12s)
+    --- PASS: TestSettlementWindowChargedAtAttribution/rolling-outside-isolated (0.12s)
+=== RUN   TestSettlementWaterfallOrderAndOverrun
+=== RUN   TestSettlementWaterfallOrderAndOverrun/provider-order-not-plan-order
+=== RUN   TestSettlementWaterfallOrderAndOverrun/overrun-held-on-last-bucket
+--- PASS: TestSettlementWaterfallOrderAndOverrun (0.25s)
+    --- PASS: TestSettlementWaterfallOrderAndOverrun/provider-order-not-plan-order (0.13s)
+    --- PASS: TestSettlementWaterfallOrderAndOverrun/overrun-held-on-last-bucket (0.12s)
+=== RUN   TestSettlementIdentityAndMappingIntegrity
+=== RUN   TestSettlementIdentityAndMappingIntegrity/column-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/definition-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/kind-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/owner-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/semantics-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/plan-mapping-drift
+=== RUN   TestSettlementIdentityAndMappingIntegrity/plan-metric-drift
+--- PASS: TestSettlementIdentityAndMappingIntegrity (0.94s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/column-drift (0.12s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/definition-drift (0.12s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/kind-drift (0.12s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/owner-drift (0.13s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/semantics-drift (0.12s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/plan-mapping-drift (0.18s)
+    --- PASS: TestSettlementIdentityAndMappingIntegrity/plan-metric-drift (0.14s)
+=== RUN   TestSettlementOwnerGenerationAndTerminalEvidence
+--- PASS: TestSettlementOwnerGenerationAndTerminalEvidence (0.14s)
+=== RUN   TestSettlementConflictingReportsRace
+--- PASS: TestSettlementConflictingReportsRace (0.22s)
+=== RUN   TestSettlementCASFailureInjection
+=== RUN   TestSettlementCASFailureInjection/operations
+=== RUN   TestSettlementCASFailureInjection/attempts
+=== RUN   TestSettlementCASFailureInjection/reservations
+--- PASS: TestSettlementCASFailureInjection (0.49s)
+    --- PASS: TestSettlementCASFailureInjection/operations (0.17s)
+    --- PASS: TestSettlementCASFailureInjection/attempts (0.16s)
+    --- PASS: TestSettlementCASFailureInjection/reservations (0.16s)
+=== RUN   TestSettlementQueuedLeaseExpiry
+--- PASS: TestSettlementQueuedLeaseExpiry (0.22s)
+=== RUN   TestSettlementOutputAvailabilityFromChunksOnly
+=== RUN   TestSettlementOutputAvailabilityFromChunksOnly/no-chunks-unavailable
+=== RUN   TestSettlementOutputAvailabilityFromChunksOnly/chunks-stored
+--- PASS: TestSettlementOutputAvailabilityFromChunksOnly (0.25s)
+    --- PASS: TestSettlementOutputAvailabilityFromChunksOnly/no-chunks-unavailable (0.13s)
+    --- PASS: TestSettlementOutputAvailabilityFromChunksOnly/chunks-stored (0.13s)
+PASS
+ok  	ant/server/internal/ledger/commands	10.929s

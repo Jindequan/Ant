@@ -1,0 +1,15 @@
+{
+  "chunks": [
+    {
+      "sequence": 1,
+      "data": "Zml4dHVyZSBvdXRwdXQgY2h1bmsgMQ=="
+    },
+    {
+      "sequence": 2,
+      "data": "Zml4dHVyZSBvdXRwdXQgY2h1bmsgMg=="
+    }
+  ],
+  "nextSequence": 2,
+  "complete": false,
+  "availability": "available"
+}

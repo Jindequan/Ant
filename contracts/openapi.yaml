@@ -1,0 +1,1610 @@
+openapi: 3.0.3
+info:
+  title: ANT Server API
+  version: "1.1.21"
+  description: |
+    Versioned wire contract (K6). Changes require a new spec version and
+    synchronized Go/Web projections. Ledger quantities are exact decimal strings over int64 minimal
+    units (floats/exponents/overflow rejected); provider usage above MaxInt64
+    is carried separately as an exact review fact, never as a ledger quantity.
+    Unknown request fields and
+    duplicate JSON keys are rejected. Internal permit/handle types are never
+    exposed. Errors use the uniform envelope with requestId.
+    Array semantics: required arrays mean missing = invalid input; an empty
+    array is an explicit "none" (e.g. reasons=[], candidates=[]). Optional
+    quantity fields (e.g. ResourceView.available) mean unknown when omitted —
+    never encode unknown as 0.
+    Response schemas for GET /v1/providers, /v1/resources, and /v1/offers
+    are not defined yet; clients must not treat their current shapes as stable.
+    Browser authentication uses the ant_session HttpOnly cookie. Unsafe
+    cookie-authenticated requests also require a matching X-CSRF-Token header
+    and readable ant_csrf cookie, plus a same-origin Origin header. Session
+    cookies are SameSite=Strict and expire after 12 hours. Bootstrap tokens
+    are accepted only by POST /v1/sessions and are exchanged once.
+security:
+  - bearerAuth: []
+  - sessionCookie: []
+servers:
+  - url: http://127.0.0.1:8080
+    description: local development (single host)
+tags:
+  - name: session
+  - name: catalog
+  - name: config
+  - name: secrets
+  - name: providers
+  - name: pools
+  - name: operations
+  - name: admin
+paths:
+  /v1/inventory:
+    get:
+      operationId: readSupplyInventory
+      tags: [config]
+      summary: Read namespace-owned, non-executable resource supply
+      responses:
+        "200":
+          description: Configured inventory; version 0 means not yet saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryView" }
+        default:
+          description: Uniform API error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    put:
+      operationId: saveSupplyInventory
+      tags: [config]
+      summary: Atomically save supply with an expected version and command receipt
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryInput" }
+      responses:
+        "200":
+          description: Saved or replayed inventory; declarations are not balances
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryView" }
+        default:
+          description: Uniform API error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /healthz:
+    get:
+      tags: [session]
+      summary: Liveness; no auth, leaks no configuration.
+      security: []
+      responses:
+        "200": { description: OK }
+  /readyz:
+    get:
+      tags: [session]
+      summary: Readiness.
+      security: []
+      responses:
+        "200": { description: Ready }
+  /v1/sessions:
+    post:
+      tags: [session]
+      summary: Exchange a bootstrap/admin token for a session.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: Session established
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionView" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "429": { $ref: "#/components/responses/Error429" }
+  /v1/session:
+    get:
+      tags: [session]
+      summary: Current session projection.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionView" }
+        "401": { $ref: "#/components/responses/Error401" }
+    delete:
+      tags: [session]
+      summary: Logout; closes subscriptions (already-dispatched facts remain).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          description: Must match both the ant_csrf cookie and its server-side hash; Origin must be same-origin.
+          schema: { type: string, minLength: 1 }
+      responses:
+        "204": { description: Logged out }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/catalog/providers:
+    get:
+      tags: [catalog]
+      summary: Registered provider descriptors (no secrets).
+      responses:
+        "200":
+          description: Descriptors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProviderDescriptor" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/catalog/scopes:
+    get:
+      tags: [catalog]
+      summary: Verified billing scopes for the explicitly marked local test provider.
+      responses:
+        "200":
+          description: Controlled test fixture scopes; never live provider data.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VerifiedScopeCatalogView" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/config:
+    get:
+      tags: [config]
+      summary: Current active config projection (ConfigDocument shape).
+      responses:
+        "200":
+          description: Active ConfigDocument with revision metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigProjection" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/runtime/restore-guard:
+    get:
+      tags: [admin]
+      summary: Read the audited global restore guard state.
+      description: Requires manage permission. The guard prevents new external dispatch while restore recovery is being reviewed.
+      responses:
+        "200":
+          description: Current guard state and optimistic concurrency version.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RestoreGuardState" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "503": { $ref: "#/components/responses/Error503" }
+    put:
+      tags: [admin]
+      summary: Change the global restore guard with an audit evidence reference.
+      description: Requires manage permission. Every change is idempotent by commandId and increments controlVersion when the enabled state changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RestoreGuardInput" }
+      responses:
+        "200":
+          description: Updated guard state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RestoreGuardState" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/config/revisions:
+    get:
+      tags: [config]
+      summary: Config revision history (keyset pagination).
+      parameters:
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        "200":
+          description: Revisions page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevisionPage" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/config/drafts:
+    post:
+      tags: [config]
+      summary: Save a draft (invalid drafts are savable for repair).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDraftInput" }
+      responses:
+        "201":
+          description: Draft stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigDraft" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/config/drafts/{draftId}:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [config]
+      summary: Read one draft.
+      responses:
+        "200":
+          description: Draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigDraft" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+    patch:
+      tags: [config]
+      summary: Update draft (If-Match draft version).
+      parameters:
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateDraftInput" }
+      responses:
+        "200":
+          description: Draft updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigDraft" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "412": { $ref: "#/components/responses/Error412" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/config/drafts/{draftId}/validate:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string } }
+      - { name: If-Match, in: header, required: true, schema: { type: string, description: Strong quoted or bare canonical draft version } }
+    post:
+      tags: [config]
+      summary: Validate draft; network evidence checks run outside transactions.
+      responses:
+        "200":
+          description: Validation result (issues list may be non-empty)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigDraft" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/config/drafts/{draftId}/activate:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [config]
+      summary: Atomically activate; requires exact expectedConfigRevision ("" only when none active).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivationInput" }
+      responses:
+        "200":
+          description: Activated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivationResult" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "422": { $ref: "#/components/responses/Error422" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/secrets:
+    post:
+      tags: [secrets]
+      summary: Write a secret; returns ref/revision/mask only, never the value.
+      description: Requires configure permission. The secret is encrypted with the server master key, and its reference is owned by the authenticated principal and namespace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SecretWriteInput" }
+      responses:
+        "201":
+          description: Secret metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecretMetadata" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/providers/deepseek/balance-observations:
+    post:
+      tags: [providers]
+      summary: Observe the balance for a caller-owned current DeepSeek credential.
+      description: Explicitly issues one GET to DeepSeek's balance endpoint. The key is resolved server-side from credentialRef and credentialRevision. The receipt and audit record are saved atomically. Reuse commandId to replay the same result after a lost response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeepSeekBalanceObserveInput" }
+      responses:
+        "200":
+          description: Persisted balance observation; no account identity or provider watermark is implied.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeepSeekBalanceObservation" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "502": { $ref: "#/components/responses/Error502" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/providers/deepseek/balance-observations/{commandId}:
+    parameters:
+      - { name: commandId, in: path, required: true, schema: { $ref: "#/components/schemas/ID" } }
+    get:
+      tags: [providers]
+      summary: Read a previously committed caller-scoped DeepSeek balance observation.
+      responses:
+        "200":
+          description: Persisted observation; this read never contacts DeepSeek.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeepSeekBalanceObservation" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/secrets/{secretId}/rotate:
+    parameters:
+      - { name: secretId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [secrets]
+      summary: Rotate a secret; new revision, mask-only response.
+      description: Requires configure permission. expectedRevision is compared and advanced atomically; retries with the same commandId replay the original metadata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SecretRotateInput" }
+      responses:
+        "200":
+          description: New revision metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecretMetadata" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/secrets/{secretId}:
+    parameters:
+      - { name: secretId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [secrets]
+      summary: Secret metadata (mask only; no plaintext read exists).
+      description: Requires configure permission and the secret's owning principal and namespace.
+      responses:
+        "200":
+          description: Metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecretMetadata" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/providers:
+    get:
+      tags: [config]
+      x-ant-pending: T2.1 freezes this projection (design has no DTO yet)
+      summary: List accounts/bindings current state (authorized only).
+      responses:
+        "200": { description: Authorized entity list }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/resources:
+    get:
+      tags: [config]
+      x-ant-pending: T2.1 freezes this projection (design has no DTO yet)
+      summary: List resources with availability/evidence status (authorized only).
+      responses:
+        "200": { description: Resource list }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/offers:
+    get:
+      tags: [config]
+      x-ant-pending: T2.1 freezes this projection (design has no DTO yet)
+      summary: List offers (authorized only).
+      responses:
+        "200": { description: Offer list }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/pools:
+    get:
+      tags: [pools]
+      summary: List pools in the authorized namespace.
+      responses:
+        "200":
+          description: Pools
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PoolView" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/pools/{poolId}:
+    parameters:
+      - { name: poolId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [pools]
+      summary: Pool view grouped by domain/profile/unit; no cross-unit totals.
+      responses:
+        "200":
+          description: Pool
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolView" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/pools/{poolId}/order:
+    parameters:
+      - { name: poolId, in: path, required: true, schema: { type: string } }
+      - { name: If-Match, in: header, required: true, schema: { type: string }, description: "Must equal the body expectedPoolVersion; mismatch is an explicit 409/412 rejection, never a silent override." }
+    put:
+      tags: [pools]
+      summary: |
+        Replace the full member order (K4 authoritative write path). Every
+        current member must appear exactly once with an explicit priority.
+        Equal priorities order by offerId. Atomic: any invalid member rolls
+        back the whole command; same commandId+same body replays, different
+        body is rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderPoolInput" }
+      responses:
+        "200":
+          description: New pool projection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolView" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/pools/{poolId}/operations:
+    parameters:
+      - { name: poolId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [operations]
+      summary: Submit a logical operation; poolId in path is bound into the fingerprint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExecuteInput" }
+      responses:
+        "202":
+          description: Accepted and owned by the resident server
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmitReply" }
+        "200":
+          description: Existing operation (inProgress or replay)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmitReply" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "429": { $ref: "#/components/responses/Error429" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/operations:
+    get:
+      tags: [operations]
+      summary: List persisted operation projections (namespace from identity; cursor pagination).
+      parameters:
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { name: state, in: query, description: Filter by persisted operation state; omitted means all states., schema: { type: string, enum: [running, succeeded, failed, cancelled, unknown] } }
+      responses:
+        "200":
+          description: Operations in this identity's namespace.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationPage" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "400": { $ref: "#/components/responses/Error400" }
+  /v1/operations/{operationId}:
+    parameters:
+      - { name: operationId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [operations]
+      summary: Operation projection with attempts, consumption and result.
+      responses:
+        "200":
+          description: Operation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationView" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+  /v1/operations/{operationId}/cancel:
+    parameters:
+      - { name: operationId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [operations]
+      summary: Record cancel intent; ACK never impersonates a result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OperationCancelInput" }
+      responses:
+        "200":
+          description: CancellationAck
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CancellationAck" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/operations/{operationId}/events:
+    parameters:
+      - { name: operationId, in: path, required: true, schema: { type: string } }
+      - { name: afterSequence, in: query, schema: { type: integer, format: int64, minimum: 0 } }
+      - { name: Last-Event-ID, in: header, schema: { type: string } }
+    get:
+      tags: [operations]
+      summary: SSE subscription over persisted operation events (text/event-stream).
+      responses:
+        "200":
+          description: Event stream; id=sequence, event=type, data=JSON envelope
+          content:
+            text/event-stream:
+              schema: { $ref: "#/components/schemas/OperationEvent" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "429": { $ref: "#/components/responses/Error429" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/operations/{operationId}/output:
+    parameters:
+      - { name: operationId, in: path, required: true, schema: { type: string } }
+      - { name: afterSequence, in: query, schema: { type: integer, minimum: 0 } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+    get:
+      tags: [operations]
+      summary: Saved output chunks; missing bodies return explicit availability.
+      responses:
+        "200":
+          description: Output page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutputPage" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/operations/{operationId}/decisions:
+    parameters:
+      - { name: operationId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [operations]
+      summary: Persisted decision records; history is never recomputed.
+      responses:
+        "200":
+          description: Decisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DecisionView" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/resources/{resourceId}/observations:
+    parameters:
+      - { name: resourceId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: Refresh observation (manage permission; no business resend).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ObservationRefreshInput" }
+      responses:
+        "200":
+          description: RefreshResult
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefreshResult" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+  /v1/resources/{resourceId}/adjustments:
+    parameters:
+      - { name: resourceId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: Ledger adjustment with evidence; idempotent by commandId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdjustmentInput" }
+      responses:
+        "200":
+          description: Adjusted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandAck" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/attempts/{attemptId}/reconciliations:
+    parameters:
+      - { name: attemptId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: Append reconciliation; never overwrites the original terminal state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReconciliationInput" }
+      responses:
+        "201":
+          description: Reconciliation stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReconciliationView" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+  /v1/holds/{holdId}/clear:
+    parameters:
+      - { name: holdId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [admin]
+      summary: Clear a hold with release evidence; never deletes unknown occupancy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClearHoldInput" }
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandAck" }
+        "404": { $ref: "#/components/responses/Error404" }
+        "400": { $ref: "#/components/responses/Error400" }
+        "409": { $ref: "#/components/responses/Error409" }
+        "503": { $ref: "#/components/responses/Error503" }
+        "401": { $ref: "#/components/responses/Error401" }
+        "403": { $ref: "#/components/responses/Error403" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API tokens. The one-time bootstrap token is valid only for POST /v1/sessions.
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: ant_session
+      description: HttpOnly browser session cookie. Unsafe methods also require X-CSRF-Token matching the ant_csrf cookie and a same-origin Origin header.
+  responses:
+    Error400:
+      description: Field/validation error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+          example:
+            error: { code: ValidationFailed, messageKey: ant.error.validationFailed, retryable: false, action: fix_fields_and_retry }
+            requestId: req-77aa01
+    Error401:
+      description: Session invalid/expired
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error403:
+      description: Permission denied
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error404:
+      description: Not found or not visible to this identity
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error409:
+      description: Identity or version conflict
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error412:
+      description: If-Match precondition failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error422:
+      description: Config not executable (field issues listed)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error429:
+      description: Busy / rate limited
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error502:
+      description: Provider response was invalid or unavailable
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Error503:
+      description: Store or host unavailable
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  schemas:
+    ID: { type: string, minLength: 1, maxLength: 64 }
+    Quantity:
+      type: string
+      pattern: "^(0|-?[1-9][0-9]{0,18})$"
+      description: Canonical decimal spelling over int64 minimal units; exact range is enforced by the codecs (int64/BigInt), this pattern rejects floats, exponents, leading zeros, -0 and bare numbers at the schema layer.
+    Millis: { type: integer, format: int64 }
+    FieldIssue:
+      type: object
+      additionalProperties: false
+      required: [path, messageKey]
+      properties:
+        path: { type: string }
+        messageKey: { type: string }
+    Reason:
+      type: object
+      additionalProperties: false
+      required: [group, code]
+      properties:
+        group: { type: string }
+        code: { type: string }
+        scopeRef: { $ref: "#/components/schemas/ID" }
+        evidenceRef: { $ref: "#/components/schemas/ID" }
+    ErrorDTO:
+      type: object
+      additionalProperties: false
+      required: [code, messageKey, retryable, action]
+      properties:
+        code: { type: string }
+        messageKey: { type: string }
+        params:
+          type: object
+          additionalProperties: { type: string }
+        fieldIssues:
+          type: array
+          items: { $ref: "#/components/schemas/FieldIssue" }
+        operationId: { $ref: "#/components/schemas/ID" }
+        retryable: { type: boolean }
+        action: { type: string }
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error, requestId]
+      properties:
+        error: { $ref: "#/components/schemas/ErrorDTO" }
+        requestId: { type: string }
+    LoginInput:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string, minLength: 16 }
+    SessionView:
+      type: object
+      additionalProperties: false
+      required: [principalId, namespace, permissions, csrfToken, expiresAt]
+      properties:
+        principalId: { $ref: "#/components/schemas/ID" }
+        namespace: { $ref: "#/components/schemas/ID" }
+        permissions: { type: array, items: { type: string, enum: [execute, read, cancel, manage, configure] } }
+        csrfToken: { type: string }
+        expiresAt: { $ref: "#/components/schemas/Millis" }
+    SecretWriteInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, value]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        value: { type: string, minLength: 1 }
+    RestoreGuardState:
+      type: object
+      additionalProperties: false
+      required: [enabled, controlVersion]
+      properties:
+        enabled: { type: boolean }
+        controlVersion: { type: integer, format: int64, minimum: 1 }
+    RestoreGuardInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, expectedControlVersion, enabled, evidenceRef]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        expectedControlVersion: { type: integer, format: int64, minimum: 1 }
+        enabled: { type: boolean }
+        evidenceRef: { $ref: "#/components/schemas/ID" }
+    SecretMetadata:
+      type: object
+      additionalProperties: false
+      required: [ref, revision, mask]
+      properties:
+        ref: { $ref: "#/components/schemas/ID" }
+        revision: { $ref: "#/components/schemas/ID" }
+        mask: { type: string }
+    DeepSeekBalanceObserveInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, credentialRef, credentialRevision]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        credentialRef: { $ref: "#/components/schemas/ID" }
+        credentialRevision: { $ref: "#/components/schemas/ID" }
+    DeepSeekBalanceObservation:
+      type: object
+      additionalProperties: false
+      required: [isAvailable, observedAt, balances]
+      properties:
+        isAvailable: { type: boolean }
+        observedAt: { $ref: "#/components/schemas/Millis" }
+        balances:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: { $ref: "#/components/schemas/DeepSeekAccountBalance" }
+    DeepSeekAccountBalance:
+      type: object
+      additionalProperties: false
+      required: [currency, totalCents, grantedCents, toppedUpCents]
+      properties:
+        currency: { type: string, enum: [CNY, USD] }
+        totalCents: { $ref: "#/components/schemas/Quantity" }
+        grantedCents: { $ref: "#/components/schemas/Quantity" }
+        toppedUpCents: { $ref: "#/components/schemas/Quantity" }
+    ProviderDescriptor:
+      type: object
+      additionalProperties: false
+      required: [typeId, adapterRevision, supportedDomains, configSchema, resourceSchema, capabilitySchema, extensionSchema, entitlementFacts, semantics, profiles]
+      properties:
+        typeId: { $ref: "#/components/schemas/ID" }
+        adapterRevision: { $ref: "#/components/schemas/ID" }
+        supportedDomains: { type: array, items: { type: string } }
+        configSchema: {}
+        resourceSchema: {}
+        capabilitySchema: {}
+        extensionSchema: {}
+        entitlementFacts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [factId, metricId, unit, description]
+            properties:
+              factId: { $ref: "#/components/schemas/ID" }
+              metricId: { $ref: "#/components/schemas/ID" }
+              unit: { type: string }
+              description: { type: string }
+        semantics:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [semanticsRef, acceptedRevisions, resourceKind, commercialRole]
+            properties:
+              semanticsRef: { $ref: "#/components/schemas/ID" }
+              acceptedRevisions: { type: array, items: { $ref: "#/components/schemas/ID" } }
+              resourceKind: { type: string, enum: [counter, occupancy] }
+              commercialRole: { type: string, enum: [limit, entitlement] }
+        profiles:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [profileId, domain, requiredDimensions]
+            properties:
+              profileId: { $ref: "#/components/schemas/ID" }
+              domain: { type: string }
+              requiredDimensions:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [metricId, role]
+                  properties:
+                    metricId: { $ref: "#/components/schemas/ID" }
+                    role: { type: string, enum: [limit, entitlement, occupancy] }
+    VerifiedScopeCatalogView:
+      type: object
+      additionalProperties: false
+      required: [fixture, scopes]
+      properties:
+        fixture: { type: boolean, enum: [true], description: Always true for the local test fixture endpoint. }
+        scopes:
+          type: array
+          items: { $ref: "#/components/schemas/VerifiedScope" }
+    VerifiedScope:
+      type: object
+      additionalProperties: false
+      required: [scopeId, kind, providerTypeId, facts]
+      properties:
+        scopeId: { $ref: "#/components/schemas/ID" }
+        kind: { type: string, enum: [account, shared] }
+        aliases: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        providerTypeId: { $ref: "#/components/schemas/ID" }
+        facts:
+          type: array
+          items: { $ref: "#/components/schemas/VerifiedResourceFact" }
+    VerifiedResourceFact:
+      type: object
+      additionalProperties: false
+      required: [physicalKey, factId, scopeId, providerTypeId, metricId, unit, quantumExp, metered, semanticsRef, semanticsRevision, windowKind, capacityBound, initialRemaining]
+      properties:
+        physicalKey: { $ref: "#/components/schemas/ID" }
+        factId: { $ref: "#/components/schemas/ID" }
+        scopeId: { $ref: "#/components/schemas/ID" }
+        providerTypeId: { $ref: "#/components/schemas/ID" }
+        metricId: { $ref: "#/components/schemas/ID" }
+        unit: { type: string }
+        quantumExp: { type: integer, minimum: 0, maximum: 18 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        metered: { type: boolean }
+        semanticsRef: { $ref: "#/components/schemas/ID" }
+        semanticsRevision: { $ref: "#/components/schemas/ID" }
+        windowKind: { type: string, enum: [fixed, rolling, lifetime] }
+        windowPeriod: { type: string, enum: [minute, hour, day, week, month] }
+        windowTimeZone: { type: string }
+        windowAnchorISO: { type: string }
+        windowDurationMillis: { type: integer, minimum: 1 }
+        capacityBound: { $ref: "#/components/schemas/Quantity" }
+        initialRemaining: { $ref: "#/components/schemas/Quantity" }
+    ConfigProjection:
+      type: object
+      additionalProperties: false
+      required: [revision, version, document]
+      properties:
+        revision: { $ref: "#/components/schemas/ID" }
+        version: { type: integer, format: int64 }
+        document: { type: object, additionalProperties: true, description: ConfigDocument root; strict validation uses schema/config-document.schema.json }
+    RevisionPage:
+      type: object
+      additionalProperties: false
+      required: [revisions]
+      properties:
+        revisions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [revision, version, createdAt]
+            properties:
+              revision: { $ref: "#/components/schemas/ID" }
+              version: { type: integer, format: int64 }
+              createdAt: { $ref: "#/components/schemas/Millis" }
+        nextCursor: { type: string }
+    CreateDraftInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, draftId, definition]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        draftId: { $ref: "#/components/schemas/ID" }
+        baseRevision: { $ref: "#/components/schemas/ID" }
+        definition: { type: object, additionalProperties: true, description: Versioned ConfigDocument; server performs strict root-schema and semantic validation }
+    UpdateDraftInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, expectedDraftVersion, definition]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        expectedDraftVersion: { type: integer, format: int64, minimum: 1 }
+        definition: { type: object, additionalProperties: true, description: Versioned ConfigDocument; server performs strict root-schema and semantic validation }
+    ConfigDraft:
+      type: object
+      additionalProperties: false
+      required: [draftId, baseRevision, version, status, definition, fieldIssues]
+      properties:
+        draftId: { $ref: "#/components/schemas/ID" }
+        baseRevision: { $ref: "#/components/schemas/ID" }
+        version: { type: integer, format: int64, minimum: 1 }
+        status: { type: string, enum: [editing, validated, activated, archived] }
+        definition: { type: object, additionalProperties: true, description: Versioned ConfigDocument; server performs strict root-schema and semantic validation }
+        fieldIssues:
+          type: array
+          items: { $ref: "#/components/schemas/FieldIssue" }
+    ActivationInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, draftId, expectedConfigRevision, expectedDraftVersion]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        draftId: { $ref: "#/components/schemas/ID" }
+        expectedConfigRevision: { type: string }
+        expectedDraftVersion: { type: integer, format: int64 }
+    ActivationResult:
+      type: object
+      additionalProperties: false
+      required: [configRevision, controlVersion]
+      properties:
+        configRevision: { $ref: "#/components/schemas/ID" }
+        controlVersion: { type: integer, format: int64 }
+    PoolMember:
+      type: object
+      additionalProperties: false
+      required: [offerId, priority, enabled, version]
+      properties:
+        offerId: { $ref: "#/components/schemas/ID" }
+        priority: { type: integer, minimum: 0, maximum: 2147483647 }
+        enabled: { type: boolean }
+        version: { type: integer, format: int64, minimum: 1 }
+    ResourceOffer:
+      type: object
+      additionalProperties: false
+      required: [offerId, bindingId, domain, capabilityProfile, enabled, resourceRefs, version]
+      properties:
+        offerId: { $ref: "#/components/schemas/ID" }
+        bindingId: { $ref: "#/components/schemas/ID" }
+        domain: { type: string }
+        capabilityProfile: { $ref: "#/components/schemas/ID" }
+        enabled: { type: boolean }
+        resourceRefs: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        version: { type: integer, format: int64 }
+    ResourcePool:
+      type: object
+      additionalProperties: false
+      required: [poolId, namespace, name, enabled, version, members]
+      properties:
+        poolId: { $ref: "#/components/schemas/ID" }
+        namespace: { $ref: "#/components/schemas/ID" }
+        name: { type: string }
+        enabled: { type: boolean }
+        version: { type: integer, format: int64, minimum: 1 }
+        members: { type: array, items: { $ref: "#/components/schemas/PoolMember" } }
+    ResourceView:
+      type: object
+      description: available omitted means unknown (never 0-by-default); quantities are exact decimal strings.
+      additionalProperties: false
+      required: [resourceId, windowKey, metricId, unit, committed, adjustmentVersion, reserved, active, uncertain, evidenceStatus, holdIds, encumbranceIds, observationRefreshNeeded]
+      properties:
+        resourceId: { $ref: "#/components/schemas/ID" }
+        windowKey: { $ref: "#/components/schemas/ID" }
+        metricId: { $ref: "#/components/schemas/ID" }
+        unit: { type: string }
+        committed: { $ref: "#/components/schemas/Quantity" }
+        adjustmentVersion: { type: integer, format: int64, minimum: 0 }
+        available: { $ref: "#/components/schemas/Quantity" }
+        reserved: { $ref: "#/components/schemas/Quantity" }
+        active: { $ref: "#/components/schemas/Quantity" }
+        uncertain: { $ref: "#/components/schemas/Quantity" }
+        evidenceStatus: { type: string }
+        holdIds: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        encumbranceIds: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        observationRefreshNeeded: { type: boolean }
+    PoolMemberView:
+      type: object
+      additionalProperties: false
+      required: [member, offer, status, reasons, resources]
+      properties:
+        member: { $ref: "#/components/schemas/PoolMember" }
+        offer: { $ref: "#/components/schemas/ResourceOffer" }
+        status: { type: string, enum: [available, blocked, disabled, unsupported] }
+        reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+        resources: { type: array, items: { $ref: "#/components/schemas/ResourceView" } }
+    PoolGroup:
+      type: object
+      additionalProperties: false
+      required: [domain, capabilityProfile, members]
+      properties:
+        domain: { type: string }
+        capabilityProfile: { $ref: "#/components/schemas/ID" }
+        members: { type: array, items: { $ref: "#/components/schemas/PoolMemberView" } }
+    PoolView:
+      type: object
+      additionalProperties: false
+      required: [pool, groups]
+      properties:
+        pool: { $ref: "#/components/schemas/ResourcePool" }
+        groups: { type: array, items: { $ref: "#/components/schemas/PoolGroup" } }
+    ReorderPoolEntry:
+      type: object
+      additionalProperties: false
+      required: [offerId, priority]
+      properties:
+        offerId: { $ref: "#/components/schemas/ID" }
+        priority: { type: integer, minimum: 0, maximum: 2147483647 }
+    ReorderPoolInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, expectedPoolVersion, expectedConfigRevision, entries]
+      description: K4 authoritative full-group write; entries carry one explicit priority per member.
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        expectedPoolVersion: { type: integer, format: int64, minimum: 1 }
+        expectedConfigRevision: { type: string }
+        entries:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ReorderPoolEntry" }
+    DomainRequest:
+      type: object
+      additionalProperties: false
+      required: [domain, capabilityProfile, payload]
+      properties:
+        domain: { type: string }
+        capabilityProfile: { $ref: "#/components/schemas/ID" }
+        payload:
+          type: object
+          additionalProperties: true
+    Affinity:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [required, preferred, none] }
+        accountId: { $ref: "#/components/schemas/ID" }
+        bindingId: { $ref: "#/components/schemas/ID" }
+    ExecuteInput:
+      type: object
+      additionalProperties: false
+      required: [operationId, poolId, request, deadlineAt, maxAttempts, allowMetered]
+      properties:
+        operationId: { $ref: "#/components/schemas/ID" }
+        poolId: { $ref: "#/components/schemas/ID" }
+        request: { $ref: "#/components/schemas/DomainRequest" }
+        deadlineAt: { $ref: "#/components/schemas/Millis" }
+        maxAttempts: { type: integer, minimum: 1, maximum: 16 }
+        affinity: { $ref: "#/components/schemas/Affinity" }
+        allowMetered: { type: boolean }
+    SubmitReply:
+      description: |
+        Executable union (R05): exactly one variant must match. The variant
+        schemas enforce required and forbidden fields per kind; the
+        state/replay consistency rule (top-level state, when present, must
+        match result.state) is enforced by the codec guards on both sides
+        (Go internal/api.ValidateSubmitReply, web validateSubmitReply) and is
+        exercised per fixture.
+      oneOf:
+        - $ref: "#/components/schemas/SubmitAccepted"
+        - $ref: "#/components/schemas/SubmitInProgress"
+        - $ref: "#/components/schemas/SubmitReplay"
+        - $ref: "#/components/schemas/SubmitRejected"
+    SubmitAccepted:
+      type: object
+      additionalProperties: false
+      required: [kind, state, operationId, operationUrl, eventsUrl]
+      properties:
+        kind: { type: string, enum: [accepted] }
+        state: { type: string, enum: [running] }
+        operationId: { $ref: "#/components/schemas/ID" }
+        operationUrl: { type: string }
+        eventsUrl: { type: string }
+    SubmitInProgress:
+      type: object
+      additionalProperties: false
+      required: [kind, operationId, operation]
+      properties:
+        kind: { type: string, enum: [inProgress] }
+        state: { type: string, enum: [running] }
+        operationId: { $ref: "#/components/schemas/ID" }
+        operation: { $ref: "#/components/schemas/OperationView" }
+    SubmitReplay:
+      type: object
+      additionalProperties: false
+      required: [kind, operationId, result]
+      properties:
+        kind: { type: string, enum: [replay] }
+        state: { type: string, enum: [succeeded, failed, cancelled, unknown] }
+        operationId: { $ref: "#/components/schemas/ID" }
+        result: { $ref: "#/components/schemas/OperationResult" }
+    SubmitRejected:
+      type: object
+      additionalProperties: false
+      required: [kind, operationId, error]
+      properties:
+        kind: { type: string, enum: [rejected] }
+        operationId: { $ref: "#/components/schemas/ID" }
+        error: { $ref: "#/components/schemas/ErrorDTO" }
+    ResourceOutcome:
+      type: object
+      additionalProperties: false
+      required: [resourceId, windowKey, metricId, unit, consumed, consumptionBasis, occupancy, evidenceRefs]
+      properties:
+        resourceId: { $ref: "#/components/schemas/ID" }
+        windowKey: { $ref: "#/components/schemas/ID" }
+        metricId: { $ref: "#/components/schemas/ID" }
+        unit: { type: string }
+        consumed:
+          type: string
+          nullable: true
+          pattern: "^(0|-?[1-9][0-9]{0,18})$"
+          description: Canonical decimal over int64 minimal units, or null when no representable committed consumption is reported.
+        consumptionBasis: { type: string, enum: [provider_reported, conservative_bound, not_executed, adjustment, not_applicable, unrepresentable] }
+        occupancy: { type: string, enum: [released, active, uncertain, not_applicable] }
+        evidenceRefs: { type: array, items: { $ref: "#/components/schemas/ID" } }
+    UnrepresentableMetric:
+      type: object
+      additionalProperties: false
+      required: [metricId, unit, actualOutOfRangeDecimal, evidenceRefs]
+      properties:
+        metricId: { $ref: "#/components/schemas/ID" }
+        unit: { type: string }
+        actualOutOfRangeDecimal:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          description: Canonical non-negative decimal greater than MaxInt64; the server enforces the lower bound.
+        evidenceRefs: { type: array, minItems: 1, items: { $ref: "#/components/schemas/ID" } }
+    OperationResult:
+      type: object
+      additionalProperties: false
+      required: [operationId, state, code, reasons, retrySafety, attempts, resources, decisionRefs, outputAvailability, suggestedAction]
+      properties:
+        operationId: { $ref: "#/components/schemas/ID" }
+        state: { type: string, enum: [succeeded, failed, cancelled, unknown] }
+        code: { type: string }
+        reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+        retrySafety: { type: string, enum: [proved_safe, unsafe, undetermined] }
+        attempts: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        resources: { type: array, items: { $ref: "#/components/schemas/ResourceOutcome" } }
+        unrepresentableMetrics: { type: array, items: { $ref: "#/components/schemas/UnrepresentableMetric" } }
+        decisionRefs: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        outputRef: { $ref: "#/components/schemas/ID" }
+        outputAvailability: { type: string, enum: [available, partial, metadata_only, none] }
+        suggestedAction: { type: string }
+    AttemptView:
+      type: object
+      additionalProperties: false
+      required: [attemptId, offerId, bindingId, accountId, phase]
+      properties:
+        attemptId: { $ref: "#/components/schemas/ID" }
+        offerId: { $ref: "#/components/schemas/ID" }
+        bindingId: { $ref: "#/components/schemas/ID" }
+        accountId: { $ref: "#/components/schemas/ID" }
+        phase: { type: string, enum: [prepared, executing, terminal] }
+        outcome: { type: string, enum: [known_success, known_failure, not_executed, unknown] }
+        providerRequestId: { $ref: "#/components/schemas/ID" }
+    ReconciliationView:
+      type: object
+      additionalProperties: false
+      required: [reconciliationId, confirmedOutcome, retrySafety, evidenceRefs, corrections, createdAt]
+      properties:
+        reconciliationId: { $ref: "#/components/schemas/ID" }
+        confirmedOutcome: { type: string }
+        retrySafety: { type: string, enum: [proved_safe, unsafe, undetermined] }
+        evidenceRefs: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        corrections: { type: array, items: { $ref: "#/components/schemas/ResourceOutcome" } }
+        createdAt: { $ref: "#/components/schemas/Millis" }
+    OperationView:
+      type: object
+      additionalProperties: false
+      required: [operationId, poolId, state, cancelRequested, attempts, resources, reconciliations, updatedAt]
+      properties:
+        operationId: { $ref: "#/components/schemas/ID" }
+        poolId: { $ref: "#/components/schemas/ID" }
+        requestDomain: { type: string, minLength: 1, description: Domain of the saved request; never includes request payload content. }
+        state: { type: string, enum: [running, succeeded, failed, cancelled, unknown] }
+        cancelRequested: { type: boolean }
+        attempts: { type: array, items: { $ref: "#/components/schemas/AttemptView" } }
+        resources: { type: array, items: { $ref: "#/components/schemas/ResourceOutcome" } }
+        result: { $ref: "#/components/schemas/OperationResult" }
+        reconciliations: { type: array, items: { $ref: "#/components/schemas/ReconciliationView" } }
+        adjustableCharges: { type: array, items: { $ref: "#/components/schemas/AdjustableChargeView" } }
+        managedHolds: { type: array, items: { $ref: "#/components/schemas/ManagedHoldView" } }
+        updatedAt: { $ref: "#/components/schemas/Millis" }
+    AdjustableChargeView:
+      type: object
+      additionalProperties: false
+      required: [eventId, resourceId, windowKey, metricId, unit, remainingReversible]
+      properties:
+        eventId: { $ref: "#/components/schemas/ID" }
+        resourceId: { $ref: "#/components/schemas/ID" }
+        windowKey: { $ref: "#/components/schemas/ID" }
+        metricId: { $ref: "#/components/schemas/ID" }
+        unit: { type: string }
+        remainingReversible: { $ref: "#/components/schemas/Quantity" }
+    ManagedHoldView:
+      type: object
+      additionalProperties: false
+      required: [holdId, resourceId, scopeKind, scopeId, reason, evidenceRefs, canClear]
+      properties:
+        holdId: { $ref: "#/components/schemas/ID" }
+        resourceId: { $ref: "#/components/schemas/ID" }
+        scopeKind: { type: string, enum: [resource, account, binding, credential, domain] }
+        scopeId: { $ref: "#/components/schemas/ID" }
+        reason: { type: string }
+        evidenceRefs: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        canClear: { type: boolean }
+    OperationPage:
+      type: object
+      additionalProperties: false
+      required: [operations]
+      properties:
+        operations: { type: array, items: { $ref: "#/components/schemas/OperationView" } }
+        nextCursor: { type: string }
+    CancellationAck:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [recorded, alreadyTerminal, notFound] }
+    OutputChunk:
+      type: object
+      additionalProperties: false
+      required: [sequence, data]
+      properties:
+        sequence: { type: integer, format: int64, minimum: 1 }
+        data: { type: string, description: base64-encoded chunk bytes }
+    OutputPage:
+      type: object
+      additionalProperties: false
+      required: [chunks, complete, availability]
+      properties:
+        chunks: { type: array, items: { $ref: "#/components/schemas/OutputChunk" } }
+        nextSequence: { type: integer, format: int64, description: "Exclusive resume cursor; pass as afterSequence to read the next page." }
+        complete: { type: boolean }
+        availability: { type: string, enum: [available, partial, metadata_only, none] }
+    OperationEvent:
+      type: object
+      additionalProperties: false
+      required: [operationId, sequence, type, createdAt, payload]
+      properties:
+        operationId: { $ref: "#/components/schemas/ID" }
+        sequence: { type: integer, format: int64, minimum: 1 }
+        type: { type: string, enum: [accepted, attempt_prepared, dispatch_authorized, output_stored, cancel_requested, attempt_settled, operation_terminal, reconciled] }
+        createdAt: { $ref: "#/components/schemas/Millis" }
+        payload: { type: object }
+    CandidateDecision:
+      type: object
+      additionalProperties: false
+      required: [offerId, priority, reasons]
+      properties:
+        offerId: { $ref: "#/components/schemas/ID" }
+        priority: { type: integer, format: int64 }
+        reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+    DecisionView:
+      type: object
+      additionalProperties: false
+      required: [decisionId, poolId, poolVersion, memberPriority, configRevision, stage, candidates, traceTruncated]
+      properties:
+        decisionId: { $ref: "#/components/schemas/ID" }
+        attemptId: { $ref: "#/components/schemas/ID" }
+        poolId: { $ref: "#/components/schemas/ID" }
+        poolVersion: { type: integer, format: int64 }
+        offerId: { $ref: "#/components/schemas/ID" }
+        memberPriority: { type: integer, format: int64 }
+        configRevision: { $ref: "#/components/schemas/ID" }
+        stage: { type: string, enum: [prepare, rejected, dispatch] }
+        candidates: { type: array, items: { $ref: "#/components/schemas/CandidateDecision" } }
+        traceTruncated: { type: boolean }
+        hookRegistryRevision: { type: string }
+        hookRegistryManifest: { type: object, additionalProperties: true }
+        plannerCandidateOrder: { type: array, items: { $ref: "#/components/schemas/ID" } }
+        hookCandidateOrder: { type: array, items: { $ref: "#/components/schemas/ID" } }
+    RefreshResult:
+      type: object
+      additionalProperties: false
+      required: [status, reasons]
+      properties:
+        status: { type: string, enum: [stored, rejectedStale, sourceUnavailable] }
+        reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+    OperationCancelInput:
+      type: object
+      additionalProperties: false
+      required: [commandId]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+    CommandAck:
+      type: object
+      additionalProperties: false
+      required: [commandId, status]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        status: { type: string, enum: [applied, replayed] }
+    AdjustmentInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, windowKey, delta, evidenceRefs]
+      description: delta may be negative (correction); capacity fields never are.
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        windowKey: { $ref: "#/components/schemas/ID" }
+        delta: { $ref: "#/components/schemas/Quantity" }
+        originalEventId: { $ref: "#/components/schemas/ID" }
+        evidenceRefs: { type: array, minItems: 1, items: { $ref: "#/components/schemas/ID" } }
+    ReconciliationInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, confirmedOutcome, retrySafety, evidenceRefs, corrections]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        confirmedOutcome: { type: string, enum: [known_success, known_failure, not_executed, unknown] }
+        retrySafety: { type: string, enum: [proved_safe, unsafe, undetermined] }
+        evidenceRefs: { type: array, minItems: 1, items: { $ref: "#/components/schemas/ID" } }
+        corrections:
+          type: array
+          items: { $ref: "#/components/schemas/ResourceOutcome" }
+    ClearHoldInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, evidenceIds]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        evidenceIds: { type: array, minItems: 1, items: { $ref: "#/components/schemas/ID" } }
+    ObservationRefreshInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, evidence]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [sourceRef, observedAtMillis, expiresAtMillis, remaining, committedAtStart, adjustmentVersionAtStart]
+          properties:
+            sourceRef: { type: string }
+            observedAtMillis: { $ref: "#/components/schemas/Millis" }
+            expiresAtMillis: { $ref: "#/components/schemas/Millis" }
+            remaining: { $ref: "#/components/schemas/Quantity" }
+            committedAtStart: { $ref: "#/components/schemas/Quantity" }
+            adjustmentVersionAtStart: { type: integer, format: int64 }
+    SecretRotateInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, value, expectedRevision]
+      properties:
+        commandId: { $ref: "#/components/schemas/ID" }
+        expectedRevision: { $ref: "#/components/schemas/ID" }
+        value: { type: string, minLength: 1 }
+
+    SupplyID:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+    SupplyDecimal:
+      type: string
+      pattern: '^(0|[1-9][0-9]{0,37})(\.[0-9]{1,18})?$'
+      description: Exact non-negative human quantity. No floats or scientific notation. Server canonicalizes trailing zeros.
+    SupplyAccount:
+      type: object
+      additionalProperties: false
+      required: [id, providerId, providerName, name]
+      properties:
+        id: { $ref: "#/components/schemas/SupplyID" }
+        providerId: { $ref: "#/components/schemas/SupplyID" }
+        providerName: { type: string, minLength: 1, maxLength: 200 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+    SupplyPrice:
+      type: object
+      additionalProperties: false
+      required: [amount, currency, cadence]
+      properties:
+        amount: { $ref: "#/components/schemas/SupplyDecimal" }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        cadence: { type: string, enum: [once, week, month, year, usage] }
+        basis: { type: string, maxLength: 200 }
+    SupplyPackage:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, name, kind, capability, status, timeZone, resourceRefs]
+      properties:
+        id: { $ref: "#/components/schemas/SupplyID" }
+        accountId: { $ref: "#/components/schemas/SupplyID" }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        kind: { type: string, enum: [subscription, credit, free, payg] }
+        capability: { $ref: "#/components/schemas/SupplyID" }
+        status: { type: string, enum: [configured, archived] }
+        timeZone: { type: string, minLength: 1 }
+        startsOn: { type: string, format: date }
+        renewsOn: { type: string, format: date }
+        expiresOn: { type: string, format: date }
+        price: { $ref: "#/components/schemas/SupplyPrice" }
+        resourceRefs:
+          type: array
+          minItems: 1
+          maxItems: 64
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/SupplyID" }
+    SupplyReset:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [none, calendar, rolling] }
+        period: { type: string, enum: [minute, hour, day, week, month, year] }
+        timeZone: { type: string }
+        anchorOn: { type: string, format: date }
+        seconds: { type: integer, minimum: 1, maximum: 31536000 }
+    SupplyResource:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, name, metric, unit, quantity, role, reset]
+      properties:
+        id: { $ref: "#/components/schemas/SupplyID" }
+        accountId: { $ref: "#/components/schemas/SupplyID" }
+        packageId: { $ref: "#/components/schemas/SupplyID" }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        metric: { $ref: "#/components/schemas/SupplyID" }
+        unit: { type: string, minLength: 1, maxLength: 32 }
+        quantity: { $ref: "#/components/schemas/SupplyDecimal" }
+        retired: { type: boolean, description: Retained identity whose declaration is no longer used; references must exclude it. }
+        role: { type: string, enum: [allowance, spending_limit, rate, concurrency] }
+        reset: { $ref: "#/components/schemas/SupplyReset" }
+    SupplyPool:
+      type: object
+      additionalProperties: false
+      required: [id, name, capability, packageRefs]
+      properties:
+        id: { $ref: "#/components/schemas/SupplyID" }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        capability: { $ref: "#/components/schemas/SupplyID" }
+        packageRefs:
+          type: array
+          uniqueItems: true
+          maxItems: 512
+          items: { $ref: "#/components/schemas/SupplyID" }
+    SupplyDocument:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, accounts, packages, resources, pools]
+      properties:
+        schemaVersion: { type: integer, enum: [1] }
+        accounts: { type: array, maxItems: 256, items: { $ref: "#/components/schemas/SupplyAccount" } }
+        packages: { type: array, maxItems: 512, items: { $ref: "#/components/schemas/SupplyPackage" } }
+        resources: { type: array, maxItems: 2048, items: { $ref: "#/components/schemas/SupplyResource" } }
+        pools: { type: array, maxItems: 256, items: { $ref: "#/components/schemas/SupplyPool" } }
+    InventoryView:
+      type: object
+      additionalProperties: false
+      required: [version, document]
+      properties:
+        version: { type: integer, minimum: 0, maximum: 9007199254740991 }
+        document: { $ref: "#/components/schemas/SupplyDocument" }
+    InventoryInput:
+      type: object
+      additionalProperties: false
+      required: [commandId, expectedVersion, document]
+      properties:
+        commandId: { $ref: "#/components/schemas/SupplyID" }
+        expectedVersion: { type: integer, minimum: 0, maximum: 9007199254740990 }
+        document: { $ref: "#/components/schemas/SupplyDocument" }

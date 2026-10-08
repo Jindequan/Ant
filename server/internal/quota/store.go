@@ -1,0 +1,132 @@
+package quota
+
+import (
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"slices"
+	"sync"
+)
+
+// Store keeps what the user set on the page: accounts they added (or
+// completed), and found accounts they chose to hide. It is one JSON file
+// readable by the user alone — ~/.config/ant/accounts.json — like the
+// sign-in files of the apps Ant reads. With no path it lives in memory.
+type Store struct {
+	path string
+	mu   sync.Mutex
+	mem  storeData
+}
+
+type storeData struct {
+	Version  int          `json:"version"`
+	Accounts []Connection `json:"accounts"`
+	Hidden   []string     `json:"hidden,omitempty"` // ids of found accounts the user removed
+}
+
+func NewStore(path string) *Store { return &Store{path: path} }
+
+func (s *Store) load() (storeData, error) {
+	if s.path == "" {
+		return cloneData(s.mem), nil
+	}
+	b, err := os.ReadFile(s.path)
+	if errors.Is(err, os.ErrNotExist) {
+		return storeData{Version: 1}, nil
+	}
+	if err != nil {
+		return storeData{}, err
+	}
+	var d storeData
+	if err := json.Unmarshal(b, &d); err != nil {
+		return storeData{}, errors.New("Ant's accounts file is damaged: " + s.path)
+	}
+	return d, nil
+}
+
+func (s *Store) save(d storeData) error {
+	d.Version = 1
+	if s.path == "" {
+		s.mem = cloneData(d)
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".accounts-*.json")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if err := tmp.Chmod(0o600); err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(append(b, '\n')); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), s.path)
+}
+
+// Data returns what is stored.
+func (s *Store) Data() (storeData, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.load()
+}
+
+// Put adds or replaces the account with c's id and un-hides it.
+func (s *Store) Put(c Connection) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.load()
+	if err != nil {
+		return err
+	}
+	d.Accounts = slices.DeleteFunc(d.Accounts, func(x Connection) bool { return x.ID == c.ID })
+	d.Accounts = append(d.Accounts, c)
+	d.Hidden = slices.DeleteFunc(d.Hidden, func(x string) bool { return x == c.ID })
+	return s.save(d)
+}
+
+// Remove deletes an added account; a found one is hidden instead, so it
+// doesn't come back on the next refresh.
+func (s *Store) Remove(id string, found bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.load()
+	if err != nil {
+		return err
+	}
+	d.Accounts = slices.DeleteFunc(d.Accounts, func(x Connection) bool { return x.ID == id })
+	if found && !slices.Contains(d.Hidden, id) {
+		d.Hidden = append(d.Hidden, id)
+	}
+	return s.save(d)
+}
+
+func cloneData(d storeData) storeData {
+	out := storeData{Version: d.Version, Hidden: slices.Clone(d.Hidden)}
+	for _, c := range d.Accounts {
+		v := map[string]string{}
+		for k, x := range c.Values {
+			v[k] = x
+		}
+		c.Values = v
+		out.Accounts = append(out.Accounts, c)
+	}
+	return out
+}

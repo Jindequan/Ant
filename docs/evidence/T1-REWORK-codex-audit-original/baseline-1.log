@@ -1,0 +1,14 @@
+COMMAND: ['make', 'check']
+CWD: /Users/devin/code/Ant
+cd server && test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
+cd server && go vet ./...
+cd server && go build ./...
+bash scripts/check-deps.sh
+dependency boundaries OK
+cd web && npm run typecheck
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+
+EXIT: 0

@@ -1,0 +1,12 @@
+# T1.3 真库集成验证（新鲜运行）
+时间: 2026-10-02T10:34:24+0800
+命令: cd server && asdf exec go test -race -count=1 -timeout 300s ./tests/integration/...
+性质: 真库（modernc.org/sqlite v1.60.1 文件库, WAL/FULL/foreign_keys/_txlock=immediate, 单写连接+有界writer+只读池）
+
+ok  	ant/server/tests/integration	4.436s
+[exit=0]
+
+## 修复后重跑（2026-10-02T11:10:13+0800）
+### go test -race -count=1 ./tests/integration/...
+ok  	ant/server/tests/integration	3.065s
+[exit=0]

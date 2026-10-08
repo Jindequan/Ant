@@ -1,0 +1,102 @@
+=== RUN   TestClaimIsIdempotentAndConflictsOnDifferentSemantics
+--- PASS: TestClaimIsIdempotentAndConflictsOnDifferentSemantics (0.11s)
+=== RUN   TestClaimRequiresExecutePermissionAndRestoreGuardClear
+--- PASS: TestClaimRequiresExecutePermissionAndRestoreGuardClear (0.10s)
+=== RUN   TestClaimReceiptFailureRollsBackOperation
+--- PASS: TestClaimReceiptFailureRollsBackOperation (0.09s)
+=== RUN   TestClaimTerminalRetryReplaysPersistedResult
+--- PASS: TestClaimTerminalRetryReplaysPersistedResult (0.09s)
+=== RUN   TestClaimProcessHelper
+--- PASS: TestClaimProcessHelper (0.00s)
+=== RUN   TestClaimCrossProcessGrantsExactlyOneOwner
+--- PASS: TestClaimCrossProcessGrantsExactlyOneOwner (1.20s)
+=== RUN   TestPreparationQuotePrepareAuthorizeConsume
+--- PASS: TestPreparationQuotePrepareAuthorizeConsume (0.17s)
+=== RUN   TestPreparationResourceReceiptFailuresRollback
+=== RUN   TestPreparationResourceReceiptFailuresRollback/resource_events
+=== RUN   TestPreparationResourceReceiptFailuresRollback/command_receipts
+--- PASS: TestPreparationResourceReceiptFailuresRollback (0.23s)
+    --- PASS: TestPreparationResourceReceiptFailuresRollback/resource_events (0.12s)
+    --- PASS: TestPreparationResourceReceiptFailuresRollback/command_receipts (0.11s)
+=== RUN   TestPreparationAuthorizationFailureRetryDoesNotLeakPermit
+--- PASS: TestPreparationAuthorizationFailureRetryDoesNotLeakPermit (0.15s)
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/pool_version
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/binding_disabled
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/credential_revision
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/account_hold
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/guard_omitted
+=== RUN   TestPreparationCurrentGuardsAndVersionFailures/restore
+--- PASS: TestPreparationCurrentGuardsAndVersionFailures (0.56s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/pool_version (0.09s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/binding_disabled (0.09s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/credential_revision (0.10s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/account_hold (0.10s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/guard_omitted (0.09s)
+    --- PASS: TestPreparationCurrentGuardsAndVersionFailures/restore (0.09s)
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_bindings_SET_enabled=0
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_runtime_control_SET_control_version=control_version+1
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_bindings_SET_credential_revision='rev-2'
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_cancel_requested_at=35
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_generation=2
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_state='succeeded',result_json='{}'
+=== RUN   TestPreparationConsumeRechecksCurrentPolicy/UPDATE_resource_states_SET_capacity_units=0_WHERE_resource_id='r2'
+--- PASS: TestPreparationConsumeRechecksCurrentPolicy (0.83s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_bindings_SET_enabled=0 (0.12s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_runtime_control_SET_control_version=control_version+1 (0.12s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_bindings_SET_credential_revision='rev-2' (0.12s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_cancel_requested_at=35 (0.12s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_generation=2 (0.11s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_operations_SET_state='succeeded',result_json='{}' (0.11s)
+    --- PASS: TestPreparationConsumeRechecksCurrentPolicy/UPDATE_resource_states_SET_capacity_units=0_WHERE_resource_id='r2' (0.12s)
+=== RUN   TestPreparationConcurrentCapacityAndSingleConsume
+--- PASS: TestPreparationConcurrentCapacityAndSingleConsume (1.41s)
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_0
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_1
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_2
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_3
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_4
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_5
+=== RUN   TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_6
+--- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject (0.70s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_0 (0.09s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_1 (0.09s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_2 (0.08s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_3 (0.09s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_4 (0.09s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_5 (0.09s)
+    --- PASS: TestPreparationPlanIdentityQuantityAndBudgetReject/invalid_plan_6 (0.08s)
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_resource_pools_SET_version=2
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_bindings_SET_enabled=0
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_operations_SET_cancel_requested_at=25
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_resource_states_SET_capacity_units=0_WHERE_resource_id='r2'
+=== RUN   TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_accounts_SET_definition_json='{"allowMetered":false}'
+--- PASS: TestPreparationAuthorizeRechecksAndRollsBack (0.55s)
+    --- PASS: TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_resource_pools_SET_version=2 (0.11s)
+    --- PASS: TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_bindings_SET_enabled=0 (0.11s)
+    --- PASS: TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_operations_SET_cancel_requested_at=25 (0.10s)
+    --- PASS: TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_resource_states_SET_capacity_units=0_WHERE_resource_id='r2' (0.12s)
+    --- PASS: TestPreparationAuthorizeRechecksAndRollsBack/UPDATE_accounts_SET_definition_json='{"allowMetered":false}' (0.12s)
+=== RUN   TestPreparationConsumeReceiptFailureIsSpentLocally
+--- PASS: TestPreparationConsumeReceiptFailureIsSpentLocally (0.13s)
+=== RUN   TestPreparationGuardRevisionAndUnknownIsolation
+--- PASS: TestPreparationGuardRevisionAndUnknownIsolation (0.21s)
+=== RUN   TestPreparationWindowMigrationAtomicity
+=== RUN   TestPreparationWindowMigrationAtomicity/capacity_2
+=== RUN   TestPreparationWindowMigrationAtomicity/capacity_0
+--- PASS: TestPreparationWindowMigrationAtomicity (0.23s)
+    --- PASS: TestPreparationWindowMigrationAtomicity/capacity_2 (0.12s)
+    --- PASS: TestPreparationWindowMigrationAtomicity/capacity_0 (0.11s)
+=== RUN   TestPreparationWaterfallAndRollingSnapshots
+=== RUN   TestPreparationWaterfallAndRollingSnapshots/waterfall
+=== RUN   TestPreparationWaterfallAndRollingSnapshots/rolling
+--- PASS: TestPreparationWaterfallAndRollingSnapshots (0.24s)
+    --- PASS: TestPreparationWaterfallAndRollingSnapshots/waterfall (0.13s)
+    --- PASS: TestPreparationWaterfallAndRollingSnapshots/rolling (0.12s)
+=== RUN   TestPreparationDeltaGateRejectsInvariantViolations
+--- PASS: TestPreparationDeltaGateRejectsInvariantViolations (0.00s)
+PASS
+ok  	ant/server/tests/integration	8.886s

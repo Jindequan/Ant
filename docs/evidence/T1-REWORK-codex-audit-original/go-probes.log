@@ -1,0 +1,112 @@
+=== RUN   TestCodexAuditArithmetic
+=== RUN   TestCodexAuditArithmetic/negative-overflow-to-zero
+    codex_audit_test.go:30: got=0 err=<nil> expected=0 overflow=true
+=== RUN   TestCodexAuditArithmetic/legal-subtract-minimum
+    codex_audit_test.go:30: got=0 err=quantity: value out of int64 range expected=9223372036854775807 overflow=false
+=== RUN   TestCodexAuditArithmetic/minimum-minus-itself
+    codex_audit_test.go:30: got=0 err=quantity: value out of int64 range expected=0 overflow=false
+--- FAIL: TestCodexAuditArithmetic (0.00s)
+    --- FAIL: TestCodexAuditArithmetic/negative-overflow-to-zero (0.00s)
+    --- FAIL: TestCodexAuditArithmetic/legal-subtract-minimum (0.00s)
+    --- FAIL: TestCodexAuditArithmetic/minimum-minus-itself (0.00s)
+=== RUN   TestCodexAuditConfigCases
+=== RUN   TestCodexAuditConfigCases/valid-baseline
+    codex_audit_test.go:35: accepted=true expected=true decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/dangling-offer-binding
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/dangling-resource-owner
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/dangling-group-scope
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/group-unit-mismatch
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/dangling-selector-evidence
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/dangling-evidence-subject
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/quantity-leading-zero
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/resources/0/configuredCapacity ant.config.quantityInvalid}]
+=== RUN   TestCodexAuditConfigCases/quantity-negative
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/resources/0/configuredCapacity ant.config.quantityInvalid}]
+=== RUN   TestCodexAuditConfigCases/quantity-negative-zero
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/resources/0/configuredCapacity ant.config.quantityInvalid}]
+=== RUN   TestCodexAuditConfigCases/quantity-overflow
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/resources/0/configuredCapacity ant.config.quantityInvalid}]
+=== RUN   TestCodexAuditConfigCases/nested-secret
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/accounts/0/providerExtensions/nested/password ant.config.secretMaterialForbidden}]
+=== RUN   TestCodexAuditConfigCases/case-secret
+    codex_audit_test.go:35: accepted=false expected=false decodeError=<nil> issues=[{/accounts/0/providerExtensions/APIKey ant.config.secretMaterialForbidden}]
+=== RUN   TestCodexAuditConfigCases/missing-required-arrays
+    codex_audit_test.go:35: accepted=true expected=false decodeError=<nil> issues=[]
+=== RUN   TestCodexAuditConfigCases/valid-gift-and-prepaid-buckets
+    codex_audit_test.go:35: accepted=false expected=true decodeError=<nil> issues=[{/resources/3 ant.config.duplicateCommercialFact}]
+--- FAIL: TestCodexAuditConfigCases (0.00s)
+    --- PASS: TestCodexAuditConfigCases/valid-baseline (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/dangling-offer-binding (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/dangling-resource-owner (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/dangling-group-scope (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/group-unit-mismatch (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/dangling-selector-evidence (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/dangling-evidence-subject (0.00s)
+    --- PASS: TestCodexAuditConfigCases/quantity-leading-zero (0.00s)
+    --- PASS: TestCodexAuditConfigCases/quantity-negative (0.00s)
+    --- PASS: TestCodexAuditConfigCases/quantity-negative-zero (0.00s)
+    --- PASS: TestCodexAuditConfigCases/quantity-overflow (0.00s)
+    --- PASS: TestCodexAuditConfigCases/nested-secret (0.00s)
+    --- PASS: TestCodexAuditConfigCases/case-secret (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/missing-required-arrays (0.00s)
+    --- FAIL: TestCodexAuditConfigCases/valid-gift-and-prepaid-buckets (0.00s)
+=== RUN   TestCodexAuditWireQuantity
+=== RUN   TestCodexAuditWireQuantity/010
+    codex_audit_test.go:38: wire="010" decoded=10 err=<nil>
+=== RUN   TestCodexAuditWireQuantity/-0
+    codex_audit_test.go:38: wire="-0" decoded=0 err=<nil>
+--- FAIL: TestCodexAuditWireQuantity (0.00s)
+    --- FAIL: TestCodexAuditWireQuantity/010 (0.00s)
+    --- FAIL: TestCodexAuditWireQuantity/-0 (0.00s)
+=== RUN   TestCodexAuditWindow
+=== RUN   TestCodexAuditWindow/singapore-09-anchor
+    codex_audit_test.go:41: now=2026-10-02 12:00:00 +0800 +08 start=2026-10-02 01:00:00 +0800 +08 end=2026-10-03 01:00:00 +0800 +08 err=<nil>
+=== RUN   TestCodexAuditWindow/fall-back-second-hour-contained
+    codex_audit_test.go:42: now=2026-11-01 01:30:00 -0500 -0500 start=2026-11-01 13:00:00 +0800 +08 end=2026-11-01 14:00:00 +0800 +08 err=<nil>
+--- FAIL: TestCodexAuditWindow (0.00s)
+    --- FAIL: TestCodexAuditWindow/singapore-09-anchor (0.00s)
+    --- FAIL: TestCodexAuditWindow/fall-back-second-hour-contained (0.00s)
+=== RUN   TestCodexAuditQueueConfig
+    codex_audit_test.go:45: Open panicked instead of returning validation error: makechan: size out of range
+--- FAIL: TestCodexAuditQueueConfig (0.00s)
+=== RUN   TestCodexAuditCommandBudget
+    codex_audit_test.go:49: declaredBudget=5ms actualElapsed=81.212667ms err=store: command exceeded budget: context deadline exceeded
+    codex_audit_test.go:49: callback can monopolize writer beyond declared whole-command budget
+--- FAIL: TestCodexAuditCommandBudget (0.09s)
+=== RUN   TestCodexAuditRetryBudget
+    codex_audit_test.go:52: declaredBudget=30ms actualElapsed=63.422375ms runs=3 err=database is locked
+    codex_audit_test.go:52: retry resets whole-command budget
+--- FAIL: TestCodexAuditRetryBudget (0.07s)
+=== RUN   TestCodexAuditFutureSchema
+    codex_audit_test.go:55: future schema version=2, supported=1, err=<nil>
+--- FAIL: TestCodexAuditFutureSchema (0.01s)
+=== RUN   TestCodexAuditOpenAPIUnion
+    codex_audit_test.go:58: OpenAPI accepts illegal accepted/succeeded: true err=<nil>
+--- FAIL: TestCodexAuditOpenAPIUnion (0.01s)
+=== RUN   TestCodexAuditPermitAssembly
+=== RUN   TestCodexAuditPermitAssembly/original-test-pairing
+    codex_audit_test.go:62: original permit digest=deadbeefdigest actual prepared digest=01098ca9deff550d24e3565cf71b930d9636418a9b4f80b57149f8016a5e0311 validation=permit: request digest mismatch
+    codex_audit_test.go:62: original assembly test does not assemble matching handles
+=== RUN   TestCodexAuditPermitAssembly/empty-validation-context
+    codex_audit_test.go:63: Validate with all binding checks omitted: <nil>
+    codex_audit_test.go:63: missing expected binding facts must not bypass validation
+--- FAIL: TestCodexAuditPermitAssembly (0.00s)
+    --- FAIL: TestCodexAuditPermitAssembly/original-test-pairing (0.00s)
+    --- FAIL: TestCodexAuditPermitAssembly/empty-validation-context (0.00s)
+=== RUN   TestCodexAuditStaleObservationInput
+    codex_audit_test.go:70: authoritativeAdjustmentVersion=2 staleObservationVersion=1 directAvailable=75 reserveAdmitted=false err=<nil>
+    codex_audit_test.go:71: CounterReserve has no authoritative adjustment version input; substitutes evidence's own version
+--- FAIL: TestCodexAuditStaleObservationInput (0.00s)
+=== RUN   TestCodexAuditCapabilityFingerprint
+    codex_audit_test.go:78: request A profile=profile.chat.basic B profile=profile.chat.reasoning fingerprint A=eb6715bf65cedd7e69762d7648e6e3377a37af656ca523b8d676879bc8976d62 B=eb6715bf65cedd7e69762d7648e6e3377a37af656ca523b8d676879bc8976d62; FingerprintInput lacks profile field
+    codex_audit_test.go:79: public fingerprint input cannot distinguish capability profile without an extra undocumented payload convention
+--- FAIL: TestCodexAuditCapabilityFingerprint (0.00s)
+FAIL
+FAIL	ant/server/tests/integration	0.721s
+FAIL

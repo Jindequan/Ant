@@ -1,0 +1,37 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/t1-independent-review.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+ ❯ tests/t1-independent-review.test.ts (23 tests | 1 failed) 313ms
+   × positive int64 rolling duration exactly representable above safe integer 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/t1-independent-review.test.ts > positive int64 rolling duration exactly representable above safe integer
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/t1-independent-review.test.ts:82:18
+     80|   resource.providerFactId='alpha-daily-token-limit';resource.window={k…
+     81|   const out=validateConfigDocument(doc,{catalog:createDescriptorCatalo…
+     82|   expect(out.ok).toBe(true);
+       |                  ^
+     83|   if (!out.ok) throw new Error(JSON.stringify(out.issues));
+     84|   expect(out.compiled?.resources.find(r=>r.resourceId==='res-alpha-dai…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  11:38:26
+   Duration  722ms (tests 47%, environment 34%, transform 8%, import 7%, setup 5%)
+

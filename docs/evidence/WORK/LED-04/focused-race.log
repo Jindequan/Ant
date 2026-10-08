@@ -1,0 +1,28 @@
+=== RUN   TestAbortClosesPreparedAttempt
+--- PASS: TestAbortClosesPreparedAttempt (0.17s)
+=== RUN   TestAbortRevokesGrantedPermit
+--- PASS: TestAbortRevokesGrantedPermit (0.18s)
+=== RUN   TestAbortAfterConsumeWithoutProofConserves
+--- PASS: TestAbortAfterConsumeWithoutProofConserves (0.13s)
+=== RUN   TestAbortReliableUnsentProof
+--- PASS: TestAbortReliableUnsentProof (0.22s)
+=== RUN   TestCancelPreparedClosesAndCancels
+--- PASS: TestCancelPreparedClosesAndCancels (0.15s)
+=== RUN   TestCancelExecutingIntentOnlyThenSuccessWins
+--- PASS: TestCancelExecutingIntentOnlyThenSuccessWins (0.12s)
+=== RUN   TestCancelAcks
+--- PASS: TestCancelAcks (0.13s)
+=== RUN   TestRenewLeaseCompetesWithSweep
+--- PASS: TestRenewLeaseCompetesWithSweep (0.13s)
+=== RUN   TestSweepPreparedReleasesAndCompletesInterrupted
+--- PASS: TestSweepPreparedReleasesAndCompletesInterrupted (0.15s)
+=== RUN   TestSweepExecutingGrantedRevokesAndParksAtDeadline
+--- PASS: TestSweepExecutingGrantedRevokesAndParksAtDeadline (0.17s)
+=== RUN   TestSweepExecutingConsumedConservesUnknown
+--- PASS: TestSweepExecutingConsumedConservesUnknown (0.13s)
+=== RUN   TestSweepBatchLimitAndInterruptedCompletion
+--- PASS: TestSweepBatchLimitAndInterruptedCompletion (0.14s)
+=== RUN   TestRecoveryFailsClosedOnDrift
+--- PASS: TestRecoveryFailsClosedOnDrift (0.23s)
+PASS
+ok  	ant/server/internal/ledger/commands	3.276s

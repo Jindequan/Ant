@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CommandConflict",
+    "messageKey": "ant.error.conflict",
+    "retryable": false,
+    "action": "reload_current"
+  },
+  "requestId": "req-cancel-conflict"
+}

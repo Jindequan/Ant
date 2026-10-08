@@ -1,0 +1,19 @@
+COMMAND: ['go', 'test', '-race', '-count=1', './internal/...', './tests/integration/...']
+CWD: /Users/devin/code/Ant/server
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	2.751s
+ok  	ant/server/internal/config	2.773s
+ok  	ant/server/internal/contracttest	2.795s
+ok  	ant/server/internal/domain	2.571s
+ok  	ant/server/internal/domain/pools	2.573s
+ok  	ant/server/internal/domain/resources	2.573s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	2.697s
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+?   	ant/server/internal/store/sqlite	[no test files]
+ok  	ant/server/internal/transport	2.678s
+ok  	ant/server/tests/integration	4.618s
+
+EXIT: 0

@@ -1,0 +1,163 @@
+{
+  "typeId": "provider-alpha",
+  "adapterRevision": "adapter-alpha-v1",
+  "supportedDomains": [
+    "ai/text"
+  ],
+  "configSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "planName": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "region": {
+        "type": "string",
+        "enum": [
+          "test"
+        ]
+      },
+      "accountExternalId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._:-]{1,64}$"
+      }
+    }
+  },
+  "resourceSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "planRef": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._:-]{1,64}$"
+      },
+      "billingDimension": {
+        "type": "string",
+        "enum": [
+          "tokens",
+          "usd_cents",
+          "concurrent_requests"
+        ]
+      }
+    }
+  },
+  "capabilitySchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "maxOutputTokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8192
+      },
+      "modelFamily": {
+        "type": "string",
+        "enum": [
+          "fixture-family-a"
+        ]
+      }
+    }
+  },
+  "extensionSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "provider-alpha restricted extensions",
+    "description": "Closed extension object for account/binding/resource providerExtensions. Fields are an allow-list: anything not declared here makes the document invalid. Credential material is unrepresentable by construction — credentials only ever appear as credentialRef/revision in the binding.",
+    "type": "object",
+    "additionalProperties": false,
+    "minProperties": 1,
+    "properties": {
+      "planName": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "region": {
+        "type": "string",
+        "enum": [
+          "test"
+        ]
+      },
+      "accountExternalId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._:-]{1,64}$"
+      },
+      "endpointClass": {
+        "type": "string",
+        "enum": [
+          "chat",
+          "batch"
+        ]
+      },
+      "rateLimitTier": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "low"
+        ]
+      }
+    }
+  },
+  "entitlementFacts": [
+    {
+      "factId": "alpha-usd-grant-promo",
+      "metricId": "metric.usd.cents",
+      "unit": "usd_cents",
+      "description": "Promotional grant bucket (local/test; verified against provider-alpha plan doc fixture)"
+    },
+    {
+      "factId": "alpha-usd-prepaid",
+      "metricId": "metric.usd.cents",
+      "unit": "usd_cents",
+      "description": "Prepaid balance bucket (local/test)"
+    }
+  ],
+  "semantics": [
+    {
+      "semanticsRef": "sem.fixed-window-counter",
+      "acceptedRevisions": [
+        "semrev-1"
+      ],
+      "resourceKind": "counter",
+      "commercialRole": "limit"
+    },
+    {
+      "semanticsRef": "sem.entitlement-pool",
+      "acceptedRevisions": [
+        "semrev-1"
+      ],
+      "resourceKind": "counter",
+      "commercialRole": "entitlement"
+    },
+    {
+      "semanticsRef": "sem.occupancy-slot",
+      "acceptedRevisions": [
+        "semrev-1"
+      ],
+      "resourceKind": "occupancy",
+      "commercialRole": "limit"
+    }
+  ],
+  "profiles": [
+    {
+      "profileId": "profile.chat.basic",
+      "domain": "ai/text",
+      "requiredDimensions": [
+        {
+          "metricId": "metric.tokens.total",
+          "role": "limit"
+        },
+        {
+          "metricId": "metric.usd.cents",
+          "role": "entitlement"
+        },
+        {
+          "metricId": "metric.concurrency.request",
+          "role": "occupancy"
+        }
+      ]
+    }
+  ]
+}

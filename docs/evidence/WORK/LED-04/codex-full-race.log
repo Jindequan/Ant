@@ -1,0 +1,20 @@
+cd server && go test -race -count=1 ./internal/...
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	1.357s
+ok  	ant/server/internal/application	2.450s
+ok  	ant/server/internal/config	2.875s
+ok  	ant/server/internal/contracttest	3.119s
+ok  	ant/server/internal/domain	2.355s
+ok  	ant/server/internal/domain/pools	1.533s
+ok  	ant/server/internal/domain/resources	11.070s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	1.266s
+ok  	ant/server/internal/ledger/commands	12.334s
+ok  	ant/server/internal/providers/localtest	1.798s
+?   	ant/server/internal/runtime	[no test files]
+ok  	ant/server/internal/security	1.314s
+?   	ant/server/internal/store	[no test files]
+ok  	ant/server/internal/store/sqlite	1.552s
+ok  	ant/server/internal/transport	1.323s
+cd server && go test -race -count=1 -timeout 300s ./tests/integration/...
+ok  	ant/server/tests/integration	12.136s

@@ -1,0 +1,67 @@
+# W3 全量验收（返工批次）
+时间: 2026-10-02T14:10:05+0800  Go go1.27.1  Node v22.18.0
+
+## 1. make check（gofmt/vet/build/check-deps.py/web typecheck）
+cd server && test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
+cd server && go vet ./...
+cd server && go build ./...
+python3 scripts/check-deps.py
+check-deps: dependency boundaries OK (17 packages)
+cd web && npm run typecheck
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+[exit=0]
+
+## 2. go test -race -count=1 ./internal/... ./tests/integration/...
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	1.125s
+ok  	ant/server/internal/config	1.190s
+ok  	ant/server/internal/contracttest	1.475s
+ok  	ant/server/internal/domain	1.138s
+ok  	ant/server/internal/domain/pools	1.123s
+ok  	ant/server/internal/domain/resources	6.102s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	1.123s
+ok  	ant/server/internal/providers/localtest	1.148s
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+ok  	ant/server/internal/store/sqlite	1.290s
+ok  	ant/server/internal/transport	1.096s
+ok  	ant/server/tests/integration	4.241s
+[exit=0]
+
+## 3. make test-web
+ Test Files  3 passed (3)
+      Tests  98 passed (98)
+[exit=0]
+
+## 4. make build
+[exit=0]
+
+## 5. 计数
+Go PASS: 172
+Go FAIL/SKIP: 0
+Web:       Tests  98 passed (98)
+
+## 6. 原版探针（未适配逐字复跑）
+go exit 1
+web exit 0
+Implementation files changed: ['Makefile', 'contracts/fixtures/api/manifest.json', 'contracts/openapi.yaml', 'contracts/schema/config-document.schema.json', 'scripts/check-deps.sh', 'server/internal/api/dto.go', 'server/internal/api/dto_test.go', 'server/internal/config/document.go', 'server/internal/config/document_test.go', 'server/internal/domain/fingerprint.go', 'server/internal/domain/fingerprint_test.go', 'server/internal/domain/planning.go', 'server/internal/domain/quantity.go', 'server/internal/domain/quantity_test.go', 'server/internal/domain/resources/counter.go', 'server/internal/domain/resources/counter_test.go', 'server/internal/domain/resources/validate_change.go', 'server/internal/domain/resources/validate_change_test.go', 'server/internal/domain/resources/window.go', 'server/internal/domain/resources/window_test.go', 'server/internal/domain/types.go', 'server/internal/ledger/permit.go', 'server/internal/ledger/permit_test.go', 'server/internal/store/sqlite/migrate.go', 'server/internal/store/sqlite/statements.go', 'server/internal/store/sqlite/store.go', 'server/internal/store/sqlite/writer.go', 'server/internal/transport/transport.go', 'server/tests/integration/migrate_test.go', 'server/tests/integration/writer_queue_test.go', 'web/package-lock.json', 'web/package.json', 'web/src/api/events.ts', 'web/src/api/schema.d.ts', 'web/src/api/types.ts', 'web/src/api/validate.ts', 'web/src/features/login/LoginPage.tsx', 'web/src/features/providers/ProvidersPage.tsx', 'web/src/locales/en.json', 'web/src/locales/zh.json', 'web/tests/app.test.tsx', 'web/tests/contract.test.ts']
+原版Go残余失败（3例均为W3允许的接口适配情形，逐条见 W3-probe-adaptations.md）:
+--- FAIL: TestCodexAuditCommandBudget (0.09s)
+--- FAIL: TestCodexAuditPermitAssembly (0.00s)
+--- FAIL: TestCodexAuditCapabilityFingerprint (0.00s)
+原版Web:       Tests  17 passed (17)
+
+## 7. 适配版回归（永久化 tests/integration/codex_regression_test.go）
+适配回归 PASS: 33
+[exit=0]
+
+## P2-1 修复后终验（2026-10-02T14:50:29+0800）
+- guard:gen 接入 make check 后：make check=0
+- Go: 172 PASS / 0 FAIL/SKIP
+- Web:       Tests  98 passed (98)
+- manifest: manifest clean (148 files identical)

@@ -1,0 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { describe,it,expect } from 'vitest';
+import { validateConfigDocument,createDescriptorCatalog } from '../src/api/validate';
+import descriptor from '../../contracts/providers/provider-alpha.descriptor.json';
+const cases=JSON.parse(readFileSync('../docs/evidence/CODEX-T1-REWORK-AUDIT/config-cases.json','utf8')) as {name:string;document:unknown;expected:boolean}[];
+const catalog=createDescriptorCatalog([descriptor]);
+describe('Codex rework full schema+graph+catalog entry',()=>{
+ for(const c of cases)it(c.name,()=>{const result=validateConfigDocument(c.document,{catalog});console.log(JSON.stringify({name:c.name,accepted:result.ok,expected:c.expected,result}));expect(result.ok).toBe(c.expected);});
+});

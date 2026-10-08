@@ -1,0 +1,20 @@
+?   	ant/server/internal/adapters	[no test files]
+ok  	ant/server/internal/api	1.930s
+ok  	ant/server/internal/config	1.956s
+ok  	ant/server/internal/contracttest	2.114s
+ok  	ant/server/internal/domain	1.613s
+ok  	ant/server/internal/domain/pools	1.613s
+ok  	ant/server/internal/domain/resources	7.216s
+?   	ant/server/internal/jsonx	[no test files]
+ok  	ant/server/internal/ledger	1.747s
+ok  	ant/server/internal/providers/localtest	1.642s
+?   	ant/server/internal/runtime	[no test files]
+?   	ant/server/internal/security	[no test files]
+?   	ant/server/internal/store	[no test files]
+ok  	ant/server/internal/store/sqlite	1.913s
+ok  	ant/server/internal/transport	1.739s
+--- FAIL: TestCodexRegressionRetryBudget (0.15s)
+    codex_regression_test.go:220: retries must share one whole-command budget, took 51.967584ms (runs=2)
+FAIL
+FAIL	ant/server/tests/integration	3.795s
+FAIL

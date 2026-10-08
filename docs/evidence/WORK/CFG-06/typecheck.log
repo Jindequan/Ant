@@ -1,0 +1,5 @@
+
+> ant-web@0.1.0 typecheck
+> tsc --noEmit
+
+tests/t1-independent-review.test.ts(13,5): error TS18048: 'p' is possibly 'undefined'.

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ant.local/schema/config-document.schema.json",
+  "title": "ANT ConfigDocument",
+  "description": "Versioned configuration document root (K1). Secrets are never part of the document: bindings reference credentialRef only. unsupportedDrafts are explicitly non-executable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accounts", "bindings", "resources", "entitlementGroups", "offers", "pools", "grants", "evidence", "unsupportedDrafts"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "accounts": { "type": "array", "items": { "$ref": "#/$defs/account" } },
+    "bindings": { "type": "array", "items": { "$ref": "#/$defs/binding" } },
+    "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } },
+    "entitlementGroups": { "type": "array", "items": { "$ref": "#/$defs/entitlementGroup" } },
+    "offers": { "type": "array", "items": { "$ref": "#/$defs/offer" } },
+    "pools": { "type": "array", "items": { "$ref": "#/$defs/pool" } },
+    "grants": { "type": "array", "items": { "$ref": "#/$defs/grant" } },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+    "unsupportedDrafts": { "type": "array", "items": { "$ref": "#/$defs/unsupportedDraft" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "unit": { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[a-z0-9_]+$" },
+    "quantity": { "type": "string", "pattern": "^(0|-?[1-9][0-9]{0,18})$", "description": "Canonical decimal spelling over int64 minimal units: no floats, exponents, leading zeros, -0, bare numbers or null; range is checked exactly (BigInt/int64) by the validators, not by this pattern." },
+    "noSecretObject": {
+      "type": "object",
+      "description": "Free-form provider extension object; exact-key secret names are forbidden here (the Go validator additionally blocks case variants).",
+      "propertyNames": { "not": { "pattern": "^(value|secret|token|password|apikey|api_key|authorization|credential)$" } },
+      "additionalProperties": true
+    },
+    "account": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accountId", "providerTypeId", "displayName", "enabled"],
+      "properties": {
+        "accountId": { "$ref": "#/$defs/id" },
+        "providerTypeId": { "$ref": "#/$defs/id" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "enabled": { "type": "boolean" },
+        "providerExtensions": { "$ref": "#/$defs/noSecretObject" }
+      }
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bindingId", "accountId", "domain", "endpoint", "credentialRef", "credentialRevision", "enabled", "capabilityProfiles", "resourceRefs"],
+      "properties": {
+        "bindingId": { "$ref": "#/$defs/id" },
+        "accountId": { "$ref": "#/$defs/id" },
+        "domain": { "type": "string", "minLength": 1 },
+        "endpoint": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "credentialRef": { "$ref": "#/$defs/id" },
+        "credentialRevision": { "$ref": "#/$defs/id" },
+        "enabled": { "type": "boolean" },
+        "capabilityProfiles": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "resourceRefs": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "providerExtensions": { "$ref": "#/$defs/noSecretObject" }
+      }
+    },
+    "window": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["fixed", "rolling", "lifetime"] },
+        "period": { "enum": ["minute", "hour", "day", "week", "month"] },
+        "timeZone": { "type": "string" },
+        "anchorISO": { "type": "string" },
+        "durationMillis": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "resource": {
+      "type": "object", "additionalProperties": false,
+      "required": ["resourceId", "ownerKind", "ownerId", "metricId", "unit", "quantumExp", "kind", "commercialRole", "semanticsRef", "semanticsRevision", "window", "metered", "configuredCapacity", "capacityEvidenceRef"],
+      "properties": {
+        "resourceId": { "$ref": "#/$defs/id" },
+        "ownerKind": { "enum": ["account", "binding"] },
+        "ownerId": { "$ref": "#/$defs/id" },
+        "metricId": { "$ref": "#/$defs/id" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "quantumExp": { "type": "integer", "minimum": 0, "maximum": 18 },
+        "kind": { "enum": ["counter", "occupancy"] },
+        "commercialRole": { "enum": ["limit", "entitlement"] },
+        "semanticsRef": { "$ref": "#/$defs/id" },
+        "semanticsRevision": { "$ref": "#/$defs/id" },
+        "window": { "$ref": "#/$defs/window" },
+        "metered": { "type": "boolean" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "providerOrder": { "type": "integer", "description": "Only valid when the resource is NOT in an entitlement group; group order wins." },
+        "providerFactId": { "$ref": "#/$defs/id", "description": "Optional provider-verified commercial bucket identity (from the registered descriptor's entitlementFacts). Same (owner, providerFactId) twice is a duplicate physical bucket (R03)." },
+        "configuredCapacity": { "$ref": "#/$defs/quantity" },
+        "capacityEvidenceRef": { "$ref": "#/$defs/id" },
+        "initialStateEvidenceRef": { "$ref": "#/$defs/id" },
+        "expiresAtMillis": { "type": "integer" },
+        "refillRule": { "type": "object" },
+        "entitlementGroupId": { "$ref": "#/$defs/id" },
+        "providerExtensions": { "$ref": "#/$defs/noSecretObject" }
+      }
+    },
+    "entitlementGroup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["groupId", "scopeKind", "scopeId", "metricId", "unit", "order"],
+      "properties": {
+        "groupId": { "$ref": "#/$defs/id" },
+        "scopeKind": { "enum": ["account", "binding"] },
+        "scopeId": { "$ref": "#/$defs/id" },
+        "metricId": { "$ref": "#/$defs/id" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "order": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["resourceId", "providerOrder"],
+            "properties": {
+              "resourceId": { "$ref": "#/$defs/id" },
+              "providerOrder": { "type": "integer" }
+            }
+          }
+        },
+        "selectorEvidenceId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "offer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["offerId", "bindingId", "domain", "capabilityProfile", "enabled", "resourceRefs", "requiredEvidenceRefs"],
+      "properties": {
+        "offerId": { "$ref": "#/$defs/id" },
+        "bindingId": { "$ref": "#/$defs/id" },
+        "domain": { "type": "string", "minLength": 1 },
+        "capabilityProfile": { "$ref": "#/$defs/id" },
+        "enabled": { "type": "boolean" },
+        "resourceRefs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
+        "requiredEvidenceRefs": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "pool": {
+      "type": "object", "additionalProperties": false,
+      "required": ["poolId", "namespace", "name", "enabled", "members"],
+      "properties": {
+        "poolId": { "$ref": "#/$defs/id" },
+        "namespace": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "enabled": { "type": "boolean" },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["offerId", "priority", "enabled"],
+            "properties": {
+              "offerId": { "$ref": "#/$defs/id" },
+              "priority": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "grant": {
+      "type": "object", "additionalProperties": false,
+      "required": ["principalId", "namespace", "permission", "scopeKind", "scopeId"],
+      "properties": {
+        "principalId": { "$ref": "#/$defs/id" },
+        "namespace": { "type": "string", "minLength": 1 },
+        "permission": { "enum": ["execute", "read", "cancel", "manage", "configure"] },
+        "scopeKind": { "enum": ["namespace", "binding", "account", "pool", "offer"] },
+        "scopeId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceId", "kind", "subjectRef", "sourceRef", "verifiedAtMillis", "expiresAtMillis", "payload"],
+      "properties": {
+        "evidenceId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["bound", "initial_state", "hard_stop", "guard", "entitlement_selector"] },
+        "subjectRef": { "$ref": "#/$defs/id" },
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "verifiedAtMillis": { "type": "integer" },
+        "expiresAtMillis": { "type": "integer" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "unsupportedDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["draftId", "providerTypeId", "description", "reason", "capturedAtMillis"],
+      "properties": {
+        "draftId": { "$ref": "#/$defs/id" },
+        "providerTypeId": { "$ref": "#/$defs/id" },
+        "description": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "capturedAtMillis": { "type": "integer" }
+      }
+    }
+  }
+}

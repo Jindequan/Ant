@@ -1,0 +1,24 @@
+[
+  {
+    "commandId": "cmd-reorder-dup",
+    "expectedPoolVersion": 3,
+    "expectedConfigRevision": "cfgrev-0007",
+    "entries": [
+      {
+        "offerId": "offer-alpha-chat-b",
+        "priority": 7
+      }
+    ]
+  },
+  {
+    "commandId": "cmd-reorder-dup",
+    "expectedPoolVersion": 3,
+    "expectedConfigRevision": "cfgrev-0007",
+    "entries": [
+      {
+        "offerId": "offer-alpha-chat-a",
+        "priority": 7
+      }
+    ]
+  }
+]

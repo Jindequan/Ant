@@ -1,0 +1,1259 @@
+{
+  "version": "P1.3",
+  "date": "2026-10-03",
+  "stateSource": "STATUS.md",
+  "tasks": [
+    {
+      "id": "IN-01",
+      "title": "首域、调用方与成功边界",
+      "group": "01-foundation",
+      "phase": "T0.1",
+      "dependsOn": [],
+      "entryGate": null,
+      "ownerRole": "业务/集成",
+      "writeScope": [
+        "docs/implementation/BASELINE.md"
+      ],
+      "deliverable": "真实请求、成功定义、失败处理、允许测试动作和首域适用性",
+      "acceptance": "真实来源可追溯；不把提交接受等同于最终交付；无凭据原文",
+      "verification": "材料核对；T0.1清单",
+      "workMode": "new"
+    },
+    {
+      "id": "IN-02",
+      "title": "部署、身份来源与工具基线",
+      "group": "01-foundation",
+      "phase": "T0.2",
+      "dependsOn": [
+        "IN-01"
+      ],
+      "entryGate": null,
+      "ownerRole": "集成",
+      "writeScope": [
+        "docs/implementation/BASELINE.md"
+      ],
+      "deliverable": "唯一部署/Store选择、宿主存活与权限来源，D02/D07记录",
+      "acceptance": "浏览器断开与server退出语义明确；工具实际兼容；不假定跨机SQLite共享",
+      "verification": "环境核验；已有构建/真库证据",
+      "workMode": "new"
+    },
+    {
+      "id": "IN-03",
+      "title": "两供应商事实与准入",
+      "group": "01-foundation",
+      "phase": "T0.3",
+      "dependsOn": [
+        "IN-01"
+      ],
+      "entryGate": null,
+      "ownerRole": "供应商",
+      "writeScope": [
+        "docs/implementation/PROVIDER-EVIDENCE.md"
+      ],
+      "deliverable": "两个真实账户/绑定/资源、共享关系、强制上界与结束/观察依据",
+      "acceptance": "所有收费维度、窗口和必要守卫有依据或明确不可准入；D01/D03关闭",
+      "verification": "逐事实来源/日期/套餐/维护人及授权动作核对",
+      "workMode": "new"
+    },
+    {
+      "id": "IN-04",
+      "title": "负载与适用范围冻结",
+      "group": "01-foundation",
+      "phase": "T0.4",
+      "dependsOn": [
+        "IN-02",
+        "IN-03"
+      ],
+      "entryGate": null,
+      "ownerRole": "集成/验证",
+      "writeScope": [
+        "docs/implementation/BASELINE.md"
+      ],
+      "deliverable": "D04负载、指标、环境与A/N适用性",
+      "acceptance": "指标在测量前冻结；未批准数字仍为候选；不编造工期",
+      "verification": "T0出口核对",
+      "workMode": "new"
+    },
+    {
+      "id": "IN-05",
+      "title": "真实预设与运行参数冻结",
+      "group": "01-foundation",
+      "phase": "T1.4",
+      "dependsOn": [
+        "CFG-07"
+      ],
+      "entryGate": "G0",
+      "ownerRole": "集成/供应商",
+      "writeScope": [
+        "server/internal/runtime/",
+        "contracts/providers/",
+        "docs/implementation/"
+      ],
+      "deliverable": "真实事实映射到已验证编译器；D04关闭、D05/D06规格冻结",
+      "acceptance": "真实bundle编译成功或具体阻塞；Clock/lease/保存/背压参数有确定行为",
+      "verification": "完整Compile真实脱敏样例；T1.4出口核对",
+      "workMode": "new"
+    },
+    {
+      "id": "BASE-01",
+      "title": "构建、依赖边界与进程骨架",
+      "group": "01-foundation",
+      "phase": "T1.1",
+      "dependsOn": [],
+      "entryGate": null,
+      "ownerRole": "集成",
+      "writeScope": [
+        "server/cmd/ant-server/",
+        "server/go.mod",
+        "server/go.sum",
+        "web/package.json",
+        "web/package-lock.json",
+        "Makefile",
+        "scripts/"
+      ],
+      "deliverable": "复用已建Go/Web工程和边界检查；必要差异修正",
+      "acceptance": "check/build可运行；启动不外呼；空门禁不假通过",
+      "verification": "make check；make build；启动/关闭冒烟",
+      "workMode": "reuse"
+    },
+    {
+      "id": "BASE-02",
+      "title": "共享领域、wire与生成契约",
+      "group": "01-foundation",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-01"
+      ],
+      "entryGate": null,
+      "ownerRole": "契约集成",
+      "writeScope": [
+        "server/internal/domain/types.go",
+        "server/internal/domain/planning.go",
+        "server/internal/api/dto.go",
+        "server/internal/api/validate.go",
+        "contracts/",
+        "web/src/api/types.ts",
+        "web/src/api/*.gen.d.ts"
+      ],
+      "deliverable": "稳定输入输出、错误/缺失语义、生成产物和共享fixture",
+      "acceptance": "数量/联合状态/未知字段在完整入口一致；已接受结果保留；修改共同契约先通知消费者",
+      "verification": "make test-contract；make test-web；make check",
+      "workMode": "reuse"
+    },
+    {
+      "id": "BASE-03",
+      "title": "资源、摘要、结果和排序纯规则",
+      "group": "01-foundation",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "领域",
+      "writeScope": [
+        "server/internal/domain/"
+      ],
+      "deliverable": "复用quantity/fingerprint/result/resources/pools规则",
+      "acceptance": "边界精确；未知占用不释放；优先级稳定；不得为身份修复重写正确WindowAt",
+      "verification": "定向Go规则测试；make test-contract",
+      "workMode": "reuse"
+    },
+    {
+      "id": "BASE-04",
+      "title": "许可及取消协议接缝",
+      "group": "01-foundation",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "契约集成",
+      "writeScope": [
+        "server/internal/ledger/permit.go",
+        "server/internal/ledger/abort.go",
+        "server/internal/transport/transport.go"
+      ],
+      "deliverable": "复用句柄配对、单次消费协议和取消判定表",
+      "acceptance": "非空真实配对、跨runtime/复用拒绝；说明协议与持久CAS边界",
+      "verification": "定向许可/abort测试；make test-contract",
+      "workMode": "reuse"
+    },
+    {
+      "id": "BASE-05",
+      "title": "迁移、writer与Store事务原语",
+      "group": "01-foundation",
+      "phase": "T1.3",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "存储",
+      "writeScope": [
+        "server/internal/store/",
+        "server/tests/integration/"
+      ],
+      "deliverable": "复用真实迁移、写队列、receipt及整组优先级CAS",
+      "acceptance": "取消/提交丢响应/预算/迁移/原子回滚证据有效；不冒充业务Ledger已完成",
+      "verification": "make test-integration",
+      "workMode": "reuse"
+    },
+    {
+      "id": "CFG-01",
+      "title": "窗口身份与资源角色的有限设计",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "设计集成",
+      "writeScope": [
+        "docs/design/07-POOLS-AND-CONFIG.md",
+        "docs/design/04-RESOURCE-ALGORITHMS.md",
+        "docs/evidence/WORK/CFG-01/"
+      ],
+      "deliverable": "D1规范规则/时区别名算法；D2可信kind/role字段及映射；可运行正反例",
+      "acceptance": "不使用日期抽样证明等价；rolling自反；区分占用类型与商业角色；共享字段有唯一来源",
+      "verification": "审查算法与例子后才能开放CFG-04/05",
+      "workMode": "design"
+    },
+    {
+      "id": "CFG-02",
+      "title": "强制证据字段与初始状态一致性",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "配置Go",
+      "writeScope": [
+        "server/internal/config/compile.go",
+        "server/internal/config/*evidence*_test.go"
+      ],
+      "deliverable": "D3有类型的必填声明与精确非负数量验证",
+      "acceptance": "缺bound/remaining、负值、与固定快照冲突均issue且Compiled=nil；合法零和保守容量通过",
+      "verification": "Go完整Compile控制/反例；最新复核D3探针",
+      "workMode": "repair"
+    },
+    {
+      "id": "CFG-03",
+      "title": "事实的真实作用域元数据",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": null,
+      "ownerRole": "目录Go",
+      "writeScope": [
+        "server/internal/providers/localtest/"
+      ],
+      "deliverable": "D4父scope/provider继承与冲突拒绝",
+      "acceptance": "账户事实输出账户scope；共享别名输出共享scope；父子矛盾加载失败",
+      "verification": "目录测试＋完整Compile字段断言",
+      "workMode": "repair"
+    },
+    {
+      "id": "CFG-04",
+      "title": "可信资源类型和完整束",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "CFG-01",
+        "CFG-02",
+        "CFG-03"
+      ],
+      "entryGate": null,
+      "ownerRole": "配置Go",
+      "writeScope": [
+        "server/internal/config/compile.go",
+        "server/internal/config/document.go",
+        "server/internal/config/*role*_test.go"
+      ],
+      "deliverable": "D2按可信类型校验配置、按metric和角色检查bundle",
+      "acceptance": "occupancy伪装counter、entitlement伪装limit拒绝；合法Compiled保留正确类型",
+      "verification": "Go完整入口；检查Compiled实际字段",
+      "workMode": "repair"
+    },
+    {
+      "id": "CFG-05",
+      "title": "窗口身份规范化接线",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "CFG-01",
+        "CFG-04"
+      ],
+      "entryGate": null,
+      "ownerRole": "配置Go",
+      "writeScope": [
+        "server/internal/config/compile.go",
+        "server/internal/config/*window*_test.go"
+      ],
+      "deliverable": "D1规范身份用于事实解析与约束检查",
+      "acceptance": "rolling自反；Casablanca/Lagos不等；合法默认/相位/支持别名不回归；不改WindowAt行为",
+      "verification": "判等性质/见证＋完整Compile入口",
+      "workMode": "repair"
+    },
+    {
+      "id": "CFG-06",
+      "title": "Web编译反馈镜像",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "CFG-02",
+        "CFG-03",
+        "CFG-04",
+        "CFG-05"
+      ],
+      "entryGate": null,
+      "ownerRole": "Web契约",
+      "writeScope": [
+        "web/src/api/config-*.ts",
+        "web/src/api/validate.ts",
+        "web/tests/contract.test.ts"
+      ],
+      "deliverable": "前端消费同一规则与业务语料，错误定位可修复",
+      "acceptance": "双侧合法/非法同判且业务依据正确；非nil编译输出字段有效；不自授权容量",
+      "verification": "make test-web；typecheck；原始完整入口探针",
+      "workMode": "repair"
+    },
+    {
+      "id": "CFG-07",
+      "title": "当前T1配置合流接受",
+      "group": "02-config",
+      "phase": "T1.2",
+      "dependsOn": [
+        "CFG-05",
+        "CFG-06",
+        "BASE-03",
+        "BASE-04",
+        "BASE-05"
+      ],
+      "entryGate": null,
+      "ownerRole": "独立验证",
+      "writeScope": [
+        "docs/evidence/WORK/CFG-07/"
+      ],
+      "deliverable": "最终树D1–D4闭合及已接受能力回归报告",
+      "acceptance": "原控制/反例与新独立反例通过；清单绑定最终输入；不把编译通过叫激活成功",
+      "verification": "make check/test-contract/test-integration/test-web/build；独立make verify-manifest",
+      "workMode": "verify"
+    },
+    {
+      "id": "AUTH-01",
+      "title": "身份、namespace与秘密边界",
+      "group": "02-config",
+      "phase": "T2.1",
+      "dependsOn": [
+        "BASE-02"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "安全/API",
+      "writeScope": [
+        "server/internal/security/",
+        "server/internal/api/middleware.go"
+      ],
+      "deliverable": "可信身份/权限上下文、凭证只写mask/ref/revision和秘密解析",
+      "acceptance": "body不能自授权；跨namespace读写/取消拒绝；日志/GET/前端不泄密",
+      "verification": "本地假身份/假凭证源/API授权反例＋禁外网运行；不得加载真实凭证或发外呼",
+      "workMode": "new"
+    },
+    {
+      "id": "CFG-08",
+      "title": "草稿验证与配置激活服务",
+      "group": "02-config",
+      "phase": "T2.1",
+      "dependsOn": [
+        "AUTH-01",
+        "CFG-07",
+        "BASE-05"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "配置应用",
+      "writeScope": [
+        "server/internal/application/config_service.go",
+        "server/internal/application/config_service_test.go",
+        "server/internal/store/store.go",
+        "server/internal/store/sqlite/statements.go"
+      ],
+      "deliverable": "SaveDraft/Validate/Activate、GET读模型、原子版本与不可变快照",
+      "acceptance": "错误草稿能保存；激活失败保留旧版；事务内复核证据/revision；409无局部保存",
+      "verification": "本地SQLite集成＋localtest事实/假凭证源；覆盖A26/A16；禁外网；不能据此接受真实供应商激活",
+      "workMode": "new"
+    },
+    {
+      "id": "LED-01",
+      "title": "操作身份和执行权事务",
+      "group": "03-execution",
+      "phase": "T2.2",
+      "dependsOn": [
+        "BASE-04",
+        "BASE-05"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "账本（含窄化Store事务原语）",
+      "writeScope": [
+        "server/internal/store/claim.go",
+        "server/internal/store/sqlite/claim_statements.go",
+        "server/internal/ledger/commands/claim.go",
+        "server/tests/integration/claim_test.go",
+        "docs/evidence/WORK/LED-01/"
+      ],
+      "deliverable": "claim/receipt/同异摘要/owner/单活跃attempt；仅新增兼容的typed Store claim扩展，所有SQL仍限于store/sqlite",
+      "acceptance": "同ID同语义复用；异语义冲突；多进程只授一个执行权；无半提交",
+      "verification": "本地SQLite真库并发；A01/A02",
+      "workMode": "new"
+    },
+    {
+      "id": "LED-02",
+      "title": "全资源准备与发送授权",
+      "group": "03-execution",
+      "phase": "T2.2",
+      "dependsOn": [
+        "LED-01",
+        "CFG-07"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "账本",
+      "writeScope": [
+        "server/internal/ledger/commands/prepare.go",
+        "server/internal/ledger/commands/authorize.go",
+        "server/internal/ledger/validate_change.go",
+        "server/internal/store/prepare.go",
+        "server/internal/store/sqlite/prepare_statements.go",
+        "server/tests/integration/prepare_test.go",
+        "docs/evidence/WORK/LED-02/"
+      ],
+      "deliverable": "quote/tryPrepare/authorize/consume持久CAS与I01–I10校验",
+      "acceptance": "任一资源/版本/策略失败全回滚；许可与预算一致；网络不入事务",
+      "verification": "本地SQLite真库容量/版本/许可竞争＋禁外网运行；A03/A16/A20",
+      "workMode": "new"
+    },
+    {
+      "id": "LED-03",
+      "title": "结算与结果事件持久化",
+      "group": "03-execution",
+      "phase": "T2.2",
+      "dependsOn": [
+        "LED-02"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "账本",
+      "writeScope": [
+        "server/internal/ledger/commands/settle.go",
+        "server/internal/ledger/commands/settle_test.go",
+        "server/internal/domain/planning.go",
+        "server/internal/domain/planning_report_test.go",
+        "server/internal/domain/quantity.go",
+        "server/internal/domain/quantity_test.go",
+        "server/internal/domain/types.go",
+        "server/internal/domain/result_resolver.go",
+        "server/internal/domain/result_resolver_test.go",
+        "server/internal/ledger/commands/abort.go",
+        "server/internal/ledger/commands/sweep.go",
+        "server/internal/store/settle.go",
+        "server/internal/store/sqlite/settle_statements.go",
+        "server/internal/contracttest/contract_test.go",
+        "contracts/fixtures/api/manifest.json",
+        "contracts/openapi.yaml",
+        "web/src/api/schema.d.ts",
+        "web/src/api/types.ts",
+        "web/tests/contract.test.ts",
+        "docs/design/contracts.go",
+        "docs/design/02-STORAGE.md",
+        "docs/design/03-EXECUTION.md",
+        "docs/plans/03-CORRECTNESS.md",
+        "docs/plans/execution/T2.md",
+        "docs/plans/STATUS.md",
+        "docs/plans/workstreams/03-execution.md",
+        "docs/evidence/WORK/LED-03/"
+      ],
+      "deliverable": "一次结算、真实超额、消费/占用分离、结果和事件同提交",
+      "acceptance": "重复报告不重复扣减；冲突不覆盖；unknown保留槽；超int64精确保留、释放预留、资源隔离、结果明示且无伪账；同事务原子提交",
+      "verification": "本地SQLite真库报告/资源/事件/hold/幂等核对；全量race与契约校验；A06/A08/A22/QA1-OVERAGE",
+      "workMode": "new",
+      "scopeNote": "按项目负责人授予Codex的实施与验收授权，扩展已接受的LED-03 typed结算写集，以保存兼容可选的report_json十进制超范围字段并结算resource hold/result；无SQL列迁移。SQL仅在store/sqlite；不改冻结Store/WriterTx/ReaderTx方法集；不加通用SQL入口。"
+    },
+    {
+      "id": "LED-04",
+      "title": "取消、续租、清扫与未发送收敛",
+      "group": "03-execution",
+      "phase": "T2.2",
+      "dependsOn": [
+        "LED-03"
+      ],
+      "entryGate": "G1-DEV",
+      "ownerRole": "账本",
+      "writeScope": [
+        "server/internal/ledger/commands/cancel.go",
+        "server/internal/ledger/commands/renew.go",
+        "server/internal/ledger/commands/sweep.go",
+        "server/internal/ledger/commands/abort.go",
+        "server/internal/ledger/commands/recovery_test.go",
+        "server/internal/ledger/commands/settle.go",
+        "server/internal/ledger/commands/settle_test.go",
+        "server/internal/ledger/commands/prepare.go",
+        "server/internal/ledger/permit.go",
+        "server/internal/ledger/permit_test.go",
+        "server/internal/store/recovery.go",
+        "server/internal/store/sqlite/recovery_statements.go",
+        "docs/evidence/WORK/LED-04/"
+      ],
+      "deliverable": "AbortBeforeDispatch事务、有限恢复、旧owner拒绝",
+      "acceptance": "六类竞争有稳定结果；lease不等于外部结束；可靠未发送才释放；许可注册表有生命周期",
+      "verification": "本地SQLite真库故障/竞争＋禁外网运行；A04/A05/A15/A20",
+      "workMode": "new",
+      "scopeNote": "Narrow additive typed recovery Store capability; SQL only in store/sqlite. The registered lifecycle extension includes commands/prepare.go handle ownership, ledger/permit.go, LED-03 settle terminal cleanup, and their focused tests so every durable terminal path compacts runtime-local handle and registry indexes. Do not change frozen WriterTx/ReaderTx/Store signatures, schema, or add generic SQL. Any further write-scope expansion must stop for review."
+    },
+    {
+      "id": "LED-05",
+      "title": "账本与激活配置集成接受",
+      "group": "03-execution",
+      "phase": "T2.2",
+      "dependsOn": [
+        "LED-04",
+        "CFG-08",
+        "API-01",
+        "WEB-02"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "独立验证",
+      "writeScope": [
+        "server/tests/integration/ledger_slice_test.go",
+        "docs/evidence/WORK/LED-05/"
+      ],
+      "deliverable": "真实激活配置→准备→许可→报告→结算/恢复的最小闭环",
+      "acceptance": "同时检查行/事件/summary/occupancy；不靠只返回200验收；通过才接真实发送路径",
+      "verification": "make test-integration；相关race契约测试",
+      "workMode": "verify"
+    },
+    {
+      "id": "RUN-01",
+      "title": "首供应商Adapter与领域策略",
+      "group": "03-execution",
+      "phase": "T2.3",
+      "dependsOn": [
+        "IN-05",
+        "BASE-02"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "供应商",
+      "writeScope": [
+        "server/internal/adapters/<selected-provider>/",
+        "server/internal/domain/policy/"
+      ],
+      "deliverable": "纯encode/decode、强制上界、报告/错误映射、领域守卫",
+      "acceptance": "只处理已核验能力；无HTTP/SQL/秘密读取；不漏计收费项；邮件/AI按适用项验收",
+      "verification": "真实脱敏材料＋共同适配契约；不实际发送",
+      "workMode": "new"
+    },
+    {
+      "id": "RUN-02",
+      "title": "受控单次HTTP Transport",
+      "group": "03-execution",
+      "phase": "T2.3",
+      "dependsOn": [
+        "BASE-04",
+        "RUN-01"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "传输",
+      "writeScope": [
+        "server/internal/transport/"
+      ],
+      "deliverable": "prepare固定字节/凭证摘要、consume端口接线、无隐藏重放",
+      "acceptance": "受控服务器实际wire最多一次；重定向/旧连接不重放；撤销/摘要错拒绝",
+      "verification": "httptest/实际socket计数＋race；A20",
+      "workMode": "new"
+    },
+    {
+      "id": "RUN-03",
+      "title": "有界执行宿主与持久输出",
+      "group": "03-execution",
+      "phase": "T2.3",
+      "dependsOn": [
+        "LED-05"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "运行",
+      "writeScope": [
+        "server/internal/runtime/host.go",
+        "server/internal/runtime/supervisor.go",
+        "server/internal/runtime/stream_hub.go"
+      ],
+      "deliverable": "有界任务/缓冲、续租清扫、输出保存、关闭恢复与completion",
+      "acceptance": "消费者断开仍结算；超载有界；server退出不伪造供应商结束；存储失败可按原ID取回",
+      "verification": "有界/零残留/存储故障用例；AI加背压长流",
+      "workMode": "new"
+    },
+    {
+      "id": "RUN-04",
+      "title": "Router基本候选与执行组装",
+      "group": "03-execution",
+      "phase": "T2.1/T2.3",
+      "dependsOn": [
+        "CFG-08",
+        "LED-05",
+        "RUN-01",
+        "RUN-02",
+        "RUN-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "执行集成",
+      "writeScope": [
+        "server/internal/application/router.go",
+        "server/internal/application/router_test.go",
+        "server/internal/hooks/",
+        "server/cmd/ant-server/"
+      ],
+      "deliverable": "筛选/priority/prepare/permit/send/settle唯一链、持久DecisionRecord及内置与自定义生命周期Hooks接线；记录sealed registry revision与阶段决定摘要",
+      "acceptance": "硬约束优先；内置与组合根声明的命名Hook点按能力限制并接入真实边界；顺序稳定、Guard只拒绝、排序保持候选集合、Observer只读提交事件；仅显式开放的Transformer可改写阶段数据且每步经核心validator验证；manifest/revision稳定且在DecisionRecord中持久化，可由manifest还原实际Hook ID/版本；各阶段决定摘要可审计。Hook失败策略明确；无容量快速失败；quote不预留；无绕过Ledger发送入口",
+      "verification": "受控完整链＋内置/自定义Hook点故障与权限边界/A30/实际发送与账务核对",
+      "workMode": "new"
+    },
+    {
+      "id": "API-01",
+      "title": "配置目录与池优先级API",
+      "group": "03-execution",
+      "phase": "T2.1",
+      "dependsOn": [
+        "AUTH-01",
+        "CFG-08"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "API",
+      "writeScope": [
+        "server/internal/api/config.go",
+        "server/internal/api/providers.go",
+        "server/internal/api/pools.go"
+      ],
+      "deliverable": "草稿/目录/激活/GET和整组priority路由",
+      "acceptance": "鉴权/schema/body限制/版本一致；同priority原样保存；409保留旧版；秘密不回显",
+      "verification": "真实HTTP＋真库GET；A26/A28",
+      "workMode": "new"
+    },
+    {
+      "id": "API-02",
+      "title": "操作提交、取消和查询API",
+      "group": "03-execution",
+      "phase": "T2.3",
+      "dependsOn": [
+        "AUTH-01",
+        "RUN-04"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "API",
+      "writeScope": [
+        "server/internal/api/operations.go",
+        "server/internal/application/query_admin.go"
+      ],
+      "deliverable": "submit/getOperation/inspect/cancel及持久结果投影",
+      "acceptance": "HTTP接受与执行结果分离；取消ACK不伪终态；查询无发送；原ID重放无副作用",
+      "verification": "真实HTTP/查询/错误分支；A02/A12/A15",
+      "workMode": "new"
+    },
+    {
+      "id": "API-03",
+      "title": "授权SSE与断线补查",
+      "group": "03-execution",
+      "phase": "T2.3",
+      "dependsOn": [
+        "API-02",
+        "RUN-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "API/运行",
+      "writeScope": [
+        "server/internal/api/events.go",
+        "server/internal/runtime/subscriptions.go"
+      ],
+      "deliverable": "持久序号事件、授权重连、漏通知补查与有界订阅",
+      "acceptance": "持久化先于推送；重复/缺口可恢复；慢消费者不阻塞结算；断连不新发请求",
+      "verification": "真实HTTP/SSE/socket与持久事件对照；A11/A29",
+      "workMode": "new"
+    },
+    {
+      "id": "RUN-05",
+      "title": "首绑定真实全链验收",
+      "group": "03-execution",
+      "phase": "T2.4",
+      "dependsOn": [
+        "WEB-06",
+        "API-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "独立验证/集成",
+      "writeScope": [
+        "server/tests/live/",
+        "web/e2e/first-binding.spec.ts",
+        "docs/evidence/WORK/RUN-05/"
+      ],
+      "deliverable": "同一最终版本UI→Go→库→真实供应商→结果及重放",
+      "acceptance": "动作在授权范围；请求ID/实际消耗可核对；一条失败/恢复路径；localtest不能替代",
+      "verification": "真实供应商脱敏证据＋浏览器旅程",
+      "workMode": "verify"
+    },
+    {
+      "id": "WEB-01",
+      "title": "Web共享交互与API接入",
+      "group": "04-web-pools",
+      "phase": "T2.1",
+      "dependsOn": [
+        "BASE-02",
+        "AUTH-01"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "Web基础",
+      "writeScope": [
+        "web/src/api/client.ts",
+        "web/src/api/events.ts",
+        "web/src/app/",
+        "web/src/components/",
+        "web/src/styles/tokens.css",
+        "web/src/i18n.ts",
+        "web/src/locales/"
+      ],
+      "deliverable": "真实session/client、错误/四态、schema控件、tokens/i18n/路由基础",
+      "acceptance": "无业务自动重发；字段错误保留输入；键盘/390可用；秘密不存localStorage",
+      "verification": "组件/协议测试；真实API接通后才能接受",
+      "workMode": "new"
+    },
+    {
+      "id": "WEB-02",
+      "title": "最小配置草稿至激活的真实UI切片",
+      "group": "04-web-pools",
+      "phase": "T2.1",
+      "dependsOn": [
+        "WEB-01",
+        "API-01"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "Web切片",
+      "writeScope": [
+        "web/src/features/providers/",
+        "web/src/features/resources/",
+        "web/src/features/pools/",
+        "web/e2e/config-slice.spec.ts"
+      ],
+      "deliverable": "一个已核验offer：供应商→资源→池→草稿/验证/激活→GET回读",
+      "acceptance": "真API/真库；错误旧版保留、409不丢草稿；仅薄切片，不扩写完整七页",
+      "verification": "make test-web；真实栈make test-e2e；A26",
+      "workMode": "new"
+    },
+    {
+      "id": "WEB-06",
+      "title": "最小请求至结果和取消的真实UI切片",
+      "group": "04-web-pools",
+      "phase": "T2.4",
+      "dependsOn": [
+        "WEB-02",
+        "API-02",
+        "API-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "Web切片",
+      "writeScope": [
+        "web/src/features/pools/",
+        "web/src/features/operations/",
+        "web/e2e/execution-slice.spec.ts"
+      ],
+      "deliverable": "在已激活池提交一个请求，观察流/结果，取消或断线后查询",
+      "acceptance": "真API/真库/受控Transport；取消ACK不当终态；断线按原ID恢复；真实供应商证明在RUN-05",
+      "verification": "make test-web；真实栈make test-e2e；A11/A29",
+      "workMode": "new"
+    },
+    {
+      "id": "WEB-03",
+      "title": "供应商与资源完整配置体验",
+      "group": "04-web-pools",
+      "phase": "T5.1",
+      "dependsOn": [
+        "WEB-02"
+      ],
+      "entryGate": "G2",
+      "ownerRole": "Web配置",
+      "writeScope": [
+        "web/src/features/providers/",
+        "web/src/features/resources/"
+      ],
+      "deliverable": "目录驱动多类型配置、共享关系、完整束、归档/修复与可用性",
+      "acceptance": "用户不用填写内部账本类型；不支持能力能保存草稿但不可激活；未知额度非0；四态/权限/zh-en",
+      "verification": "真实栈正逆向e2e＋桌面/390截图",
+      "workMode": "new"
+    },
+    {
+      "id": "WEB-04",
+      "title": "操作列表、详情与处置体验",
+      "group": "04-web-pools",
+      "phase": "T5.1/T5.2",
+      "dependsOn": [
+        "WEB-02",
+        "OPS-02"
+      ],
+      "entryGate": "G2",
+      "ownerRole": "Web操作",
+      "writeScope": [
+        "web/src/features/operations/"
+      ],
+      "deliverable": "结果/输出/旧决策/消费占用/取消与核查、明确下一步",
+      "acceptance": "unknown没有一键重发；当前配置不重算历史；缺正文诚实；处置与权限一致",
+      "verification": "真实API旅程＋双端/键盘；A12/A19/A25",
+      "workMode": "new"
+    },
+    {
+      "id": "WEB-05",
+      "title": "完整七类页面与首次使用接受",
+      "group": "04-web-pools",
+      "phase": "T5.4",
+      "dependsOn": [
+        "WEB-03",
+        "WEB-04",
+        "MULTI-02",
+        "OPS-03"
+      ],
+      "entryGate": "G4",
+      "ownerRole": "独立体验验证",
+      "writeScope": [
+        "web/e2e/",
+        "docs/evidence/WORK/WEB-05/"
+      ],
+      "deliverable": "七类页面四态/双端/权限、主路径及逆向、独立接入者实测",
+      "acceptance": "N02前置齐全60秒真实最小动作/自身可用性；无独立接入者则未验，不能自评替代；D05运行验证",
+      "verification": "make test-e2e；截图；独立使用记录",
+      "workMode": "verify"
+    },
+    {
+      "id": "MULTI-01",
+      "title": "第二供应商接入与共享差异",
+      "group": "04-web-pools",
+      "phase": "T4.1",
+      "dependsOn": [
+        "RUN-01",
+        "IN-03"
+      ],
+      "entryGate": "G3",
+      "ownerRole": "供应商",
+      "writeScope": [
+        "server/internal/adapters/<second-provider>/",
+        "contracts/providers/"
+      ],
+      "deliverable": "第二Adapter/预设与独立/共享实例映射",
+      "acceptance": "共同端口无复制Ledger/Router；多key不增额度；凭证错误范围正确",
+      "verification": "共同契约＋两账户事实核验；A17",
+      "workMode": "new"
+    },
+    {
+      "id": "MULTI-02",
+      "title": "完整池排序与真实选择解释",
+      "group": "04-web-pools",
+      "phase": "T4.2",
+      "dependsOn": [
+        "MULTI-01",
+        "API-01",
+        "WEB-02"
+      ],
+      "entryGate": "G3",
+      "ownerRole": "Web池/执行集成",
+      "writeScope": [
+        "web/src/features/pools/",
+        "server/internal/application/router.go"
+      ],
+      "deliverable": "上移/下移/数字/拖拽整组保存，异构单位分组及历史选择",
+      "acceptance": "server新选择遵循priority；同值稳定；409保留草稿；prepared复核版本；executing不迁移；共享不增容",
+      "verification": "浏览器→真实Go→两账户选择；A09/A19/A27/A28",
+      "workMode": "new"
+    },
+    {
+      "id": "MULTI-03",
+      "title": "安全再分配与两账户验收",
+      "group": "04-web-pools",
+      "phase": "T4.3",
+      "dependsOn": [
+        "MULTI-01",
+        "MULTI-02"
+      ],
+      "entryGate": "G3",
+      "ownerRole": "执行集成/验证",
+      "writeScope": [
+        "server/internal/application/router.go",
+        "server/tests/live/",
+        "server/tests/fault/"
+      ],
+      "deliverable": "已知安全失败后结算再分配；双账户真实链",
+      "acceptance": "unknown/可见输出/预算/取消不换；每次发送重新许可；真实证据与故障服务器用途区分",
+      "verification": "受控故障矩阵＋两账户真实证据",
+      "workMode": "new"
+    },
+    {
+      "id": "QA-01",
+      "title": "资源原子性与不变量验证",
+      "group": "05-correctness-ops",
+      "phase": "T3.1",
+      "dependsOn": [
+        "LED-05",
+        "CFG-07"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "独立正确性验证",
+      "writeScope": [
+        "server/tests/integration/resource_invariants_test.go",
+        "server/tests/fault/resource_test.go"
+      ],
+      "deliverable": "I01–I10、容量/窗口/unknown占用的违法与合法用例",
+      "acceptance": "100请求容量50恰50准入；slot1 unknown仍阻断；超额如实入账；跨池不增容",
+      "verification": "真库多进程/race；A03/A07/A08/A22/A23",
+      "workMode": "verify"
+    },
+    {
+      "id": "QA-02",
+      "title": "崩溃、取消与发送竞争验证",
+      "group": "05-correctness-ops",
+      "phase": "T3.2",
+      "dependsOn": [
+        "RUN-04",
+        "API-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "独立故障验证",
+      "writeScope": [
+        "server/tests/fault/lifecycle_test.go",
+        "server/tests/fault/transport_test.go"
+      ],
+      "deliverable": "claim/prepared/executing/报告/结算各故障点及六类取消竞争",
+      "acceptance": "旧owner不复活；校验前跨lease零发送，校验后保守处理；流断开有界；无重复扣减",
+      "verification": "make test-fault；实际进程/socket/资源集合；Hooks deadline、panic、失败关闭、Transformer逐步核心校验/无部分结果及Observer提交后隔离（A30）",
+      "workMode": "verify"
+    },
+    {
+      "id": "OPS-01",
+      "title": "观察、核查与授权账务管理机制",
+      "group": "05-correctness-ops",
+      "phase": "T3.3",
+      "dependsOn": [
+        "LED-05",
+        "AUTH-01",
+        "API-02"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "运行账务",
+      "writeScope": [
+        "server/internal/application/observation_service.go",
+        "server/internal/ledger/commands/admin.go",
+        "server/internal/api/admin.go"
+      ],
+      "deliverable": "refresh/adjust/reconcile/clearHold核心事务、采集及审计",
+      "acceptance": "采集在事务外；主体/版本/水位检查；观察只收紧；清hold不释放unknown或重发；权限幂等",
+      "verification": "真库＋受控采集；A08/A13/A25",
+      "workMode": "new"
+    },
+    {
+      "id": "QA-03",
+      "title": "配置、权限和存储故障验证",
+      "group": "05-correctness-ops",
+      "phase": "T3.3",
+      "dependsOn": [
+        "OPS-01",
+        "API-01",
+        "API-03"
+      ],
+      "entryGate": "G1",
+      "ownerRole": "独立故障验证",
+      "writeScope": [
+        "server/tests/fault/config_security_test.go",
+        "server/tests/fault/storage_test.go"
+      ],
+      "deliverable": "撤权/改序/计量升级/观察过期/提交丢响应/备份缺口反例",
+      "acceptance": "prepared旧计划不能放宽；越权失败；store重试不重发；无容量快速失败；邮件守卫按适用项",
+      "verification": "make test-fault；A13/A14/A16/A18/A21/A24/A25",
+      "workMode": "verify"
+    },
+    {
+      "id": "QA-04",
+      "title": "正确性集成与D06运行关闭",
+      "group": "05-correctness-ops",
+      "phase": "T3.4",
+      "dependsOn": [
+        "QA-01",
+        "QA-02",
+        "QA-03"
+      ],
+      "entryGate": "G2",
+      "ownerRole": "独立验证",
+      "writeScope": [
+        "docs/evidence/WORK/QA-04/"
+      ],
+      "deliverable": "适用I/A完整映射、实际部署故障结论、D06验证",
+      "acceptance": "无fake替代多进程真库；T3适用机制全部有证据；未验业务旅程留明确后续",
+      "verification": "最终相关race/fault/integration及矩阵核对",
+      "workMode": "verify"
+    },
+    {
+      "id": "OPS-02",
+      "title": "运行查询和修复服务接线",
+      "group": "05-correctness-ops",
+      "phase": "T5.2",
+      "dependsOn": [
+        "OPS-01",
+        "API-02"
+      ],
+      "entryGate": "G2",
+      "ownerRole": "运行API",
+      "writeScope": [
+        "server/internal/application/query_admin.go",
+        "server/internal/api/admin.go"
+      ],
+      "deliverable": "历史/当前投影、核查证据与管理运行接口的完整接线",
+      "acceptance": "复用OPS-01账务事务；不重造cancel/adjust；认证/计费/unknown有可操作恢复路径",
+      "verification": "真实HTTP/权限/幂等及运行手册；A12/A19/A25",
+      "workMode": "new"
+    },
+    {
+      "id": "OPS-03",
+      "title": "保存清理与备份恢复",
+      "group": "05-correctness-ops",
+      "phase": "T5.3",
+      "dependsOn": [
+        "OPS-02",
+        "RUN-03",
+        "IN-05"
+      ],
+      "entryGate": "G3",
+      "ownerRole": "存储运行",
+      "writeScope": [
+        "server/internal/runtime/output_store.go",
+        "server/internal/store/sqlite/backup.go",
+        "server/internal/runtime/restore_guard.go",
+        "docs/operations/"
+      ],
+      "deliverable": "D05正文/元数据保存、访问控制、备份/恢复发送闸门",
+      "acceptance": "旧备份缺口封闭发送；去重与unknown证据不删；缺正文诚实；秘密不泄漏",
+      "verification": "真库备份/故障恢复＋重启查询；A11/A13/A14",
+      "workMode": "new"
+    },
+    {
+      "id": "OPS-04",
+      "title": "运行旅程与D05关闭",
+      "group": "05-correctness-ops",
+      "phase": "T5.4",
+      "dependsOn": [
+        "OPS-03",
+        "WEB-05",
+        "MULTI-03"
+      ],
+      "entryGate": "G4",
+      "ownerRole": "独立运行验证",
+      "writeScope": [
+        "docs/evidence/WORK/OPS-04/",
+        "docs/operations/"
+      ],
+      "deliverable": "正向/取消/失败核查/修复旅程、保存恢复证据",
+      "acceptance": "两账户最终形态下D05成立；无未知重发；手册可复现；已知未验显式列出",
+      "verification": "真实栈运行旅程＋T5出口核对",
+      "workMode": "verify"
+    },
+    {
+      "id": "SHIP-01",
+      "title": "性能环境、数据与负载",
+      "group": "06-delivery",
+      "phase": "T6.1",
+      "dependsOn": [
+        "IN-04"
+      ],
+      "entryGate": "G5",
+      "ownerRole": "性能验证",
+      "writeScope": [
+        "server/tests/bench/",
+        "docs/evidence/WORK/SHIP-01/"
+      ],
+      "deliverable": "D04冻结环境/mix/历史量/原始采样脚本",
+      "acceptance": "成功准入、拒绝、热点分别计量；延迟跨度明确；不事后降低目标",
+      "verification": "make bench及负载脚本有效性验证",
+      "workMode": "new"
+    },
+    {
+      "id": "SHIP-02",
+      "title": "尾延迟、容量与耐久",
+      "group": "06-delivery",
+      "phase": "T6.2",
+      "dependsOn": [
+        "SHIP-01"
+      ],
+      "entryGate": "G5",
+      "ownerRole": "性能验证/模块owner",
+      "writeScope": [
+        "server/tests/bench/",
+        "docs/evidence/WORK/SHIP-02/"
+      ],
+      "deliverable": "原始p95/p99、pprof/内存/goroutine/队列/锁及耐久报告",
+      "acceptance": "冻结指标通过；unknown保留非泄漏；两小时代表耐久按D04；瓶颈修改回归正确性",
+      "verification": "实际负载＋耐久＋受影响正确性回归",
+      "workMode": "verify"
+    },
+    {
+      "id": "SHIP-03",
+      "title": "安装产物与最终真实旅程",
+      "group": "06-delivery",
+      "phase": "T6.3",
+      "dependsOn": [
+        "SHIP-02"
+      ],
+      "entryGate": "G5",
+      "ownerRole": "发布集成",
+      "writeScope": [
+        "server/cmd/ant-server/",
+        "web/dist/",
+        "docs/operations/",
+        "README.md"
+      ],
+      "deliverable": "Go二进制/Web产物、全新安装/迁移/重启/引导、最终双账户链",
+      "acceptance": "无Node业务后端、无fake/密钥；同一最终版本真实路径成功；不等于生产部署",
+      "verification": "新环境安装＋真实UI/供应商证据",
+      "workMode": "new"
+    },
+    {
+      "id": "SHIP-04",
+      "title": "首版证据汇总与交付",
+      "group": "06-delivery",
+      "phase": "T6.4",
+      "dependsOn": [
+        "SHIP-03"
+      ],
+      "entryGate": "G5",
+      "ownerRole": "独立验收/集成",
+      "writeScope": [
+        "docs/evidence/T6/DELIVERY.md",
+        "docs/plans/STATUS.md"
+      ],
+      "deliverable": "R01–R25/N01–N07/A01–A30/I01–I10适用证据及D01–D07状态",
+      "acceptance": "无范围内失败被改作扩展；最终输入一致；全部门槛满足才首版完成",
+      "verification": "矩阵/最终源码摘要/安装及结果核对",
+      "workMode": "verify"
+    },
+    {
+      "id": "EXT-01",
+      "title": "新增需求及兼容设计",
+      "group": "06-delivery",
+      "phase": "T7.1",
+      "dependsOn": [],
+      "entryGate": "G6",
+      "ownerRole": "设计集成",
+      "writeScope": [
+        "docs/design/",
+        "docs/plans/"
+      ],
+      "deliverable": "有实际新需求时确定扩展点、证据和兼容迁移",
+      "acceptance": "首版双工未准入能力仍拒绝；新域/双工/Store不得隐式纳入当前范围",
+      "verification": "新需求来源与影响审查",
+      "workMode": "optional"
+    },
+    {
+      "id": "EXT-02",
+      "title": "扩展实现与共同契约回归",
+      "group": "06-delivery",
+      "phase": "T7.2",
+      "dependsOn": [
+        "EXT-01"
+      ],
+      "entryGate": "G6",
+      "ownerRole": "扩展owner/验证",
+      "writeScope": [
+        "按EXT-01独占路径分派"
+      ],
+      "deliverable": "新增能力真实切片与兼容产物",
+      "acceptance": "保留I01–I10/A23；不复制核心；旧两账户/恢复回归成立",
+      "verification": "扩展契约＋真实路径＋相关性能",
+      "workMode": "optional"
+    }
+  ],
+  "gates": {
+    "G0": {
+      "title": "T0出站",
+      "dependsOn": [
+        "IN-01",
+        "IN-02",
+        "IN-03",
+        "IN-04"
+      ]
+    },
+    "G1": {
+      "title": "T1出站",
+      "dependsOn": [
+        "G0",
+        "BASE-01",
+        "BASE-02",
+        "BASE-03",
+        "BASE-04",
+        "BASE-05",
+        "CFG-07",
+        "IN-05"
+      ]
+    },
+    "G2": {
+      "title": "T2出站",
+      "dependsOn": [
+        "G1",
+        "AUTH-01",
+        "CFG-08",
+        "LED-05",
+        "RUN-04",
+        "API-01",
+        "API-02",
+        "API-03",
+        "WEB-02",
+        "WEB-06",
+        "RUN-05"
+      ]
+    },
+    "G3": {
+      "title": "T3出站",
+      "dependsOn": [
+        "G2",
+        "QA-04"
+      ]
+    },
+    "G4": {
+      "title": "T4出站",
+      "dependsOn": [
+        "G3",
+        "MULTI-01",
+        "MULTI-02",
+        "MULTI-03"
+      ]
+    },
+    "G5": {
+      "title": "T5出站",
+      "dependsOn": [
+        "G4",
+        "WEB-03",
+        "WEB-04",
+        "WEB-05",
+        "OPS-02",
+        "OPS-03",
+        "OPS-04"
+      ]
+    },
+    "G6": {
+      "title": "T6首版交付",
+      "dependsOn": [
+        "G5",
+        "SHIP-01",
+        "SHIP-02",
+        "SHIP-03",
+        "SHIP-04"
+      ]
+    },
+    "G1-DEV": {
+      "title": "G1前本地实现授权（禁外网）",
+      "dependsOn": [
+        "BASE-01",
+        "BASE-02",
+        "BASE-03",
+        "BASE-04",
+        "BASE-05",
+        "CFG-07"
+      ]
+    }
+  }
+}

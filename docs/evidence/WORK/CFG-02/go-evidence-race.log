@@ -1,0 +1,84 @@
+=== RUN   TestCompiledEvidenceClaims
+=== RUN   TestCompiledEvidenceClaims/bound
+=== RUN   TestCompiledEvidenceClaims/bound/missing
+=== RUN   TestCompiledEvidenceClaims/bound/negative
+=== RUN   TestCompiledEvidenceClaims/bound/negative-zero
+=== RUN   TestCompiledEvidenceClaims/bound/leading-zero
+=== RUN   TestCompiledEvidenceClaims/bound/malformed
+=== RUN   TestCompiledEvidenceClaims/bound/empty
+=== RUN   TestCompiledEvidenceClaims/bound/overflow
+=== RUN   TestCompiledEvidenceClaims/bound/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/bound/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/bound/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/hard_stop
+=== RUN   TestCompiledEvidenceClaims/hard_stop/missing
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/leading-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/malformed
+=== RUN   TestCompiledEvidenceClaims/hard_stop/empty
+=== RUN   TestCompiledEvidenceClaims/hard_stop/overflow
+=== RUN   TestCompiledEvidenceClaims/hard_stop/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/hard_stop/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/hard_stop/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/initial_state
+=== RUN   TestCompiledEvidenceClaims/initial_state/missing
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/leading-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/malformed
+=== RUN   TestCompiledEvidenceClaims/initial_state/empty
+=== RUN   TestCompiledEvidenceClaims/initial_state/overflow
+=== RUN   TestCompiledEvidenceClaims/initial_state/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/initial_state/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/initial_state/different-positive-snapshot
+=== RUN   TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot
+=== RUN   TestCompiledEvidenceClaims/zero-remaining
+=== RUN   TestCompiledEvidenceClaims/zero-bound-and-remaining
+--- PASS: TestCompiledEvidenceClaims (0.21s)
+    --- PASS: TestCompiledEvidenceClaims/bound (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/bound/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/hard_stop (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/initial_state (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/above-snapshot (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/different-positive-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-remaining (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-bound-and-remaining (0.01s)
+=== RUN   TestRework3CapacityConstraints
+=== RUN   TestRework3CapacityConstraints/conservative-lower-capacity-compiles
+=== RUN   TestRework3CapacityConstraints/capacity-above-verified-bound-rejected
+=== RUN   TestRework3CapacityConstraints/malformed-bound-rejected
+--- PASS: TestRework3CapacityConstraints (0.03s)
+    --- PASS: TestRework3CapacityConstraints/conservative-lower-capacity-compiles (0.01s)
+    --- PASS: TestRework3CapacityConstraints/capacity-above-verified-bound-rejected (0.01s)
+    --- PASS: TestRework3CapacityConstraints/malformed-bound-rejected (0.01s)
+PASS
+ok  	ant/server/internal/config	1.644s

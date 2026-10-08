@@ -1,0 +1,96 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/rework-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > full-boundary-valid
+{"name":"full-boundary-valid","accepted":false,"expected":true,"result":{"ok":false,"issues":[{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > required-account-enabled-missing
+{"name":"required-account-enabled-missing","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/accounts/0","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > required-account-enabled-null
+{"name":"required-account-enabled-null","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/accounts/0/enabled","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > required-resource-semantics-missing
+{"name":"required-resource-semantics-missing","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > required-resource-quantum-missing
+{"name":"required-resource-quantum-missing","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > required-resource-metered-missing
+{"name":"required-resource-metered-missing","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > dangling-grant-scope
+{"name":"dangling-grant-scope","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/grants/1/scopeId","messageKey":"ant.config.unknownGrantScope"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > initial-state-wrong-resource
+{"name":"initial-state-wrong-resource","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/initialStateEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > capacity-wrong-owner-and-metric
+{"name":"capacity-wrong-owner-and-metric","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > binding-owned-extension-unknown
+{"name":"binding-owned-extension-unknown","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"},{"path":"/resources/2/providerExtensions","messageKey":"ant.config.extensionSchemaViolation"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-unsupported-domain
+{"name":"catalog-unsupported-domain","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/bindings/0/domain","messageKey":"ant.config.unsupportedDomain"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"},{"path":"/offers/0/domain","messageKey":"ant.config.unsupportedDomain"},{"path":"/offers/1/domain","messageKey":"ant.config.unsupportedDomain"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-fact-metric-mismatch
+{"name":"catalog-fact-metric-mismatch","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactMetadataMismatch"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-bucket-cloned-with-different-order
+{"name":"same-bucket-cloned-with-different-order","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/3","messageKey":"ant.config.duplicateCommercialFact"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"},{"path":"/resources/3/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > valid-catalog-two-facts
+{"name":"valid-catalog-two-facts","accepted":true,"expected":true,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-group-incompatible-quantum
+{"name":"same-group-incompatible-quantum","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/entitlementGroups/0/order/1/resourceId","messageKey":"ant.config.groupQuantumMismatch"}]}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-limit-equivalent-anchor-spelling
+{"name":"same-limit-equivalent-anchor-spelling","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/3","messageKey":"ant.config.duplicateCommercialFact"},{"path":"/resources/3/initialStateEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/1/providerFactId","messageKey":"ant.config.providerFactRequired"}]}}
+
+ ❯ tests/rework-audit.test.ts (16 tests | 1 failed) 19ms
+   ❯ Codex rework full schema+graph+catalog entry (16)
+     × full-boundary-valid 13ms
+     ✓ required-account-enabled-missing 0ms
+     ✓ required-account-enabled-null 1ms
+     ✓ required-resource-semantics-missing 0ms
+     ✓ required-resource-quantum-missing 0ms
+     ✓ required-resource-metered-missing 0ms
+     ✓ dangling-grant-scope 0ms
+     ✓ initial-state-wrong-resource 0ms
+     ✓ capacity-wrong-owner-and-metric 1ms
+     ✓ binding-owned-extension-unknown 0ms
+     ✓ catalog-unsupported-domain 0ms
+     ✓ catalog-fact-metric-mismatch 0ms
+     ✓ same-bucket-cloned-with-different-order 0ms
+     ✓ valid-catalog-two-facts 0ms
+     ✓ same-group-incompatible-quantum 0ms
+     ✓ same-limit-equivalent-anchor-spelling 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > full-boundary-valid
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/rework-audit.test.ts:8:203
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  17:48:26
+   Duration  616ms (environment 65%, import 13%, setup 10%, transform 8%, tests 3%)
+

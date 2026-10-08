@@ -1,0 +1,114 @@
+{
+  "scopes": [
+    {
+      "scopeId": "acct-demo-1",
+      "kind": "account",
+      "providerTypeId": "provider-alpha",
+      "facts": [
+        {
+          "factId": "alpha-daily-token-limit",
+          "physicalKey": "phys-alpha:acct-demo-1:daily-token",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "metered": false,
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "fixed",
+          "windowPeriod": "day",
+          "windowTimeZone": "Asia/Singapore",
+          "capacityBound": "1000000",
+          "initialRemaining": "1000000"
+        },
+        {
+          "factId": "alpha-usd-grant-promo",
+          "physicalKey": "phys-alpha:acct-demo-1:usd-grant-promo",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "currency": "USD",
+          "metered": true,
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "lifetime",
+          "capacityBound": "500",
+          "initialRemaining": "500"
+        },
+        {
+          "factId": "alpha-usd-prepaid",
+          "physicalKey": "phys-alpha:acct-demo-1:usd-prepaid",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "currency": "USD",
+          "metered": true,
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "lifetime",
+          "capacityBound": "1000",
+          "initialRemaining": "1000"
+        },
+        {
+          "factId": "alpha-concurrency-limit",
+          "physicalKey": "phys-alpha:acct-demo-1:concurrency",
+          "metricId": "metric.concurrency.request",
+          "unit": "slot",
+          "quantumExp": 0,
+          "metered": false,
+          "semanticsRef": "sem.occupancy-slot",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "lifetime",
+          "capacityBound": "1",
+          "initialRemaining": "1"
+        }
+      ]
+    },
+    {
+      "scopeId": "acct-demo-2",
+      "kind": "account",
+      "providerTypeId": "provider-alpha",
+      "facts": [
+        {
+          "factId": "alpha-usd-grant-promo",
+          "physicalKey": "phys-alpha:acct-demo-2:usd-grant-promo",
+          "metricId": "metric.usd.cents",
+          "unit": "usd_cents",
+          "quantumExp": 0,
+          "currency": "USD",
+          "metered": true,
+          "semanticsRef": "sem.entitlement-pool",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "lifetime",
+          "capacityBound": "200",
+          "initialRemaining": "200"
+        }
+      ]
+    },
+    {
+      "scopeId": "billing-alpha-shared",
+      "kind": "shared",
+      "aliases": [
+        "acct-demo-1",
+        "acct-demo-2"
+      ],
+      "providerTypeId": "provider-alpha",
+      "facts": [
+        {
+          "factId": "alpha-shared-tokens",
+          "physicalKey": "phys-alpha:shared:tokens",
+          "metricId": "metric.tokens.total",
+          "unit": "token",
+          "quantumExp": 0,
+          "metered": false,
+          "semanticsRef": "sem.fixed-window-counter",
+          "semanticsRevision": "semrev-1",
+          "windowKind": "fixed",
+          "windowPeriod": "month",
+          "windowTimeZone": "Asia/Singapore",
+          "capacityBound": "500000",
+          "initialRemaining": "500000"
+        }
+      ]
+    }
+  ]
+}

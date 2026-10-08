@@ -1,0 +1,13 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/t1-independent-review.test.ts tests/compiled-config-final.test.ts tests/codex-fourth-regression.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+
+ Test Files  3 passed (3)
+      Tests  79 passed (79)
+   Start at  11:40:33
+   Duration  1.30s (environment 53%, tests 25%, import 9%, setup 6%, transform 5%, worker 1%)
+

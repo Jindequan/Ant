@@ -1,0 +1,148 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/codex-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-resource-owner
+{"name":"dangling-resource-owner","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-group-scope
+{"name":"dangling-group-scope","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > group-unit-mismatch
+{"name":"group-unit-mismatch","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-leading-zero
+{"name":"quantity-leading-zero","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-negative
+{"name":"quantity-negative","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-negative-zero
+{"name":"quantity-negative-zero","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-overflow
+{"name":"quantity-overflow","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > nested-secret
+{"name":"nested-secret","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > case-secret
+{"name":"case-secret","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > valid-gift-and-prepaid-buckets
+{"name":"valid-gift-and-prepaid-buckets","accepted":false,"expected":true,"result":{"ok":false,"issues":["duplicate commercial fact (account:acct-demo-1:metric.usd.cents:lifetime::::0:entitlement) at resource res-alpha-usd-prepaid"]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit SSE lifecycle > preserves an absolute endpoint when API base is configured
+{"sseUrl":"https://api.fixture.invalidhttps://api.fixture.invalid/v1/operations/op-1/events"}
+
+stdout | tests/codex-audit.test.ts > Codex audit SSE lifecycle > honors an already aborted signal
+{"activeSourcesAfterAlreadyAbortedSignal":1}
+
+ ❯ tests/codex-audit.test.ts (17 tests | 12 failed) 11ms
+   ❯ Codex audit config parity (15)
+     × dangling-resource-owner 3ms
+     × dangling-group-scope 1ms
+     × group-unit-mismatch 1ms
+     × quantity-leading-zero 0ms
+     × quantity-negative 1ms
+     × quantity-negative-zero 0ms
+     × quantity-overflow 0ms
+     × nested-secret 0ms
+     × case-secret 0ms
+     × valid-gift-and-prepaid-buckets 0ms
+   ❯ Codex audit SSE lifecycle (2)
+     × preserves an absolute endpoint when API base is configured 1ms
+     × honors an already aborted signal 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > dangling-resource-owner
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > dangling-group-scope
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > group-unit-mismatch
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > quantity-leading-zero
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > quantity-negative
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > quantity-negative-zero
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > quantity-overflow
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > nested-secret
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > case-secret
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/codex-audit.test.ts:9:21
+      7|   const result=validateConfigDocument(c.document);
+      8|   console.log(JSON.stringify({name:c.name,accepted:result.ok,expected:…
+      9|   expect(result.ok).toBe(c.expected);
+       |                     ^
+     10|  });
+     11| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/codex-audit.test.ts > Codex audit config parity > valid-gift-and-prepaid-buckets
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/codex-audit.test.ts:9:21
+      7|   const result=validateConfigDocument(c.document);
+      8|   console.log(JSON.stringify({name:c.name,accepted:result.ok,expected:…
+      9|   expect(result.ok).toBe(c.expected);
+       |                     ^
+     10|  });
+     11| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/codex-audit.test.ts > Codex audit SSE lifecycle > preserves an absolute endpoint when API base is configured
+AssertionError: expected 'https://api.fixture.invalidhttps://ap…' to be 'https://api.fixture.invalid/v1/operat…' // Object.is equality
+
+Expected: "https://api.fixture.invalid/v1/operations/op-1/events"
+Received: "https://api.fixture.invalidhttps://api.fixture.invalid/v1/operations/op-1/events"
+
+ ❯ tests/codex-audit.test.ts:27:22
+     25|   const sub=subscribeOperationEvents({url:'https://api.fixture.invalid…
+     26|   const source=AuditEventSource.instances[0];console.log(JSON.stringif…
+     27|   expect(source.url).toBe('https://api.fixture.invalid/v1/operations/o…
+       |                      ^
+     28|  });
+     29|  it('honors an already aborted signal',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/codex-audit.test.ts > Codex audit SSE lifecycle > honors an already aborted signal
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/codex-audit.test.ts:32:175
+     30|   vi.stubGlobal('EventSource',AuditEventSource);const controller=new A…
+     31|   const sub=subscribeOperationEvents({url:'/v1/operations/op-1/events'…
+     32|   const active=AuditEventSource.instances.filter(s=>!s.closed).length;…
+       |                                                                                                                                                                               ^
+     33|  });
+     34| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 5 passed (17)
+   Start at  12:20:13
+   Duration  757ms (environment 75%, import 9%, setup 8%, transform 6%, tests 2%)
+

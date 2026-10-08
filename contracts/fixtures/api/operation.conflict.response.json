@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "OperationIdConflict",
+    "messageKey": "ant.error.operationIdConflict",
+    "params": {
+      "operationId": "op-20261002-0001"
+    },
+    "retryable": false,
+    "action": "reuse_original_id_or_new_id"
+  },
+  "requestId": "req-5f2a9c"
+}

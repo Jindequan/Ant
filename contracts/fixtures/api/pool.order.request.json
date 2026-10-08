@@ -1,0 +1,15 @@
+{
+  "commandId": "cmd-reorder-0001",
+  "expectedPoolVersion": 3,
+  "expectedConfigRevision": "cfgrev-0007",
+  "entries": [
+    {
+      "offerId": "offer-alpha-chat-b",
+      "priority": 7
+    },
+    {
+      "offerId": "offer-alpha-chat-a",
+      "priority": 20
+    }
+  ]
+}

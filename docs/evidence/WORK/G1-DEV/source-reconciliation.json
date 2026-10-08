@@ -1,0 +1,584 @@
+{
+  "aggregateManifest": "docs/evidence/WORK/G1-DEV/source-manifest.sha256",
+  "aggregateManifestHashMismatches": {},
+  "aggregateManifestOmissions": [
+    "server/internal/store/settle.go",
+    "server/internal/store/sqlite/settle_statements.go"
+  ],
+  "aggregateManifestOnlyPaths": [],
+  "aggregateManifestPathCount": 31,
+  "currentMatchCount": 28,
+  "currentMismatchCount": 5,
+  "currentMissingCount": 0,
+  "currentReviewMatchCount": 5,
+  "currentReviewMismatchCount": 0,
+  "currentReviewedSourceCount": 5,
+  "currentTreeReview": "docs/evidence/WORK/LED-04/CURRENT-TREE-REVIEW-2026-10-04.md",
+  "currentTreeReviews": [
+    "docs/evidence/WORK/LED-03/ACTUAL-OUT-OF-RANGE/CURRENT-SOURCE-REVIEW.md",
+    "docs/evidence/WORK/LED-04/CURRENT-TREE-REVIEW-2026-10-04.md"
+  ],
+  "distinctLeafSourceCount": 33,
+  "formatVersion": 1,
+  "leafReportHashConflicts": {
+    "server/internal/ledger/commands/prepare.go": [
+      {
+        "path": "server/internal/ledger/commands/prepare.go",
+        "report": "LED-02",
+        "sha256": "86d6f4f89c1f623f3c9044439461e9dfe228db671efdbfa749ca82e1449b9096"
+      },
+      {
+        "path": "server/internal/ledger/commands/prepare.go",
+        "report": "LED-04",
+        "sha256": "8420474b036f247ed3e2ac524f22b6d24c7ed102b7bafb9123a0030bb47b14b5"
+      }
+    ],
+    "server/internal/ledger/commands/settle.go": [
+      {
+        "path": "server/internal/ledger/commands/settle.go",
+        "report": "LED-03",
+        "sha256": "8f4389c7a3ee5a6f0f1c0983cd9cd0cda83793c6c25ed69143dbb3e7bb97ba66"
+      },
+      {
+        "path": "server/internal/ledger/commands/settle.go",
+        "report": "LED-04",
+        "sha256": "033fa3a5dd506ac31f0bb55eee9b10aebf11019c7f2ac7244e14da818485df1f"
+      }
+    ],
+    "server/internal/ledger/commands/settle_test.go": [
+      {
+        "path": "server/internal/ledger/commands/settle_test.go",
+        "report": "LED-03",
+        "sha256": "c8f30c13803d511ae8b6f894ba9d04edb796ed23d8dc74e3ca696e3754e941c1"
+      },
+      {
+        "path": "server/internal/ledger/commands/settle_test.go",
+        "report": "LED-04",
+        "sha256": "455f8315286e39df45549de35853d08ac6e96ec53d85dc66f9c3b42760deacd5"
+      }
+    ]
+  },
+  "reportEntryCount": 36,
+  "reportPrecedence": "listed order; later reports supersede earlier hashes for shared paths",
+  "sourceReports": [
+    "docs/evidence/WORK/AUTH-01/INDEPENDENT-REVIEW.md",
+    "docs/evidence/WORK/CFG-08/INDEPENDENT-REVIEW.md",
+    "docs/evidence/WORK/LED-01/INDEPENDENT-REVIEW.md",
+    "docs/evidence/WORK/LED-02/INDEPENDENT-REVIEW.md",
+    "docs/evidence/WORK/LED-03/INDEPENDENT-REVIEW.md",
+    "docs/evidence/WORK/LED-04/INDEPENDENT-REVIEW.md"
+  ],
+  "sources": [
+    {
+      "acceptedSha256": "3aeed068a7381f68a58ead3fe4d0e384cc3a1e540da1e1213554365b27ae4169",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "3aeed068a7381f68a58ead3fe4d0e384cc3a1e540da1e1213554365b27ae4169",
+      "path": "server/internal/api/middleware.go",
+      "reports": [
+        {
+          "path": "server/internal/api/middleware.go",
+          "report": "AUTH-01",
+          "sha256": "3aeed068a7381f68a58ead3fe4d0e384cc3a1e540da1e1213554365b27ae4169"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "8b4cf5f86dd30cd9e5fc7df6a57e87481b3db71dac7ea3a4eac0b76fdfdeef74",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "8b4cf5f86dd30cd9e5fc7df6a57e87481b3db71dac7ea3a4eac0b76fdfdeef74",
+      "path": "server/internal/api/middleware_test.go",
+      "reports": [
+        {
+          "path": "server/internal/api/middleware_test.go",
+          "report": "AUTH-01",
+          "sha256": "8b4cf5f86dd30cd9e5fc7df6a57e87481b3db71dac7ea3a4eac0b76fdfdeef74"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "ad1c049cf85eef5c6144b98a67991af7520fcecf2a9b5b3cb90a9fc0bf9d30cc",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "ad1c049cf85eef5c6144b98a67991af7520fcecf2a9b5b3cb90a9fc0bf9d30cc",
+      "path": "server/internal/application/config_service.go",
+      "reports": [
+        {
+          "path": "server/internal/application/config_service.go",
+          "report": "CFG-08",
+          "sha256": "ad1c049cf85eef5c6144b98a67991af7520fcecf2a9b5b3cb90a9fc0bf9d30cc"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "9802736ddd89bc27326191515519550b372ed23fe4e71e1714cd95fcb0f67fa5",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "9802736ddd89bc27326191515519550b372ed23fe4e71e1714cd95fcb0f67fa5",
+      "path": "server/internal/application/config_service_test.go",
+      "reports": [
+        {
+          "path": "server/internal/application/config_service_test.go",
+          "report": "CFG-08",
+          "sha256": "9802736ddd89bc27326191515519550b372ed23fe4e71e1714cd95fcb0f67fa5"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "614680cd0082b227d25386ceed11cfd2b9f4e6abd1742bdd659a71f7771a235e",
+      "currentReviewSha256": "0d15aeed518527f8eb6c1a0329a192949d258627f755dff8cd657fbf6ad5b50c",
+      "currentReviewState": "match",
+      "currentSha256": "0d15aeed518527f8eb6c1a0329a192949d258627f755dff8cd657fbf6ad5b50c",
+      "path": "server/internal/ledger/commands/abort.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/abort.go",
+          "report": "LED-04",
+          "sha256": "614680cd0082b227d25386ceed11cfd2b9f4e6abd1742bdd659a71f7771a235e"
+        }
+      ],
+      "state": "mismatch"
+    },
+    {
+      "acceptedSha256": "16f90cb8145053a002cf8b6ad145fb8ab025bbded1e8465d0868bc07046c88fb",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "16f90cb8145053a002cf8b6ad145fb8ab025bbded1e8465d0868bc07046c88fb",
+      "path": "server/internal/ledger/commands/authorize.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/authorize.go",
+          "report": "LED-02",
+          "sha256": "16f90cb8145053a002cf8b6ad145fb8ab025bbded1e8465d0868bc07046c88fb"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "37e30d678d5144a59c5e6111544385fa4118f267b64eafddc04f1aac689f1b2e",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "37e30d678d5144a59c5e6111544385fa4118f267b64eafddc04f1aac689f1b2e",
+      "path": "server/internal/ledger/commands/cancel.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/cancel.go",
+          "report": "LED-04",
+          "sha256": "37e30d678d5144a59c5e6111544385fa4118f267b64eafddc04f1aac689f1b2e"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "8a6b67142001d73709100cef791609c59eb70d4f46efd1e1ecb87788e21ccfa0",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "8a6b67142001d73709100cef791609c59eb70d4f46efd1e1ecb87788e21ccfa0",
+      "path": "server/internal/ledger/commands/claim.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/claim.go",
+          "report": "LED-01",
+          "sha256": "8a6b67142001d73709100cef791609c59eb70d4f46efd1e1ecb87788e21ccfa0"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "64d855667b5c5a6d75c31ff87716c535731d38e55df3e65d0aa3da1f1d114e75",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "64d855667b5c5a6d75c31ff87716c535731d38e55df3e65d0aa3da1f1d114e75",
+      "path": "server/internal/ledger/commands/permit_lifecycle_test.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/permit_lifecycle_test.go",
+          "report": "LED-04",
+          "sha256": "64d855667b5c5a6d75c31ff87716c535731d38e55df3e65d0aa3da1f1d114e75"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "8420474b036f247ed3e2ac524f22b6d24c7ed102b7bafb9123a0030bb47b14b5",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "8420474b036f247ed3e2ac524f22b6d24c7ed102b7bafb9123a0030bb47b14b5",
+      "path": "server/internal/ledger/commands/prepare.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/prepare.go",
+          "report": "LED-02",
+          "sha256": "86d6f4f89c1f623f3c9044439461e9dfe228db671efdbfa749ca82e1449b9096"
+        },
+        {
+          "path": "server/internal/ledger/commands/prepare.go",
+          "report": "LED-04",
+          "sha256": "8420474b036f247ed3e2ac524f22b6d24c7ed102b7bafb9123a0030bb47b14b5"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "7acef7a68a69bb94dc17a5ef7e3a250653cc503f4003c90986e7178cdacdad5e",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "7acef7a68a69bb94dc17a5ef7e3a250653cc503f4003c90986e7178cdacdad5e",
+      "path": "server/internal/ledger/commands/recovery_test.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/recovery_test.go",
+          "report": "LED-04",
+          "sha256": "7acef7a68a69bb94dc17a5ef7e3a250653cc503f4003c90986e7178cdacdad5e"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "20c818936447649e33fe45701575de6d915f4250d991a59adb38bda4c6a76a96",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "20c818936447649e33fe45701575de6d915f4250d991a59adb38bda4c6a76a96",
+      "path": "server/internal/ledger/commands/renew.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/renew.go",
+          "report": "LED-04",
+          "sha256": "20c818936447649e33fe45701575de6d915f4250d991a59adb38bda4c6a76a96"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "033fa3a5dd506ac31f0bb55eee9b10aebf11019c7f2ac7244e14da818485df1f",
+      "currentReviewSha256": "fe51bc848472081d02f82e2019bd72bc18683d28d5404ab18aba2769436bedd1",
+      "currentReviewState": "match",
+      "currentSha256": "fe51bc848472081d02f82e2019bd72bc18683d28d5404ab18aba2769436bedd1",
+      "path": "server/internal/ledger/commands/settle.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/settle.go",
+          "report": "LED-03",
+          "sha256": "8f4389c7a3ee5a6f0f1c0983cd9cd0cda83793c6c25ed69143dbb3e7bb97ba66"
+        },
+        {
+          "path": "server/internal/ledger/commands/settle.go",
+          "report": "LED-04",
+          "sha256": "033fa3a5dd506ac31f0bb55eee9b10aebf11019c7f2ac7244e14da818485df1f"
+        }
+      ],
+      "state": "mismatch"
+    },
+    {
+      "acceptedSha256": "455f8315286e39df45549de35853d08ac6e96ec53d85dc66f9c3b42760deacd5",
+      "currentReviewSha256": "2fa3259df9a46baf3d77039816a2a9c204389dd86786adea6b9fc82858884f9b",
+      "currentReviewState": "match",
+      "currentSha256": "2fa3259df9a46baf3d77039816a2a9c204389dd86786adea6b9fc82858884f9b",
+      "path": "server/internal/ledger/commands/settle_test.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/settle_test.go",
+          "report": "LED-03",
+          "sha256": "c8f30c13803d511ae8b6f894ba9d04edb796ed23d8dc74e3ca696e3754e941c1"
+        },
+        {
+          "path": "server/internal/ledger/commands/settle_test.go",
+          "report": "LED-04",
+          "sha256": "455f8315286e39df45549de35853d08ac6e96ec53d85dc66f9c3b42760deacd5"
+        }
+      ],
+      "state": "mismatch"
+    },
+    {
+      "acceptedSha256": "c04d8fb2ff3ce7000cb57341995260121bfee8d2f9a9040a567abdf7c653f90c",
+      "currentReviewSha256": "f3da023f7df0b0ed81644bda07d03829015333be0bac6e94a94f714d2961a837",
+      "currentReviewState": "match",
+      "currentSha256": "f3da023f7df0b0ed81644bda07d03829015333be0bac6e94a94f714d2961a837",
+      "path": "server/internal/ledger/commands/sweep.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/commands/sweep.go",
+          "report": "LED-04",
+          "sha256": "c04d8fb2ff3ce7000cb57341995260121bfee8d2f9a9040a567abdf7c653f90c"
+        }
+      ],
+      "state": "mismatch"
+    },
+    {
+      "acceptedSha256": "40e6f978993ca5d5d8517b343fd07f9966f51b1b7265879e42a7586733d70f1f",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "40e6f978993ca5d5d8517b343fd07f9966f51b1b7265879e42a7586733d70f1f",
+      "path": "server/internal/ledger/permit.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/permit.go",
+          "report": "LED-04",
+          "sha256": "40e6f978993ca5d5d8517b343fd07f9966f51b1b7265879e42a7586733d70f1f"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "e19395ad085fb26c955716e51ccadf1924ddf7b6da7d79dac284f29981f5d124",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "e19395ad085fb26c955716e51ccadf1924ddf7b6da7d79dac284f29981f5d124",
+      "path": "server/internal/ledger/permit_test.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/permit_test.go",
+          "report": "LED-04",
+          "sha256": "e19395ad085fb26c955716e51ccadf1924ddf7b6da7d79dac284f29981f5d124"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "6d3ccfac3ec3df9ec7e680b8d0048c27fdd8f5c004012a61c98013952cd6e176",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "6d3ccfac3ec3df9ec7e680b8d0048c27fdd8f5c004012a61c98013952cd6e176",
+      "path": "server/internal/ledger/validate_change.go",
+      "reports": [
+        {
+          "path": "server/internal/ledger/validate_change.go",
+          "report": "LED-02",
+          "sha256": "6d3ccfac3ec3df9ec7e680b8d0048c27fdd8f5c004012a61c98013952cd6e176"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "f834493156e829e006cc2dfd87b790f6264df7d9c9ba6d1bd58c1bea3dbe06ba",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "f834493156e829e006cc2dfd87b790f6264df7d9c9ba6d1bd58c1bea3dbe06ba",
+      "path": "server/internal/security/auth.go",
+      "reports": [
+        {
+          "path": "server/internal/security/auth.go",
+          "report": "AUTH-01",
+          "sha256": "f834493156e829e006cc2dfd87b790f6264df7d9c9ba6d1bd58c1bea3dbe06ba"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "fb015fb75033123276d3323a5590331b980a3507659525d33c9734ee87005cbd",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "fb015fb75033123276d3323a5590331b980a3507659525d33c9734ee87005cbd",
+      "path": "server/internal/security/secretservice.go",
+      "reports": [
+        {
+          "path": "server/internal/security/secretservice.go",
+          "report": "AUTH-01",
+          "sha256": "fb015fb75033123276d3323a5590331b980a3507659525d33c9734ee87005cbd"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "3eff5830ac08caa38ddbd94a13afe12acca1cc4c12e4181bcea36596221d5992",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "3eff5830ac08caa38ddbd94a13afe12acca1cc4c12e4181bcea36596221d5992",
+      "path": "server/internal/security/security_test.go",
+      "reports": [
+        {
+          "path": "server/internal/security/security_test.go",
+          "report": "AUTH-01",
+          "sha256": "3eff5830ac08caa38ddbd94a13afe12acca1cc4c12e4181bcea36596221d5992"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "2233f4e1bad54f5abeb1e88ef8d1e2fd3740890c78c4e82ed36e2f58524aabc3",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "2233f4e1bad54f5abeb1e88ef8d1e2fd3740890c78c4e82ed36e2f58524aabc3",
+      "path": "server/internal/store/claim.go",
+      "reports": [
+        {
+          "path": "server/internal/store/claim.go",
+          "report": "LED-01",
+          "sha256": "2233f4e1bad54f5abeb1e88ef8d1e2fd3740890c78c4e82ed36e2f58524aabc3"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "986ee63136155d76977e8844134ea744311c274e1ea5f136af07d3a65f1119a6",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "986ee63136155d76977e8844134ea744311c274e1ea5f136af07d3a65f1119a6",
+      "path": "server/internal/store/prepare.go",
+      "reports": [
+        {
+          "path": "server/internal/store/prepare.go",
+          "report": "LED-02",
+          "sha256": "986ee63136155d76977e8844134ea744311c274e1ea5f136af07d3a65f1119a6"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "bedcc23435b751b7bcc99fbb9924fffc8875897e2db7a2b1ad4dc772ecbd41a7",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "bedcc23435b751b7bcc99fbb9924fffc8875897e2db7a2b1ad4dc772ecbd41a7",
+      "path": "server/internal/store/recovery.go",
+      "reports": [
+        {
+          "path": "server/internal/store/recovery.go",
+          "report": "LED-04",
+          "sha256": "bedcc23435b751b7bcc99fbb9924fffc8875897e2db7a2b1ad4dc772ecbd41a7"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "111108f4dc31063607a2f9fa9de3b68da1f6dc3c5308a7a1ac695f878b0ef6f1",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "111108f4dc31063607a2f9fa9de3b68da1f6dc3c5308a7a1ac695f878b0ef6f1",
+      "path": "server/internal/store/settle.go",
+      "reports": [
+        {
+          "path": "server/internal/store/settle.go",
+          "report": "LED-03",
+          "sha256": "111108f4dc31063607a2f9fa9de3b68da1f6dc3c5308a7a1ac695f878b0ef6f1"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "0d0bed7400152a04743824e43ee385a6ef6cd962c8b265d638ef53af65be2aa5",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "0d0bed7400152a04743824e43ee385a6ef6cd962c8b265d638ef53af65be2aa5",
+      "path": "server/internal/store/sqlite/claim_statements.go",
+      "reports": [
+        {
+          "path": "server/internal/store/sqlite/claim_statements.go",
+          "report": "LED-01",
+          "sha256": "0d0bed7400152a04743824e43ee385a6ef6cd962c8b265d638ef53af65be2aa5"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "939c8cc02684011dd89d33ffc2f18d13a90aa7a8cbb8e519041b1952e6d99aec",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "939c8cc02684011dd89d33ffc2f18d13a90aa7a8cbb8e519041b1952e6d99aec",
+      "path": "server/internal/store/sqlite/prepare_statements.go",
+      "reports": [
+        {
+          "path": "server/internal/store/sqlite/prepare_statements.go",
+          "report": "LED-02",
+          "sha256": "939c8cc02684011dd89d33ffc2f18d13a90aa7a8cbb8e519041b1952e6d99aec"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "cbfe26179a4ef910cc0ef45ccc7871ab21c2e4486588817d12ab892f2c1f7159",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "cbfe26179a4ef910cc0ef45ccc7871ab21c2e4486588817d12ab892f2c1f7159",
+      "path": "server/internal/store/sqlite/recovery_statements.go",
+      "reports": [
+        {
+          "path": "server/internal/store/sqlite/recovery_statements.go",
+          "report": "LED-04",
+          "sha256": "cbfe26179a4ef910cc0ef45ccc7871ab21c2e4486588817d12ab892f2c1f7159"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "0281502e8b15626bb5548de7387feaf80ee346ec7315182de97d820bff62b3cc",
+      "currentReviewSha256": "1de9dcd3616f54399a7bc31e95e4306c64018213c46f7291ca686a025d734d9e",
+      "currentReviewState": "match",
+      "currentSha256": "1de9dcd3616f54399a7bc31e95e4306c64018213c46f7291ca686a025d734d9e",
+      "path": "server/internal/store/sqlite/settle_statements.go",
+      "reports": [
+        {
+          "path": "server/internal/store/sqlite/settle_statements.go",
+          "report": "LED-03",
+          "sha256": "0281502e8b15626bb5548de7387feaf80ee346ec7315182de97d820bff62b3cc"
+        }
+      ],
+      "state": "mismatch"
+    },
+    {
+      "acceptedSha256": "c72165bf2eb421ba680c03226357b743b1890e0a7fc4c41f6fc35187e6a6f2fd",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "c72165bf2eb421ba680c03226357b743b1890e0a7fc4c41f6fc35187e6a6f2fd",
+      "path": "server/internal/store/sqlite/statements.go",
+      "reports": [
+        {
+          "path": "server/internal/store/sqlite/statements.go",
+          "report": "CFG-08",
+          "sha256": "c72165bf2eb421ba680c03226357b743b1890e0a7fc4c41f6fc35187e6a6f2fd"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "74d73072aa51bfccc2761079b4ceb71de7f1f1492ea71b70f6ba564569e8999f",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "74d73072aa51bfccc2761079b4ceb71de7f1f1492ea71b70f6ba564569e8999f",
+      "path": "server/internal/store/store.go",
+      "reports": [
+        {
+          "path": "server/internal/store/store.go",
+          "report": "CFG-08",
+          "sha256": "74d73072aa51bfccc2761079b4ceb71de7f1f1492ea71b70f6ba564569e8999f"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "484e840b78a3d99b8f0fb563c5a94227511142ce74837516a001f0ee2c3b2a79",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "484e840b78a3d99b8f0fb563c5a94227511142ce74837516a001f0ee2c3b2a79",
+      "path": "server/tests/integration/claim_test.go",
+      "reports": [
+        {
+          "path": "server/tests/integration/claim_test.go",
+          "report": "LED-01",
+          "sha256": "484e840b78a3d99b8f0fb563c5a94227511142ce74837516a001f0ee2c3b2a79"
+        }
+      ],
+      "state": "match"
+    },
+    {
+      "acceptedSha256": "c6dd9fc20ca6124928e9e50af0a53016fa78e64141fe12b60e8b2fb49fff03ac",
+      "currentReviewSha256": null,
+      "currentReviewState": "not-reviewed",
+      "currentSha256": "c6dd9fc20ca6124928e9e50af0a53016fa78e64141fe12b60e8b2fb49fff03ac",
+      "path": "server/tests/integration/prepare_test.go",
+      "reports": [
+        {
+          "path": "server/tests/integration/prepare_test.go",
+          "report": "LED-02",
+          "sha256": "c6dd9fc20ca6124928e9e50af0a53016fa78e64141fe12b60e8b2fb49fff03ac"
+        }
+      ],
+      "state": "match"
+    }
+  ],
+  "status": "review-required"
+}

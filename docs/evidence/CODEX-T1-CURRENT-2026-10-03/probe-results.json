@@ -1,0 +1,31 @@
+{
+  "results": [
+    {
+      "name": "go-probes",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "-run",
+        "TestCodexFourth",
+        "-v",
+        "./internal/config"
+      ],
+      "exitCode": 1
+    },
+    {
+      "name": "web-probes",
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--run",
+        "tests/codex-fourth-audit.test.ts"
+      ],
+      "exitCode": 1
+    }
+  ],
+  "implementationFilesChangedDuringReview": [],
+  "temporaryTestsRemoved": true
+}

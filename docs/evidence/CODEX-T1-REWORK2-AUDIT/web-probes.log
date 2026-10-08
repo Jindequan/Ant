@@ -1,0 +1,65 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/rework3-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > control-completed-verified-fact
+{"name":"control-completed-verified-fact","accepted":true,"expected":true,"result":{"ok":true,"compiled":{"resources":[{"resourceId":"res-alpha-daily-token","physicalKey":"phys-alpha:acct-demo-1:daily-token","scopeId":"","ownerKind":"account","ownerId":"acct-demo-1","metricId":"metric.tokens.total","unit":"token","quantumExp":0,"currency":"","metered":false,"kind":"counter","commercialRole":"limit","semanticsRef":"sem.fixed-window-counter","semanticsRevision":"semrev-1","window":{"kind":"fixed","period":"day","timeZone":"Asia/Singapore","anchorISO":"","durationMillis":0},"capacity":"1000000","initialRemaining":"1000000","evidenceRefs":["ev-alpha-daily-bound","ev-alpha-daily-initial"]},{"resourceId":"res-alpha-usd-entitlement","physicalKey":"phys-alpha:acct-demo-1:usd-grant-promo","scopeId":"","ownerKind":"account","ownerId":"acct-demo-1","metricId":"metric.usd.cents","unit":"usd_cents","quantumExp":0,"currency":"USD","metered":true,"kind":"counter","commercialRole":"entitlement","semanticsRef":"sem.entitlement-pool","semanticsRevision":"semrev-1","window":{"kind":"lifetime","period":"","timeZone":"","anchorISO":"","durationMillis":0},"capacity":"500","initialRemaining":"500","evidenceRefs":["ev-alpha-usd-bound","ev-alpha-usd-initial"]},{"resourceId":"res-alpha-concurrency","physicalKey":"phys-alpha:acct-demo-1:concurrency","scopeId":"","ownerKind":"binding","ownerId":"bind-alpha-main","metricId":"metric.concurrency.request","unit":"slot","quantumExp":0,"currency":"","metered":false,"kind":"occupancy","commercialRole":"limit","semanticsRef":"sem.occupancy-slot","semanticsRevision":"semrev-1","window":{"kind":"lifetime","period":"","timeZone":"","anchorISO":"","durationMillis":0},"capacity":"1","initialRemaining":"1","evidenceRefs":["ev-alpha-conc-bound"]}],"offers":[{"offerId":"offer-alpha-chat-a","domain":"ai/text","capabilityProfile":"profile.chat.basic","physicalKeys":["phys-alpha:acct-demo-1:daily-token","phys-alpha:acct-demo-1:usd-grant-promo","phys-alpha:acct-demo-1:concurrency"]},{"offerId":"offer-alpha-chat-b","domain":"ai/text","capabilityProfile":"profile.chat.basic","physicalKeys":["phys-alpha:acct-demo-1:daily-token","phys-alpha:acct-demo-1:usd-grant-promo","phys-alpha:acct-demo-1:concurrency"]}]}}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-no-anchor-vs-explicit-natural-anchor
+{"name":"limit-no-anchor-vs-explicit-natural-anchor","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/3/providerFactId","messageKey":"ant.config.duplicateCommercialFact"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-hour-anchor-irrelevant-hour
+{"name":"limit-hour-anchor-irrelevant-hour","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/resources/3/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/offers/0/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"},{"path":"/offers/1/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-timezone-equivalent-alias
+{"name":"limit-timezone-equivalent-alias","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/resources/3/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/offers/0/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"},{"path":"/offers/1/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > limit-changing-unit-cannot-mint-capacity
+{"name":"limit-changing-unit-cannot-mint-capacity","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/3/providerFactId","messageKey":"ant.config.factUnresolved"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-dimension-default-bucket
+{"name":"unregistered-dimension-default-bucket","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/offers/0/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"},{"path":"/offers/1/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > default-bucket-cloned-by-window-only
+{"name":"default-bucket-cloned-by-window-only","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/resources/3/providerFactId","messageKey":"ant.config.factUnresolved"},{"path":"/offers/0/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"},{"path":"/offers/1/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > configured-capacity-exceeds-evidence-bound
+{"name":"configured-capacity-exceeds-evidence-bound","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/configuredCapacity","messageKey":"ant.config.capacityExceedsVerifiedBound"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > malformed-quantity-in-bound-evidence
+{"name":"malformed-quantity-in-bound-evidence","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > known-usd-fact-relabelled-eur
+{"name":"known-usd-fact-relabelled-eur","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/currency","messageKey":"ant.config.providerFactMetadataMismatch"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > verified-fact-relabelled-quantum
+{"name":"verified-fact-relabelled-quantum","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/quantumExp","messageKey":"ant.config.providerFactMetadataMismatch"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > evidence-wrong-precision-window-and-revision
+{"name":"evidence-wrong-precision-window-and-revision","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"},{"path":"/resources/0/capacityEvidenceRef","messageKey":"ant.config.evidenceNotApplicable"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-resource-semantics
+{"name":"unregistered-resource-semantics","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/semanticsRef","messageKey":"ant.config.providerFactMetadataMismatch"},{"path":"/resources/0/semanticsRef","messageKey":"ant.config.unregisteredResourceSemantics"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > unregistered-capability-profile
+{"name":"unregistered-capability-profile","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/bindings/0/capabilityProfiles","messageKey":"ant.config.unregisteredCapabilityProfile"},{"path":"/offers/0/capabilityProfile","messageKey":"ant.config.unregisteredCapabilityProfile"},{"path":"/offers/1/capabilityProfile","messageKey":"ant.config.unregisteredCapabilityProfile"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > offer-omits-required-billing-and-concurrency
+{"name":"offer-omits-required-billing-and-concurrency","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/offers/0/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"},{"path":"/offers/1/resourceRefs","messageKey":"ant.config.incompleteRequiredBundle"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > resource-extension-in-wrong-context
+{"name":"resource-extension-in-wrong-context","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/1/providerExtensions","messageKey":"ant.config.extensionSchemaViolation"}]}}
+
+stdout | tests/rework3-audit.test.ts > Codex third review full schema+graph+catalog entry > nested-schema-error-must-locate-field
+{"name":"nested-schema-error-must-locate-field","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0","messageKey":"ant.config.schemaViolation"}]}}
+
+ ✓ tests/rework3-audit.test.ts (17 tests) 52ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  02:00:08
+   Duration  797ms (environment 66%, import 12%, setup 8%, transform 7%, tests 7%)
+

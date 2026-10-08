@@ -1,0 +1,80 @@
+package integration
+
+import (
+ "context"
+ "encoding/json"
+ "fmt"
+ "math"
+ "os"
+ "path/filepath"
+ "testing"
+ "time"
+
+ "ant/server/internal/adapters"
+ "ant/server/internal/api"
+ "ant/server/internal/config"
+ "ant/server/internal/domain"
+ "ant/server/internal/domain/resources"
+ "ant/server/internal/jsonx"
+ "ant/server/internal/ledger"
+ "ant/server/internal/store"
+ "ant/server/internal/store/sqlite"
+ "ant/server/internal/transport"
+ "github.com/getkin/kin-openapi/openapi3"
+)
+func TestCodexAuditArithmetic(t *testing.T) {
+ for _,c:=range []struct{name string;a,b domain.Units;subtract bool;want domain.Units;overflow bool}{
+  {"negative-overflow-to-zero",math.MinInt64,math.MinInt64,false,0,true},
+  {"legal-subtract-minimum",-1,math.MinInt64,true,math.MaxInt64,false},
+  {"minimum-minus-itself",math.MinInt64,math.MinInt64,true,0,false},
+ } {t.Run(c.name,func(t *testing.T){var got domain.Units;var err error;if c.subtract{got,err=domain.SubUnits(c.a,c.b)}else{got,err=domain.AddUnits(c.a,c.b)};t.Logf("got=%d err=%v expected=%d overflow=%t",got,err,c.want,c.overflow);if (err!=nil)!=c.overflow||(!c.overflow&&got!=c.want){t.Fail()}})}
+}
+func TestCodexAuditConfigCases(t *testing.T) {
+ b,err:=os.ReadFile("../../../docs/evidence/CODEX-T1-AUDIT/config-cases.json");if err!=nil{t.Fatal(err)}
+ var cases []struct{Name string;Document json.RawMessage;Expected bool};if err=json.Unmarshal(b,&cases);err!=nil{t.Fatal(err)}
+ for _,c:=range cases{t.Run(c.Name,func(t *testing.T){var d config.ConfigDocument;err:=jsonx.DecodeStrict(c.Document,&d);issues:=[]domain.FieldIssue{};if err==nil{issues=config.ValidateStructural(&d)};accepted:=err==nil&&len(issues)==0;t.Logf("accepted=%t expected=%t decodeError=%v issues=%v",accepted,c.Expected,err,issues);if accepted!=c.Expected{t.Fail()}})}
+}
+func TestCodexAuditWireQuantity(t *testing.T){
+ for _,s:=range []string{"010","-0"}{t.Run(s,func(t *testing.T){var p struct{N domain.Units `json:"n,string"`};err:=api.DecodeStrict([]byte(fmt.Sprintf(`{"n":%q}`,s)),&p);t.Logf("wire=%q decoded=%d err=%v",s,p.N,err);if err==nil{t.Fail()}})}
+}
+func TestCodexAuditWindow(t *testing.T){
+ t.Run("singapore-09-anchor",func(t *testing.T){loc,_:=time.LoadLocation("Asia/Singapore");now:=time.Date(2026,10,2,12,0,0,0,loc);_,start,end,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:"day",TimeZone:"Asia/Singapore",AnchorISO:"2026-01-01T09:00:00+08:00"},"rev-1");got:=time.UnixMilli(start).In(loc);t.Logf("now=%v start=%v end=%v err=%v",now,got,time.UnixMilli(end).In(loc),err);if err!=nil||got.Hour()!=9{t.Fail()}})
+ t.Run("fall-back-second-hour-contained",func(t *testing.T){now,_:=time.Parse(time.RFC3339,"2026-11-01T01:30:00-05:00");_,start,end,err:=resources.WindowAt(domain.Millis(now.UnixMilli()),domain.WindowRule{Kind:"fixed",Period:"hour",TimeZone:"America/New_York"},"rev-1");t.Logf("now=%v start=%v end=%v err=%v",now,time.UnixMilli(start),time.UnixMilli(end),err);if err!=nil||now.UnixMilli()<start||now.UnixMilli()>=end{t.Fail()}})
+}
+func TestCodexAuditQueueConfig(t *testing.T){
+ defer func(){if p:=recover();p!=nil{t.Errorf("Open panicked instead of returning validation error: %v",p)}}()
+ st,err:=sqlite.Open(filepath.Join(t.TempDir(),"small.db"),sqlite.Config{WriterQueueLimit:1});t.Logf("store=%v err=%v",st,err);if st!=nil{_ = st.Close(context.Background())}
+}
+func TestCodexAuditCommandBudget(t *testing.T){
+ st,_:=openTestStore(t,sqlite.Config{});start:=time.Now();err:=st.SubmitWrite(context.Background(),store.WriteCommand{ID:"slow-callback",Budget:5*time.Millisecond,Run:func(store.WriterTx)error{time.Sleep(80*time.Millisecond);return nil}});elapsed:=time.Since(start);t.Logf("declaredBudget=5ms actualElapsed=%v err=%v",elapsed,err);if elapsed>40*time.Millisecond{t.Errorf("callback can monopolize writer beyond declared whole-command budget")}
+}
+func TestCodexAuditRetryBudget(t *testing.T){
+ st,_:=openTestStore(t,sqlite.Config{MaxRetries:2});start:=time.Now();runs:=0;err:=st.SubmitWrite(context.Background(),store.WriteCommand{ID:"retries",Budget:30*time.Millisecond,Run:func(store.WriterTx)error{runs++;time.Sleep(20*time.Millisecond);return fmt.Errorf("database is locked")}});elapsed:=time.Since(start);t.Logf("declaredBudget=30ms actualElapsed=%v runs=%d err=%v",elapsed,runs,err);if elapsed>50*time.Millisecond{t.Errorf("retry resets whole-command budget")}
+}
+func TestCodexAuditFutureSchema(t *testing.T){
+ st,path:=openTestStore(t,sqlite.Config{});db:=openRawDB(t,path);execOK(t,db,"INSERT INTO schema_migrations(version,applied_at) VALUES(2,1)");err:=sqlite.Migrate(context.Background(),st);t.Logf("future schema version=2, supported=1, err=%v",err);if err==nil{t.Fail()}
+}
+func TestCodexAuditOpenAPIUnion(t *testing.T){
+ spec,err:=openapi3.NewLoader().LoadFromFile("../../../contracts/openapi.yaml");if err!=nil{t.Fatal(err)};b,err:=os.ReadFile("../../../contracts/fixtures/api/rejection.accepted-with-terminal.json");if err!=nil{t.Fatal(err)};var value any;if err=json.Unmarshal(b,&value);err!=nil{t.Fatal(err)};err=spec.Components.Schemas["SubmitReply"].Value.VisitJSON(value);t.Logf("OpenAPI accepts illegal accepted/succeeded: %t err=%v",err==nil,err);if err==nil{t.Fail()}
+}
+func TestCodexAuditPermitAssembly(t *testing.T){
+ table:=transport.NewHandleTable();prepared,err:=table.Prepare(adapters.EncodedRequest{Endpoint:"https://fixture.invalid/v1/messages",Method:"POST",Headers:map[string]string{"Content-Type":"application/json"},Body:[]byte(`{"fixture":true}`),CredentialRef:"secret-alpha-key"},domain.ExecutionPlan{CredentialRevision:"rev-1"});if err!=nil{t.Fatal(err)};registry:=ledger.NewPermitRegistry();p,err:=registry.Issue("att-assembly-1","runtime-local","deadbeefdigest","rev-1");if err!=nil{t.Fatal(err)}
+ t.Run("original-test-pairing",func(t *testing.T){err:=registry.Validate(p,"runtime-local",prepared.RequestDigest(),prepared.CredentialRevision());t.Logf("original permit digest=deadbeefdigest actual prepared digest=%s validation=%v",prepared.RequestDigest(),err);if err!=nil{t.Error("original assembly test does not assemble matching handles")}})
+ t.Run("empty-validation-context",func(t *testing.T){err:=registry.Validate(p,"","","");t.Logf("Validate with all binding checks omitted: %v",err);if err==nil{t.Error("missing expected binding facts must not bypass validation")}})
+}
+func TestCodexAuditStaleObservationInput(t *testing.T){
+ snap:=domain.ResourceSnapshot{ResourceID:"res-1",WindowKey:"w-1",Version:3,Capacity:100,Committed:30,Adjustment:-10,Reserved:5}
+ obs:=&domain.ObservationEvidence{ResourceID:"res-1",WindowKey:"w-1",Remaining:5,CommittedAtStart:30,AdjustmentVersionAtStart:1,ObservedAt:100,ExpiresAt:2000}
+ available,err:=resources.CounterAvailable(snap,obs,1000,2);if err!=nil{t.Fatal(err)}
+ plan,err:=resources.CounterReserve(domain.ResourceContext{Now:1000,Snapshot:snap,Observation:obs},1)
+ t.Logf("authoritativeAdjustmentVersion=2 staleObservationVersion=1 directAvailable=%d reserveAdmitted=%t err=%v",available,plan.Admitted,err)
+ if available>0&&!plan.Admitted{t.Error("CounterReserve has no authoritative adjustment version input; substitutes evidence's own version")}
+}
+func TestCodexAuditCapabilityFingerprint(t *testing.T){
+ a:=domain.DomainRequest{Domain:"ai/text",CapabilityProfile:"profile.chat.basic",Payload:json.RawMessage(`{"prompt":"same"}`)}
+ b:=a;b.CapabilityProfile="profile.chat.reasoning"
+ fingerprint:=func(r domain.DomainRequest)string{f,err:=domain.SemanticFingerprint(domain.FingerprintInput{Domain:r.Domain,PoolID:"pool-1",Payload:r.Payload});if err!=nil{t.Fatal(err)};return f}
+ fa,fb:=fingerprint(a),fingerprint(b)
+ t.Logf("request A profile=%s B profile=%s fingerprint A=%s B=%s; FingerprintInput lacks profile field",a.CapabilityProfile,b.CapabilityProfile,fa,fb)
+ if fa==fb{t.Error("public fingerprint input cannot distinguish capability profile without an extra undocumented payload convention")}
+}

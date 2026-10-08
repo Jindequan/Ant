@@ -1,0 +1,65 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/codex-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > valid-baseline
+{"name":"valid-baseline","accepted":true,"expected":true,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-offer-binding
+{"name":"dangling-offer-binding","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/offers/0/bindingId","messageKey":"ant.config.unknownBinding"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-resource-owner
+{"name":"dangling-resource-owner","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/ownerId","messageKey":"ant.config.unknownOwner"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-group-scope
+{"name":"dangling-group-scope","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/entitlementGroups/0/scopeId","messageKey":"ant.config.unknownScope"},{"path":"/entitlementGroups/0/order/0/resourceId","messageKey":"ant.config.groupScopeOwnerMismatch"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > group-unit-mismatch
+{"name":"group-unit-mismatch","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/entitlementGroups/0/order/0/resourceId","messageKey":"ant.config.groupMetricUnitMismatch"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-selector-evidence
+{"name":"dangling-selector-evidence","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/entitlementGroups/0/selectorEvidenceId","messageKey":"ant.config.unknownEvidence"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > dangling-evidence-subject
+{"name":"dangling-evidence-subject","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/evidence/0/subjectRef","messageKey":"ant.config.unknownEvidenceSubject"},{"path":"/evidence/0/subjectRef","messageKey":"ant.config.evidenceSubjectTypeMismatch"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-leading-zero
+{"name":"quantity-leading-zero","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/configuredCapacity","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-negative
+{"name":"quantity-negative","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/configuredCapacity","messageKey":"ant.config.quantityInvalid"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-negative-zero
+{"name":"quantity-negative-zero","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/configuredCapacity","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > quantity-overflow
+{"name":"quantity-overflow","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/resources/0/configuredCapacity","messageKey":"ant.config.quantityInvalid"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > nested-secret
+{"name":"nested-secret","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/accounts/0/providerExtensions/nested/password","messageKey":"ant.config.secretMaterialForbidden"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > case-secret
+{"name":"case-secret","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/accounts/0/providerExtensions/APIKey","messageKey":"ant.config.secretMaterialForbidden"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > missing-required-arrays
+{"name":"missing-required-arrays","accepted":false,"expected":false,"result":{"ok":false,"issues":[{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"},{"path":"/","messageKey":"ant.config.schemaViolation"}]}}
+
+stdout | tests/codex-audit.test.ts > Codex audit config parity > valid-gift-and-prepaid-buckets
+{"name":"valid-gift-and-prepaid-buckets","accepted":true,"expected":true,"result":{"ok":true}}
+
+stdout | tests/codex-audit.test.ts > Codex audit SSE lifecycle > preserves an absolute endpoint when API base is configured
+{"sseUrl":"https://api.fixture.invalid/v1/operations/op-1/events"}
+
+stdout | tests/codex-audit.test.ts > Codex audit SSE lifecycle > honors an already aborted signal
+{"activeSourcesAfterAlreadyAbortedSignal":0}
+
+ ✓ tests/codex-audit.test.ts (17 tests) 17ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  14:10:51
+   Duration  461ms (environment 63%, transform 12%, import 11%, setup 9%, tests 4%, worker 1%)
+

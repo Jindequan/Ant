@@ -1,0 +1,10 @@
+{
+  "reportedFiles": 148,
+  "actualIncludedFiles": 152,
+  "notListed": [
+    "scripts/check-deps.py",
+    "scripts/manifest-diff.py",
+    "scripts/snapshot.py",
+    "web/scripts/contract-tools.d.mts"
+  ]
+}

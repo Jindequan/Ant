@@ -1,0 +1,89 @@
+{
+  "draftId": "50152476-395a-4071-950b-35283ab49446",
+  "version": 4,
+  "status": "editing",
+  "accounts": [
+    {
+      "accountId": "subscription-demo",
+      "providerTypeId": "future-provider",
+      "displayName": "Monthly AI subscription",
+      "enabled": true
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "monthly-tokens",
+      "ownerKind": "account",
+      "ownerId": "subscription-demo",
+      "metricId": "metric.tokens.total",
+      "unit": "token",
+      "quantumExp": 0,
+      "kind": "counter",
+      "commercialRole": "limit",
+      "semanticsRef": "sem.pending",
+      "semanticsRevision": "pending",
+      "window": {
+        "kind": "fixed",
+        "period": "month",
+        "timeZone": "Asia/Singapore",
+        "anchorISO": "2026-10-07T00:00:00+08:00"
+      },
+      "metered": false,
+      "configuredCapacity": "3000000",
+      "expiresAtMillis": 1822838400000,
+      "capacityEvidenceRef": ""
+    },
+    {
+      "resourceId": "subscription-credit",
+      "ownerKind": "account",
+      "ownerId": "subscription-demo",
+      "metricId": "metric.usd.cents",
+      "unit": "usd_cents",
+      "quantumExp": 0,
+      "kind": "counter",
+      "commercialRole": "entitlement",
+      "semanticsRef": "sem.pending",
+      "semanticsRevision": "pending",
+      "window": {
+        "kind": "lifetime"
+      },
+      "metered": false,
+      "configuredCapacity": "2500",
+      "currency": "USD",
+      "capacityEvidenceRef": ""
+    }
+  ],
+  "issues": [
+    {
+      "path": "/resources/0/capacityEvidenceRef",
+      "messageKey": "ant.config.rootSchemaViolation"
+    },
+    {
+      "path": "/resources/0/capacityEvidenceRef",
+      "messageKey": "ant.config.capacityEvidenceRequired"
+    },
+    {
+      "path": "/resources/1/capacityEvidenceRef",
+      "messageKey": "ant.config.capacityEvidenceRequired"
+    },
+    {
+      "path": "/accounts/0/providerTypeId",
+      "messageKey": "ant.config.ant.config.providerTypeNotRegistered"
+    },
+    {
+      "path": "/resources/0/providerFactId",
+      "messageKey": "ant.config.factUnresolved"
+    },
+    {
+      "path": "/resources/1/providerFactId",
+      "messageKey": "ant.config.factUnresolved"
+    }
+  ],
+  "counts": {
+    "resources": 0,
+    "secret_records": 0,
+    "operations": 0
+  },
+  "bindings": 0,
+  "evidence": 0
+}

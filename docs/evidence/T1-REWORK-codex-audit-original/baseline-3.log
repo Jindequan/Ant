@@ -1,0 +1,18 @@
+COMMAND: ['make', 'test-web']
+CWD: /Users/devin/code/Ant
+cd web && npm test -- --run
+
+> ant-web@0.1.0 test
+> vitest run --run
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  12:07:46
+   Duration  865ms (environment 72%, setup 9%, import 8%, tests 5%, transform 5%)
+
+
+EXIT: 0

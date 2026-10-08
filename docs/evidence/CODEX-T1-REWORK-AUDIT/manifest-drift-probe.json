@@ -1,0 +1,7 @@
+{
+  "mutatedFile": "scripts/check-deps.py",
+  "mutation": "append harmless Python comment",
+  "expectedExit": "non-zero",
+  "actualExitCode": 0,
+  "restoredByteIdentical": true
+}

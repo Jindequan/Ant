@@ -1,0 +1,48 @@
+{
+  "results": [
+    {
+      "name": "go",
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "TestCodexRework",
+        "-v",
+        "./tests/integration"
+      ],
+      "exitCode": 1
+    },
+    {
+      "name": "web",
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--run",
+        "tests/rework-audit.test.ts"
+      ],
+      "exitCode": 1
+    }
+  ],
+  "implementationFilesChanged": [
+    "server/tests/integration/codex_regression_test.go",
+    "server/internal/config/validate_graph.go",
+    "server/internal/config/document.go",
+    "server/internal/config/document_helpers.go",
+    "server/internal/providers/localtest/catalog.go",
+    "server/internal/providers/localtest/catalog_test.go",
+    "server/internal/domain/resources/window.go",
+    "server/internal/domain/resources/window_test.go",
+    "web/tests/contract.test.ts",
+    "web/src/api/config-semantics.ts",
+    "web/src/api/config-catalog.ts",
+    "web/src/api/config-graph.ts",
+    "web/src/api/validate.ts",
+    "web/src/api/config-helpers.ts",
+    "scripts/check-deps.py",
+    "scripts/snapshot.py",
+    "Makefile"
+  ],
+  "temporaryTestsRemoved": true
+}

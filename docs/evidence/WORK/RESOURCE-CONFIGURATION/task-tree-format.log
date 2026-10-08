@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/devin/code/Ant/docs/plans/check_tree.py", line 55, in <module>
+    assert content == expected, ('leaf card drift; run --render', str(path))
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: ('leaf card drift; run --render', '/Users/devin/code/Ant/docs/plans/workstreams/01-foundation.md')

@@ -1,0 +1,7 @@
+{
+  "kind": "accepted",
+  "state": "succeeded",
+  "operationId": "op-bad-1",
+  "operationUrl": "/v1/operations/op-bad-1",
+  "eventsUrl": "/v1/operations/op-bad-1/events"
+}

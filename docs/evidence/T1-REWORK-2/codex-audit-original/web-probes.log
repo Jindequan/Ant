@@ -1,0 +1,76 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/rework-audit.test.ts
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > dangling-grant-scope
+{"name":"dangling-grant-scope","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > initial-state-wrong-resource
+{"name":"initial-state-wrong-resource","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > capacity-wrong-owner-and-metric
+{"name":"capacity-wrong-owner-and-metric","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > binding-owned-extension-unknown
+{"name":"binding-owned-extension-unknown","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-unsupported-domain
+{"name":"catalog-unsupported-domain","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-fact-metric-mismatch
+{"name":"catalog-fact-metric-mismatch","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-bucket-cloned-with-different-order
+{"name":"same-bucket-cloned-with-different-order","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-group-incompatible-quantum
+{"name":"same-group-incompatible-quantum","accepted":true,"expected":false,"result":{"ok":true}}
+
+stdout | tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-limit-equivalent-anchor-spelling
+{"name":"same-limit-equivalent-anchor-spelling","accepted":true,"expected":false,"result":{"ok":true}}
+
+ ❯ tests/rework-audit.test.ts (16 tests | 9 failed) 52ms
+   ❯ Codex rework full schema+graph+catalog entry (16)
+     × dangling-grant-scope 3ms
+     × initial-state-wrong-resource 1ms
+     × capacity-wrong-owner-and-metric 1ms
+     × binding-owned-extension-unknown 1ms
+     × catalog-unsupported-domain 2ms
+     × catalog-fact-metric-mismatch 1ms
+     × same-bucket-cloned-with-different-order 1ms
+     × same-group-incompatible-quantum 1ms
+     × same-limit-equivalent-anchor-spelling 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > dangling-grant-scope
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > initial-state-wrong-resource
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > capacity-wrong-owner-and-metric
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > binding-owned-extension-unknown
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-unsupported-domain
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > catalog-fact-metric-mismatch
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-bucket-cloned-with-different-order
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-group-incompatible-quantum
+ FAIL  tests/rework-audit.test.ts > Codex rework full schema+graph+catalog entry > same-limit-equivalent-anchor-spelling
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/rework-audit.test.ts:8:203
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 7 passed (16)
+   Start at  15:05:30
+   Duration  1.10s (environment 74%, import 8%, setup 8%, tests 5%, transform 5%)
+

@@ -1,0 +1,67 @@
+{
+  "startedAt": "2026-10-03T11:40:10.873949+08:00",
+  "results": [
+    {
+      "target": "check",
+      "command": [
+        "make",
+        "check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "target": "test-contract",
+      "command": [
+        "make",
+        "test-contract"
+      ],
+      "exitCode": 0
+    },
+    {
+      "target": "test-integration",
+      "command": [
+        "make",
+        "test-integration"
+      ],
+      "exitCode": 0
+    },
+    {
+      "target": "test-web",
+      "command": [
+        "make",
+        "test-web"
+      ],
+      "exitCode": 0
+    },
+    {
+      "target": "build",
+      "command": [
+        "make",
+        "build"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "additionalChecks": [
+    {
+      "command": "make verify-manifest",
+      "exitCode": 0,
+      "observed": "manifest clean (184 files identical)"
+    },
+    {
+      "command": "python3 docs/plans/check_tree.py",
+      "exitCode": 0,
+      "observed": "55 tasks, 7 gates; DAG/cards/status IDs matched"
+    },
+    {
+      "command": "python3 scripts/snapshot.py --self-check",
+      "exitCode": 0,
+      "observed": "6 gatekeeping/input mutation probes reported drift and restored clean (184 files)"
+    },
+    {
+      "command": "local built server smoke",
+      "exitCode": 0,
+      "resultsFile": "server-smoke-results.json"
+    }
+  ]
+}

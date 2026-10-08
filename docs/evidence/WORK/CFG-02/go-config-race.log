@@ -1,0 +1,212 @@
+=== RUN   TestCompiledEvidenceClaims
+=== RUN   TestCompiledEvidenceClaims/bound
+=== RUN   TestCompiledEvidenceClaims/bound/missing
+=== RUN   TestCompiledEvidenceClaims/bound/negative
+=== RUN   TestCompiledEvidenceClaims/bound/negative-zero
+=== RUN   TestCompiledEvidenceClaims/bound/leading-zero
+=== RUN   TestCompiledEvidenceClaims/bound/malformed
+=== RUN   TestCompiledEvidenceClaims/bound/empty
+=== RUN   TestCompiledEvidenceClaims/bound/overflow
+=== RUN   TestCompiledEvidenceClaims/bound/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/bound/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/hard_stop
+=== RUN   TestCompiledEvidenceClaims/hard_stop/missing
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative
+=== RUN   TestCompiledEvidenceClaims/hard_stop/negative-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/leading-zero
+=== RUN   TestCompiledEvidenceClaims/hard_stop/malformed
+=== RUN   TestCompiledEvidenceClaims/hard_stop/empty
+=== RUN   TestCompiledEvidenceClaims/hard_stop/overflow
+=== RUN   TestCompiledEvidenceClaims/hard_stop/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/hard_stop/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/initial_state
+=== RUN   TestCompiledEvidenceClaims/initial_state/missing
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative
+=== RUN   TestCompiledEvidenceClaims/initial_state/negative-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/leading-zero
+=== RUN   TestCompiledEvidenceClaims/initial_state/malformed
+=== RUN   TestCompiledEvidenceClaims/initial_state/empty
+=== RUN   TestCompiledEvidenceClaims/initial_state/overflow
+=== RUN   TestCompiledEvidenceClaims/initial_state/zero-conflict
+=== RUN   TestCompiledEvidenceClaims/initial_state/above-snapshot
+=== RUN   TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot
+=== RUN   TestCompiledEvidenceClaims/zero-remaining
+=== RUN   TestCompiledEvidenceClaims/zero-bound-and-remaining
+--- PASS: TestCompiledEvidenceClaims (0.19s)
+    --- PASS: TestCompiledEvidenceClaims/bound (0.05s)
+        --- PASS: TestCompiledEvidenceClaims/bound/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/bound/above-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/hard_stop (0.04s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/hard_stop/above-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/initial_state (0.04s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/missing (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/negative-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/leading-zero (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/malformed (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/empty (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/overflow (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/zero-conflict (0.00s)
+        --- PASS: TestCompiledEvidenceClaims/initial_state/above-snapshot (0.00s)
+    --- PASS: TestCompiledEvidenceClaims/conservative-capacity-preserves-snapshot (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-remaining (0.01s)
+    --- PASS: TestCompiledEvidenceClaims/zero-bound-and-remaining (0.01s)
+=== RUN   TestValidFixturePassesSchemaValidatorAndCodec
+--- PASS: TestValidFixturePassesSchemaValidatorAndCodec (0.01s)
+=== RUN   TestInvalidFixturesRejected
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-field.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-dangling-ref.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-dangling-binding-ref.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-entitlement-group.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-secret-in-evidence.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-secret-in-extension.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-priority-range.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-quantity.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unsupported-executable.json
+=== RUN   TestInvalidFixturesRejected/config-document-invalid-unknown-pool-member.json
+--- PASS: TestInvalidFixturesRejected (0.03s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-field.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-dangling-ref.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-dangling-binding-ref.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-entitlement-group.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-secret-in-evidence.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-secret-in-extension.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-priority-range.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-quantity.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unsupported-executable.json (0.00s)
+    --- PASS: TestInvalidFixturesRejected/config-document-invalid-unknown-pool-member.json (0.00s)
+=== RUN   TestStrictDecodeRejectsUnknownExecutableField
+--- PASS: TestStrictDecodeRejectsUnknownExecutableField (0.00s)
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-duplicate-commercial-fact.json
+=== RUN   TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-two-lone-buckets.json
+--- PASS: TestIdentityFixturesRejectedAtCatalogPhase (0.01s)
+    --- PASS: TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-duplicate-commercial-fact.json (0.00s)
+    --- PASS: TestIdentityFixturesRejectedAtCatalogPhase/config-document-invalid-two-lone-buckets.json (0.00s)
+=== RUN   TestQ4EmptyCapabilityProfilesNoPanic
+--- PASS: TestQ4EmptyCapabilityProfilesNoPanic (0.01s)
+=== RUN   TestQ4ProfileDomainMismatchRejected
+--- PASS: TestQ4ProfileDomainMismatchRejected (0.01s)
+=== RUN   TestRework2FullBoundaryConfigCases
+=== RUN   TestRework2FullBoundaryConfigCases/full-boundary-valid
+=== RUN   TestRework2FullBoundaryConfigCases/required-account-enabled-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-account-enabled-null
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-semantics-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-quantum-missing
+=== RUN   TestRework2FullBoundaryConfigCases/required-resource-metered-missing
+=== RUN   TestRework2FullBoundaryConfigCases/dangling-grant-scope
+=== RUN   TestRework2FullBoundaryConfigCases/initial-state-wrong-resource
+=== RUN   TestRework2FullBoundaryConfigCases/capacity-wrong-owner-and-metric
+=== RUN   TestRework2FullBoundaryConfigCases/binding-owned-extension-unknown
+=== RUN   TestRework2FullBoundaryConfigCases/catalog-unsupported-domain
+=== RUN   TestRework2FullBoundaryConfigCases/catalog-fact-metric-mismatch
+=== RUN   TestRework2FullBoundaryConfigCases/same-bucket-cloned-with-different-order
+=== RUN   TestRework2FullBoundaryConfigCases/valid-catalog-two-facts
+    rework2_regression_test.go:54: accepted=false expected=true issues=[{Path:/resources/3/initialStateEvidenceRef MessageKey:ant.config.evidenceConflictsVerifiedFact} {Path:/resources/3/capacityEvidenceRef MessageKey:ant.config.evidenceConflictsVerifiedFact}]
+=== RUN   TestRework2FullBoundaryConfigCases/same-group-incompatible-quantum
+=== RUN   TestRework2FullBoundaryConfigCases/same-limit-equivalent-anchor-spelling
+=== RUN   TestRework2FullBoundaryConfigCases/default-slot-with-registered-facts-rejected
+--- FAIL: TestRework2FullBoundaryConfigCases (0.07s)
+    --- PASS: TestRework2FullBoundaryConfigCases/full-boundary-valid (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-account-enabled-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-account-enabled-null (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-semantics-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-quantum-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/required-resource-metered-missing (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/dangling-grant-scope (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/initial-state-wrong-resource (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/capacity-wrong-owner-and-metric (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/binding-owned-extension-unknown (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/catalog-unsupported-domain (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/catalog-fact-metric-mismatch (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-bucket-cloned-with-different-order (0.00s)
+    --- FAIL: TestRework2FullBoundaryConfigCases/valid-catalog-two-facts (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-group-incompatible-quantum (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/same-limit-equivalent-anchor-spelling (0.00s)
+    --- PASS: TestRework2FullBoundaryConfigCases/default-slot-with-registered-facts-rejected (0.01s)
+=== RUN   TestRework2CloneVariants
+=== RUN   TestRework2CloneVariants/same-group-clone-same-factid
+=== RUN   TestRework2CloneVariants/renamed-resourceid-same-factid-still-clone
+=== RUN   TestRework2CloneVariants/reorganization-stays-legal
+--- PASS: TestRework2CloneVariants (0.03s)
+    --- PASS: TestRework2CloneVariants/same-group-clone-same-factid (0.01s)
+    --- PASS: TestRework2CloneVariants/renamed-resourceid-same-factid-still-clone (0.01s)
+    --- PASS: TestRework2CloneVariants/reorganization-stays-legal (0.01s)
+=== RUN   TestRework3FullBoundaryConfigCases
+=== RUN   TestRework3FullBoundaryConfigCases/control-completed-verified-fact
+=== RUN   TestRework3FullBoundaryConfigCases/limit-no-anchor-vs-explicit-natural-anchor
+=== RUN   TestRework3FullBoundaryConfigCases/limit-hour-anchor-irrelevant-hour
+=== RUN   TestRework3FullBoundaryConfigCases/limit-timezone-equivalent-alias
+=== RUN   TestRework3FullBoundaryConfigCases/limit-changing-unit-cannot-mint-capacity
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-dimension-default-bucket
+=== RUN   TestRework3FullBoundaryConfigCases/default-bucket-cloned-by-window-only
+=== RUN   TestRework3FullBoundaryConfigCases/configured-capacity-exceeds-evidence-bound
+=== RUN   TestRework3FullBoundaryConfigCases/malformed-quantity-in-bound-evidence
+=== RUN   TestRework3FullBoundaryConfigCases/known-usd-fact-relabelled-eur
+=== RUN   TestRework3FullBoundaryConfigCases/verified-fact-relabelled-quantum
+=== RUN   TestRework3FullBoundaryConfigCases/evidence-wrong-precision-window-and-revision
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-resource-semantics
+=== RUN   TestRework3FullBoundaryConfigCases/unregistered-capability-profile
+=== RUN   TestRework3FullBoundaryConfigCases/offer-omits-required-billing-and-concurrency
+=== RUN   TestRework3FullBoundaryConfigCases/resource-extension-in-wrong-context
+=== RUN   TestRework3FullBoundaryConfigCases/nested-schema-error-must-locate-field
+--- PASS: TestRework3FullBoundaryConfigCases (0.06s)
+    --- PASS: TestRework3FullBoundaryConfigCases/control-completed-verified-fact (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-no-anchor-vs-explicit-natural-anchor (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-hour-anchor-irrelevant-hour (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-timezone-equivalent-alias (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/limit-changing-unit-cannot-mint-capacity (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-dimension-default-bucket (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/default-bucket-cloned-by-window-only (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/configured-capacity-exceeds-evidence-bound (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/malformed-quantity-in-bound-evidence (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/known-usd-fact-relabelled-eur (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/verified-fact-relabelled-quantum (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/evidence-wrong-precision-window-and-revision (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-resource-semantics (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/unregistered-capability-profile (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/offer-omits-required-billing-and-concurrency (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/resource-extension-in-wrong-context (0.00s)
+    --- PASS: TestRework3FullBoundaryConfigCases/nested-schema-error-must-locate-field (0.00s)
+=== RUN   TestRework3ScopeIdentity
+--- PASS: TestRework3ScopeIdentity (0.01s)
+=== RUN   TestRework3WindowIdentityVariants
+=== RUN   TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger
+=== RUN   TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour
+=== RUN   TestRework3WindowIdentityVariants/zone-alias-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/unit-change-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected
+--- PASS: TestRework3WindowIdentityVariants (0.05s)
+    --- PASS: TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/zone-alias-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/unit-change-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected (0.01s)
+=== RUN   TestRework3CapacityConstraints
+=== RUN   TestRework3CapacityConstraints/conservative-lower-capacity-compiles
+=== RUN   TestRework3CapacityConstraints/capacity-above-verified-bound-rejected
+=== RUN   TestRework3CapacityConstraints/malformed-bound-rejected
+--- PASS: TestRework3CapacityConstraints (0.03s)
+    --- PASS: TestRework3CapacityConstraints/conservative-lower-capacity-compiles (0.01s)
+    --- PASS: TestRework3CapacityConstraints/capacity-above-verified-bound-rejected (0.01s)
+    --- PASS: TestRework3CapacityConstraints/malformed-bound-rejected (0.01s)
+=== RUN   TestRework3BundleCoverage
+--- PASS: TestRework3BundleCoverage (0.01s)
+FAIL
+FAIL	ant/server/internal/config	0.739s
+FAIL

@@ -1,0 +1,19 @@
+# 全量测试计数
+时间: 2026-10-02T10:35:10+0800
+
+## Go 内部包（契约+纯规则）: cd server && go test -count=1 -v ./internal/...
+PASS 数: 103
+FAIL/SKIP 数: 0
+
+## Go 集成（真库, -race）: cd server && go test -race -count=1 ./tests/integration/...
+PASS 数: 22
+
+## Web: npx vitest run
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+
+## 修复后全量计数（2026-10-02T11:10:37+0800）
+Go 内部 PASS: 108
+Go 内部 FAIL/SKIP: 0
+Go 集成 PASS(-race): 22
+Web:       Tests  11 passed (11)

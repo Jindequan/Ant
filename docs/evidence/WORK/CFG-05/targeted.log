@@ -1,0 +1,136 @@
+=== RUN   TestWindowRuleIdentity
+PASS rolling self equal=true identity={Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000} / {Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000}
+PASS rolling duration equal=false identity={Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60000} / {Kind:rolling Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:60001}
+PASS lifetime equal=true identity={Kind:lifetime Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:lifetime Period: TimeZone: PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias  equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias UTC equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias Etc/UTC equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias Etc/GMT equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS UTC alias GMT equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default minute equal=true identity={Kind:fixed Period:minute TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default hour equal=true identity={Kind:fixed Period:hour TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default day equal=true identity={Kind:fixed Period:day TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS default week equal=true identity={Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS default month equal=true identity={Kind:fixed Period:month TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:month TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS minute ignores date hour minute equal=true identity={Kind:fixed Period:minute TimeZone:UTC PhaseMillis:12345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:UTC PhaseMillis:12345 CalendarDay:0 DurationMillis:0}
+PASS hour ignores date hour equal=true identity={Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0}
+PASS day ignores date equal=true identity={Kind:fixed Period:day TimeZone:UTC PhaseMillis:4812345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:UTC PhaseMillis:4812345 CalendarDay:0 DurationMillis:0}
+PASS millisecond difference equal=false identity={Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212345 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:hour TimeZone:UTC PhaseMillis:1212346 CalendarDay:0 DurationMillis:0}
+PASS zone conversion crosses date equal=true identity={Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0} / {Kind:fixed Period:week TimeZone:Asia/Singapore PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS trailing zero precision equal=true identity={Kind:fixed Period:minute TimeZone:UTC PhaseMillis:1123 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:minute TimeZone:UTC PhaseMillis:1123 CalendarDay:0 DurationMillis:0}
+PASS week Thursday differs equal=false identity={Kind:fixed Period:week TimeZone:UTC PhaseMillis:0 CalendarDay:4 DurationMillis:0} / {Kind:fixed Period:week TimeZone:UTC PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS month day15 differs equal=false identity={Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:15 DurationMillis:0} / {Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:1 DurationMillis:0}
+PASS month day30 day31 distinct equal=false identity={Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:30 DurationMillis:0} / {Kind:fixed Period:month TimeZone:UTC PhaseMillis:0 CalendarDay:31 DurationMillis:0}
+PASS Casablanca Lagos equal=false identity={Kind:fixed Period:day TimeZone:Africa/Casablanca PhaseMillis:0 CalendarDay:0 DurationMillis:0} / {Kind:fixed Period:day TimeZone:Africa/Lagos PhaseMillis:0 CalendarDay:0 DurationMillis:0}
+PASS refusal 0 {kind:unknown period: zone: anchor: duration:0}
+PASS refusal 1 {kind:rolling period: zone: anchor: duration:0}
+PASS refusal 2 {kind:rolling period: zone: anchor: duration:-1}
+PASS refusal 3 {kind:fixed period:year zone:UTC anchor: duration:0}
+PASS refusal 4 {kind:fixed period:day zone:No/SuchZone anchor: duration:0}
+PASS refusal 5 {kind:fixed period:day zone:Local anchor: duration:0}
+PASS refusal 6 {kind:fixed period:day zone:UTC anchor:malformed duration:0}
+PASS refusal 7 {kind:fixed period:day zone:UTC anchor:2026-01-01T00:00:00.000001Z duration:0}
+PASS total=31; no WindowAt date sampling
+--- PASS: TestWindowRuleIdentity (0.00s)
+PASS
+ok  	ant/server/internal/domain/resources	1.172s
+=== RUN   TestCompiledWindowIdentity
+=== RUN   TestCompiledWindowIdentity/rolling_reflexivity_dimensional
+    compiled_window_test.go:130: window={Kind:rolling Period: TimeZone: AnchorISO: DurationMillis:60000} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/rolling_reflexivity_explicit
+    compiled_window_test.go:130: window={Kind:rolling Period: TimeZone: AnchorISO: DurationMillis:60000} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/rolling_duration_mismatch_dimensional
+=== RUN   TestCompiledWindowIdentity/rolling_duration_mismatch_explicit
+=== RUN   TestCompiledWindowIdentity/Casablanca_Lagos_dimensional
+=== RUN   TestCompiledWindowIdentity/Casablanca_Lagos_explicit
+=== RUN   TestCompiledWindowIdentity/hour_date_ignored_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:UTC AnchorISO:2026-01-01T01:15:00.123Z DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/hour_date_ignored_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:UTC AnchorISO:2026-01-01T01:15:00.123Z DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/hour_millisecond_mismatch_dimensional
+=== RUN   TestCompiledWindowIdentity/hour_millisecond_mismatch_explicit
+=== RUN   TestCompiledWindowIdentity/UTC_alias__dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias__explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_UTC_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_UTC_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/UTC_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/UTC_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/GMT_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_Etc/GMT_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_GMT_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/UTC_alias_GMT_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_minute_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:minute TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_minute_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:minute TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_hour_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_hour_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:hour TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_day_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_day_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:day TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_week_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:week TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_week_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:week TimeZone:Asia/Singapore AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_month_dimensional
+    compiled_window_test.go:130: window={Kind:fixed Period:month TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+=== RUN   TestCompiledWindowIdentity/natural_phase_month_explicit
+    compiled_window_test.go:130: window={Kind:fixed Period:month TimeZone:UTC AnchorISO: DurationMillis:0} physicalKey=phys-alpha:acct-demo-1:daily-token capacity=1000000 remaining=1000000
+--- PASS: TestCompiledWindowIdentity (0.30s)
+    --- PASS: TestCompiledWindowIdentity/rolling_reflexivity_dimensional (0.02s)
+    --- PASS: TestCompiledWindowIdentity/rolling_reflexivity_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/rolling_duration_mismatch_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/rolling_duration_mismatch_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/Casablanca_Lagos_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/Casablanca_Lagos_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_date_ignored_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_date_ignored_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_millisecond_mismatch_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/hour_millisecond_mismatch_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias__dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias__explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_UTC_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_UTC_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/UTC_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/UTC_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/GMT_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_Etc/GMT_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_GMT_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/UTC_alias_GMT_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_minute_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_minute_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_hour_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_hour_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_day_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_day_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_week_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_week_explicit (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_month_dimensional (0.01s)
+    --- PASS: TestCompiledWindowIdentity/natural_phase_month_explicit (0.01s)
+=== RUN   TestRework3WindowIdentityVariants
+=== RUN   TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger
+=== RUN   TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour
+=== RUN   TestRework3WindowIdentityVariants/zone-alias-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/unit-change-cannot-mint
+=== RUN   TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected
+--- PASS: TestRework3WindowIdentityVariants (0.05s)
+    --- PASS: TestRework3WindowIdentityVariants/natural-vs-explicit-midnight-same-ledger (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/hour-phase-ignores-anchor-hour (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/zone-alias-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/unit-change-cannot-mint (0.01s)
+    --- PASS: TestRework3WindowIdentityVariants/window-only-clone-of-factless-limit-same-window-rejected (0.01s)
+PASS
+ok  	ant/server/internal/config	1.873s

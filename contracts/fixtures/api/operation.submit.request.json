@@ -1,0 +1,22 @@
+{
+  "operationId": "op-20261002-0001",
+  "poolId": "pool-main",
+  "request": {
+    "domain": "ai/text",
+    "capabilityProfile": "profile.chat.basic",
+    "payload": {
+      "model": "fixture-model-x",
+      "messages": [
+        {
+          "role": "user",
+          "content": "fixture 提示词"
+        }
+      ],
+      "maxOutputTokens": 256,
+      "temperature": 0.2
+    }
+  },
+  "deadlineAt": 1792000000000,
+  "maxAttempts": 2,
+  "allowMetered": false
+}

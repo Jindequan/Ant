@@ -1,0 +1,9 @@
+self-check: baseline covers 164 files
+  DRIFT reported: ~ scripts/check-deps.py
+  DRIFT reported: ~ scripts/manifest-diff.py
+  DRIFT reported: ~ scripts/snapshot.py
+  DRIFT reported: ~ web/scripts/contract-tools.d.mts
+  DRIFT reported: ~ docs/evidence/CODEX-T1-REWORK-AUDIT/config-cases.json
+  DRIFT reported: ~ docs/evidence/CODEX-T1-AUDIT/config-cases.json
+  restored clean (164 files identical)
+self-check PASSED: every gatekeeping file change is reported as drift

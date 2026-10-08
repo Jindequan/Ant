@@ -1,0 +1,11 @@
+{
+  "commandId": "cmd-reorder-bad-2",
+  "expectedPoolVersion": 3,
+  "expectedConfigRevision": "cfgrev-0007",
+  "entries": [
+    {
+      "offerId": "offer-alpha-chat-a",
+      "priority": 10
+    }
+  ]
+}

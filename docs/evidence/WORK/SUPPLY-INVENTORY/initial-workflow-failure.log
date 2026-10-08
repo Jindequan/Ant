@@ -1,0 +1,401 @@
+
+> ant-web@0.1.0 test
+> vitest run --run tests/supply-inventory.test.tsx
+
+
+ RUN  v5.0.3 /Users/devin/code/Ant/web
+
+ ❯ tests/supply-inventory.test.tsx (5 tests | 1 failed) 520ms
+   ❯ commercial supply setup (5)
+     × keeps invalid fields and stale edits, reviews latest version, and saves without an apply/draft step 38ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/supply-inventory.test.tsx > commercial supply setup > keeps invalid fields and stale edits, reviews latest version, and saves without an apply/draft step
+TestingLibraryElementError: Unable to find a label with the text of: 数量
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"app-header"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"app-title"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"app-brand-mark"[39m
+            [33mviewBox[39m=[32m"0 0 32 32"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M8 8.5 16 16l8-7.5M16 16v8"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2.2"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"8"[39m
+              [33mcy[39m=[32m"8"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mr[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"24"[39m
+              [33mcy[39m=[32m"8"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mr[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"16"[39m
+              [33mcy[39m=[32m"16"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mr[39m=[32m"3.5"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"16"[39m
+              [33mcy[39m=[32m"24"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mr[39m=[32m"3"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mANT 控制台[0m
+        [36m</span>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"主导航"[39m
+          [33mclass[39m=[32m"app-nav"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"app-nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/providers"[39m
+          [36m>[39m
+            [0m供应商[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33maria-current[39m=[32m"page"[39m
+            [33mclass[39m=[32m"app-nav-link is-active"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/resources"[39m
+          [36m>[39m
+            [0m资源[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"app-nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/pools"[39m
+          [36m>[39m
+            [0m资源池[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"app-nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/operations"[39m
+          [36m>[39m
+            [0m操作[0m
+          [36m</a>[39m
+        [36m</nav>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"app-session"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"app-session-state"[39m
+          [36m>[39m
+            [0mdemo[0m
+          [36m</span>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"app-nav-link"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0m退出登录[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<main[39m
+        [33mclass[39m=[32m"app-main"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"page"[39m
+        [36m>[39m
+          [36m<header[39m
+            [33mclass[39m=[32m"page-header"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<h1>[39m
+                [0m资源[0m
+              [36m</h1>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"config-subtitle"[39m
+              [36m>[39m
+                [0m配置账户拥有的套餐与资源包。[0m
+              [36m</p>[39m
+            [36m</div>[39m
+          [36m</header>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"package-setup-title"[39m
+            [33mclass[39m=[32m"config-state"[39m
+          [36m>[39m
+            [36m<h2[39m
+              [33mid[39m=[32m"package-setup-title"[39m
+            [36m>[39m
+              [0m添加套餐或资源包[0m
+            [36m</h2>[39m
+            [36m<p>[39m
+              [36m<strong>[39m
+                [0mPlan[0m
+              [36m</strong>[39m
+              [0m · [0m
+              [0mTeam account[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"config-note"[39m
+            [36m>[39m
+              [0m第 3 步，共 3 步 · [0m
+              [0m包含的资源与限制[0m
+            [36m</p>[39m
+            [36m<form>[39m
+              [36m<fieldset[39m
+                [33mclass[39m=[32m"supply-fieldset"[39m
+              [36m>[39m
+                [36m<p>[39m
+                  [0m填写套餐提供的数量与规则。这里记录配置额度，不代表实际剩余额度。[0m
+                [36m</p>[39m
+                [36m<fieldset[39m
+                  [33mclass[39m=[32m"supply-resource"[39m
+                [36m>[39m
+                  [36m<legend>[39m
+                    [0m资源 1[0m
+                  [36m</legend>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"config-form-grid"[39m
+                  [36m>[39m
+                    [36m<label>[39m
+                      [0m资源类型[0m
+                      [36m<select>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"tokens"[39m
+                        [36m>[39m
+                          [0mToken 额度[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"requests"[39m
+                        [36m>[39m
+                          [0m请求次数[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"money"[39m
+                        [36m>[39m
+                          [0m余额／预算[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"storage"[39m
+                        [36m>[39m
+                          [0m存储容量[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"compute"[39m
+                        [36m>[39m
+                          [0m计算时长[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"concurrency"[39m
+                        [36m>[39m
+                          [0m并发任务[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"custom"[39m
+                        [36m>[39m
+                          [0m其他资源[0m
+                        [36m</option>[39m
+                      [36m</select>[39m
+                    [36m</label>[39m
+                    [36m<label>[39m
+                      [0m数量[0m
+                      [36m<input[39m
+                        [33maria-invalid[39m=[32m"true"[39m
+                        [33minputmode[39m=[32m"decimal"[39m
+                        [33mplaceholder[39m=[32m"填写完整数量，例如 3000000"[39m
+                        [33mvalue[39m=[32m"3e6"[39m
+                      [36m/>[39m
+                      [36m<small>[39m
+                        [0m请填写完整正数，例如 3000000 或 25.01。[0m
+                      [36m</small>[39m
+                    [36m</label>[39m
+                    [36m<p[39m
+                      [33mclass[39m=[32m"config-note"[39m
+                    [36m>[39m
+                      [0m单位[0m
+                      [0m: [0m
+                      [0mToken[0m
+                    [36m</p>[39m
+                    [36m<label>[39m
+                      [0m额度何时重置？[0m
+                      [36m<select>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"none"[39m
+                        [36m>[39m
+                          [0m不重置[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"minute"[39m
+                        [36m>[39m
+                          [0m每分钟[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"hour"[39m
+                        [36m>[39m
+                          [0m每小时[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"day"[39m
+                        [36m>[39m
+                          [0m每天[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"week"[39m
+                        [36m>[39m
+                          [0m每周[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"month"[39m
+                        [36m>[39m
+                          [0m每月[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"year"[39m
+                        [36m>[39m
+                          [0m每年[0m
+                        [36m</option>[39m
+                        [36m<option[39m
+                          [33mvalue[39m=[32m"rolling"[39m
+                        [36m>[39m
+                          [0m滚动时间窗口[0m
+                        [36m</option>[39m
+                      [36m</select>[39m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<details>[39m
+                    [36m<summary>[39m
+                      [0m更多资源规则[0m
+                    [36m</summary>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"config-form-grid"[39m
+                    [36m>[39m
+                      [36m<label>[39m
+                        [0m资源名称[0m
+                        [36m<input[39m
+                          [33mmaxlength[39m=[32m"200"[39m
+                          [33mvalue[39m=[32m"Token 额度"[39m
+                        [36m/>[39m
+                      [36m</label>[39m
+                      [36m<label>[39m
+                        [0m资源限制方式[0m
+                        [36m<select>[39m
+                          [36m<option[39m
+                            [33mvalue[39m=[32m"allowance"[39m
+                          [36m>[39m
+                            [0m包含额度[0m
+                          [36m</option>[39m
+                          [36m<option[39m
+                            [33mvalue[39m=[32m"rate"[39m
+                          [36m>[39m
+                            [0m速率限制[0m
+                          [36m</option>[39m
+                        [36m</select>[39m
+                      [36m</label>[39m
+                      [36m<label>[39m
+                        [0m重置周期起始日期（可选）[0m
+                        [36m<input[39m
+                          [33mtype[39m=[32m"date"[39m
+                          [33mvalue[39m=[32m""[39m
+                        [36m/>[39m
+                      [36m</label>[39m
+                      [36m<label>[39m
+                        [0m谁共享这项限制？[0m
+                        [36m<select>[39m
+                          [36m<option[39m
+                            [33mvalue[39m=[32m"package"[39m
+                          [36m>[39m
+                            [0m仅此资源包[0m
+                          [36m</option>[39m
+                          [36m<option[39m
+                            [33mvalue[39m=[32m"account"[39m
+                          [36m>[39m
+                            [0m此账户下的所有资源包[0m
+                          [36m</option>[39m
+                        [36m</select>[39m
+                      [36m</label>[39m
+                    [36m</div>[39m
+                  [36m</details>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"button-secondary"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0m移除此资源[0m
+                  [36m</button>[39m
+                [36m</fieldset>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"button-secondary"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0m添加另一项资源[0m
+                [36m</button>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"config-note"[39m
+                [36m>[39m
+                  [0m将在「Team account」账户下保存「Plan」，包含 1 项资源规则。[0m
+                [36m</p>[39m
+              [36m</fieldset>[39m
+              [36m<p[39m
+                [33mrole[39m=[32m"alert"[39m
+              [36m>[39m
+                [0m请检查资源数量与重置规则，输入内容已保留。按量付费需设置支出上限。[0m
+              [36m</p>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"config-actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"button-primary"[39m
+                [36m>[39m
+                  [0m保存资源包[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"button-secondary"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0m上一步[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"button-secondary"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0m取消[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</form>[39m
+          [36m</section>[39m
+        [36m</section>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/supply-inventory.test.tsx:59:193
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  16:42:10
+   Duration  1.33s (tests 41%, environment 39%, transform 10%, import 5%, setup 5%)
+
