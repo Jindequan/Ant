@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 design 13 step A1: the module contract knows products and regions — `catalog.Session.Product` (the connection's mode) and optional `Product`/`Region` selectors on endpoints, so one module can hold Kimi Code and the Moonshot platform (CNY/USD regions). Module layer only; Z.ai and DeepSeek unchanged. Gates pass. This commit is the base of the Kimi acceptance range (design 13 §1).
+
 2026-10-08 plan for the next provider modules ([design 13](../design/13-NEXT-PROVIDER-MODULES.md)), at the user's request ("make a detail and perfect plan, then do it continuely"): Phase A — Kimi/Moonshot as the third module, with a mechanical acceptance test (no diff in engine, store, migrations or observed types while adding it); Phase B — model-scoped meters, a deliberate core change; Phase C — Alibaba Cloud Bailian as the fourth module. Provider facts verified against official Kimi docs. Executing step by step.
 
 2026-10-08 housekeeping step 5 (L6, L8, L9, L10): the card menu closes when a filter or search hides its card (checked in demo); DemoSource has tests, including that it has no network field; the table-count test no longer carries a stale number; check-deps explains why the adapter may not import provider packages. Review REVIEW-DESIGN12-SLICE housekeeping complete: M-1…M-4 and L1–L10 addressed (M-4 by wording, with evidence). Gates pass. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).

@@ -27,17 +27,30 @@ type Supply struct {
 }
 
 // Endpoint is where an account's models are called, and the meters a call
-// there draws on (resource template refs of the inventory).
+// there draws on (resource template refs of the inventory). Product and
+// Region select which credentials it serves, when a module holds several
+// products (Kimi Code and the Moonshot platform) or regions (moonshot.cn
+// and moonshot.ai); empty serves every credential of the module.
 type Endpoint struct {
 	Base     string
 	Protocol string // openai-chat, anthropic-messages, …
 	Draws    []string
+	Product  string
+	Region   string
 }
 
-// Session is the credential a collector reads with: its values (an API key,
-// a token), resolved by the engine. Collectors keep nothing.
+// serves reports whether a credential reads through this endpoint.
+func (e Endpoint) serves(s Session) bool {
+	return (e.Product == "" || e.Product == s.Product) && (e.Region == "" || e.Region == s.Values["region"])
+}
+
+// Session is the credential a collector reads with: which of the module's
+// products it is for (the connection's mode, e.g. "code" or "api"; "" when
+// the module has one) and its values (an API key, a token, a region),
+// resolved by the engine. Collectors keep nothing.
 type Session struct {
-	Values map[string]string
+	Product string
+	Values  map[string]string
 }
 
 // Collector reads one account. Implementations parse only: the network is
@@ -125,10 +138,14 @@ func ModelID(upstream string) string {
 	return id
 }
 
-// Offers are what an account serves: each listed model at each endpoint.
-func Offers(s *Supply, models []observed.UpstreamModel) []observed.Offer {
+// Offers are what an account serves: each listed model at each endpoint
+// that serves the account's credential.
+func Offers(s *Supply, session Session, models []observed.UpstreamModel) []observed.Offer {
 	var out []observed.Offer
 	for _, e := range s.Endpoints {
+		if !e.serves(session) {
+			continue
+		}
 		for _, m := range models {
 			if id := ModelID(m.ID); id != "" {
 				out = append(out, observed.Offer{Endpoint: e.Base, Protocol: e.Protocol, UpstreamModel: m.ID, ModelID: id, Draws: e.Draws})

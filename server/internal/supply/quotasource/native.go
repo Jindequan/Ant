@@ -51,7 +51,7 @@ func (n *natives) of(provider string) (Native, bool) {
 func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quota.Connection, now time.Time, nat Native) (quota.Account, supply.Result) {
 	a := quota.NewAccount(providers, c, now)
 	a.Live = true
-	s := catalog.Session{Values: c.Values}
+	s := catalog.Session{Product: c.Mode, Values: c.Values}
 	inv, err := nat.Module.Supply.Collector.Inventory(ctx, s, nat.Fetch)
 	if err != nil {
 		a.Status, a.Message = quota.StatusError, err.Error()
@@ -72,7 +72,7 @@ func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quo
 	r := result(a) // cadence from what the card shows
 	r.Inventory = &inv
 	if listed != nil {
-		r.Offers = catalog.Offers(nat.Module.Supply, listed)
+		r.Offers = catalog.Offers(nat.Module.Supply, s, listed)
 	}
 	return a, r
 }

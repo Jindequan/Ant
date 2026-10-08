@@ -2,8 +2,10 @@ package catalog_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/providers/catalog"
 	"ant/server/internal/providers/deepseek"
 	"ant/server/internal/providers/localtest"
@@ -73,6 +75,33 @@ func TestPlanName(t *testing.T) {
 	for in, want := range map[string]string{"pro": "Pro", "  max ": "Max", "": "", "Lite": "Lite"} {
 		if got := catalog.PlanName(in); got != want {
 			t.Errorf("PlanName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestOffersFollowProductAndRegion(t *testing.T) {
+	s := &catalog.Supply{Endpoints: []catalog.Endpoint{
+		{Base: "https://api.kimi.com/coding/v1", Protocol: "openai-chat", Product: "code"},
+		{Base: "https://api.moonshot.cn/v1", Protocol: "openai-chat", Product: "api", Region: "cn"},
+		{Base: "https://api.moonshot.ai/v1", Protocol: "openai-chat", Product: "api", Region: "ai"},
+		{Base: "https://shared.example/v1", Protocol: "openai-chat"}, // no selector: every credential
+	}}
+	models := []observed.UpstreamModel{{ID: "kimi-k3"}}
+	bases := func(session catalog.Session) string {
+		var out []string
+		for _, o := range catalog.Offers(s, session, models) {
+			out = append(out, o.Endpoint)
+		}
+		return strings.Join(out, " ")
+	}
+	for session, want := range map[*catalog.Session]string{
+		{Product: "code"}: "https://api.kimi.com/coding/v1 https://shared.example/v1",
+		{Product: "api", Values: map[string]string{"region": "cn"}}: "https://api.moonshot.cn/v1 https://shared.example/v1",
+		{Product: "api", Values: map[string]string{"region": "ai"}}: "https://api.moonshot.ai/v1 https://shared.example/v1",
+		{}: "https://shared.example/v1",
+	} {
+		if got := bases(*session); got != want {
+			t.Errorf("%+v: %s, want %s", *session, got, want)
 		}
 	}
 }

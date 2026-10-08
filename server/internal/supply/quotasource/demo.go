@@ -64,7 +64,7 @@ func (d DemoSource) Collect(_ context.Context, c supply.Credential) supply.Resul
 	for i, m := range a.Models {
 		listed[i] = observed.UpstreamModel{ID: m.ID, Name: m.Name, Media: m.Media}
 	}
-	r.Offers = catalog.Offers(&catalog.Supply{Endpoints: []catalog.Endpoint{e}}, listed)
+	r.Offers = catalog.Offers(&catalog.Supply{Endpoints: []catalog.Endpoint{e}}, catalog.Session{Product: e.Product}, listed)
 	return r
 }
 
