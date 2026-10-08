@@ -203,3 +203,26 @@ test already shows.
 fake servers appended to a request log from concurrent reads (the engine reads credentials in
 parallel). A test bug from A3 that passed A3's gates by chance; the log is now guarded and copied
 before checking. `-race -count=5`: 5/5 pass; full gates re-run.
+
+**A5 — acceptance record.** Kimi was added as a third module without touching the core:
+
+```
+$ git diff --stat 15bb7c3..29d698e -- server/internal/supply/*.go server/internal/supply/*_test.go server/internal/store server/migrations server/internal/domain
+(no output)
+$ git diff --stat 15bb7c3..29d698e -- server/internal/supply ':!server/internal/supply/quotasource' server/internal/store server/migrations server/internal/domain
+(no output)
+```
+
+The second form is git's own pathspec (the first relies on the shell's glob, which can't see a
+deleted file). What the range did change: the new `providers/kimi` package and its fixtures;
+`providers/catalog` (`ParseDecimal`, `WindowName` moved in); quota's Kimi readers (now 2 calls
+into the module), MiniMax's window names, `quota.Mode.Link`; the adapter (exact decimal from
+catalog, card money formatting, demo comment) and its tests; the wiring in `cmd`; one
+check-deps rule. 24 files, +1099 −184, of which the module and its tests are ~650 lines.
+
+**Demo walkthrough** (`-demo`, binary from `29d698e`): Models view, search "kimi-for-coding",
+open the row → "What Ant would do": 1. Kimi · *Use first* — "Use before it's lost: 5 hours 36%
+left, resets in 3h 20m"; "A preview: nothing is sent to any model." `GET /api/route?model=kimi-k3`
+→ the same sample plan (its endpoint serves both models). Other sample accounts that list
+`kimi-k3` (OpenRouter, SiliconFlow, OpenCode, Bailian free quota) aren't modules yet, so they
+aren't in the preview — as designed (design 12 §9).

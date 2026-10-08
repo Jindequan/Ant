@@ -1,6 +1,7 @@
 # The next provider modules: Kimi, then model-scoped meters, then Bailian
 
-Version: V1.0, 2026-10-08. Status: **plan, executing step by step (§7).**
+Version: V1.1, 2026-10-08. Status: **plan, executing step by step (§7). Phase A done: Kimi added
+without a core change (acceptance check empty, A5 evidence).**
 Basis: [design 12](12-PROVIDER-MODULES.md) (module contract, route preview), its review
 [REVIEW-DESIGN12-SLICE](../REVIEW-DESIGN12-SLICE-2026-10-08.md), [design 11](11-SUPPLY-ENGINE.md)
 (rulings R1–R8), [Magpie research](../research/MAGPIE-AND-ANT.md) stage 5 ("a third provider tests

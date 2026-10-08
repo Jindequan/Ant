@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 design 13 step A5 — **the module design passed its test:** Kimi (two products, two regions) was added as the third module with no change to the engine, reconciler, preview, store, migrations or observed types (`git diff --stat 15bb7c3..29d698e` over the core: empty, by shell glob and by git pathspec). Demo walkthrough: `kimi-for-coding` → the Kimi Code plan, "use before it's lost". Phase A closed; phase B (model-scoped meters) next. Gates pass.
+
 2026-10-08 design 13 step A4: live check of Kimi with fake keys (isolated home and PATH, one read-only request per credential, R4): Kimi Code, Moonshot China and Moonshot international all refused with 401 → cards, stored credentials and runs say signed out; nothing recorded beyond that. Found and fixed: the Moonshot cards linked to Kimi Code; a mode can now give its link from the account's values (`quota.Mode.Link`), shared by the quota reader and the module path. Also fixed: a data race in A3's end-to-end test (its fake servers' request log), caught by `-race` in this step's gates. Gates pass.
 
 2026-10-08 design 13 step A3: the server reads Kimi through its module and demo samples Kimi Code. End-to-end on TLS fakes: Kimi Code + both Moonshot platforms → cards, stored facts at their quanta, offers per product and platform (a key never reaches the other platform), route previews for `kimi-for-coding` and `kimi-k3`. Card balances are written as money (`49.58894`, not `49.588940`). Core diff since A1: empty. Gates pass.
