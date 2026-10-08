@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -65,6 +66,36 @@ func TestObservationFetchRejectsBadOrigins(t *testing.T) {
 	for _, bad := range [][]string{nil, {"http://api.z.ai"}, {"https://api.z.ai/path"}, {"https://u:p@api.z.ai"}, {"https://api.z.ai?x=1"}} {
 		if _, err := NewObservationFetch(bad, nil); err == nil {
 			t.Errorf("%v accepted", bad)
+		}
+	}
+}
+
+func TestObservationTransportIgnoresTheEnvironmentProxy(t *testing.T) {
+	t.Setenv("HTTPS_PROXY", "http://127.0.0.1:9")
+	if tr := observationTransport(); tr.Proxy != nil {
+		t.Fatal("the observation transport takes a proxy from the environment")
+	}
+}
+
+func TestObservationFetchRefusesBadHeadersAndKnowsDefaultPorts(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) }))
+	defer srv.Close()
+	fetch, err := NewObservationFetch([]string{srv.URL}, srv.Client().Transport)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, h := range []map[string]string{{"X-Key": "a\r\nInjected: 1"}, {"Bad Name": "x"}, {"Host": "evil.example"}, {"Transfer-Encoding": "chunked"}} {
+		if _, err := fetch(context.Background(), observed.Request{URL: srv.URL + "/", Header: h}); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("header %v: %v", h, err)
+		}
+	}
+	if res, err := fetch(context.Background(), observed.Request{URL: srv.URL + "/", Header: map[string]string{"Cookie": "a=b"}}); err != nil || res.Status != 200 {
+		t.Fatalf("a cookie header: %d %v", res.Status, err)
+	}
+	for in, want := range map[string]string{"https://API.z.ai:443/x": "https://api.z.ai", "https://api.z.ai": "https://api.z.ai", "https://api.z.ai:8443": "https://api.z.ai:8443"} {
+		u, _ := url.Parse(in)
+		if got := originOf(u); got != want {
+			t.Errorf("originOf(%s) = %s, want %s", in, got, want)
 		}
 	}
 }

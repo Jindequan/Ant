@@ -41,7 +41,7 @@ func NewObservationFetch(origins []string, base http.RoundTripper) (observed.Fet
 		allowed[originOf(u)] = true
 	}
 	if base == nil {
-		base = http.DefaultTransport.(*http.Transport).Clone()
+		base = observationTransport()
 	}
 	client := &http.Client{
 		Timeout:   observationTimeout,
@@ -70,6 +70,10 @@ func NewObservationFetch(origins []string, base http.RoundTripper) (observed.Fet
 			return observed.Response{}, ErrInvalidRequest
 		}
 		for k, v := range r.Header {
+			canonical := http.CanonicalHeaderKey(k)
+			if !validHeaderName(k) || strings.ContainsAny(v, "\r\n") || observationReserved[canonical] {
+				return observed.Response{}, ErrInvalidRequest
+			}
 			req.Header.Set(k, v)
 		}
 		res, err := client.Do(req)
@@ -88,4 +92,30 @@ func NewObservationFetch(origins []string, base http.RoundTripper) (observed.Fet
 	}, nil
 }
 
-func originOf(u *url.URL) string { return strings.ToLower(u.Scheme + "://" + u.Host) }
+// originOf is scheme://host[:port], lower-case; https's default port is
+// the same origin as no port ("https://api.z.ai:443" is "https://api.z.ai").
+func originOf(u *url.URL) string {
+	host := strings.ToLower(u.Host)
+	if strings.EqualFold(u.Scheme, "https") {
+		host = strings.TrimSuffix(host, ":443")
+	}
+	return strings.ToLower(u.Scheme) + "://" + host
+}
+
+// observationReserved are headers a collector may not set: the transport
+// owns them. Cookie is allowed: a site read with its sign-in sends it.
+var observationReserved = map[string]bool{"Host": true, "Connection": true, "Proxy-Authorization": true, "Content-Length": true, "Transfer-Encoding": true}
+
+// observationTransport is the production transport: no proxy from the
+// environment (keys go to the declared origin and nowhere else, like the
+// runtime client), bounded handshakes and headers.
+func observationTransport() *http.Transport {
+	return &http.Transport{
+		Proxy:                 nil,
+		ForceAttemptHTTP2:     true,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: observationTimeout,
+		MaxIdleConns:          8,
+		IdleConnTimeout:       90 * time.Second,
+	}
+}
