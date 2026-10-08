@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-08 plan for the next provider modules ([design 13](../design/13-NEXT-PROVIDER-MODULES.md)), at the user's request ("make a detail and perfect plan, then do it continuely"): Phase A — Kimi/Moonshot as the third module, with a mechanical acceptance test (no diff in engine, store, migrations or observed types while adding it); Phase B — model-scoped meters, a deliberate core change; Phase C — Alibaba Cloud Bailian as the fourth module. Provider facts verified against official Kimi docs. Executing step by step.
+
 2026-10-08 housekeeping step 5 (L6, L8, L9, L10): the card menu closes when a filter or search hides its card (checked in demo); DemoSource has tests, including that it has no network field; the table-count test no longer carries a stale number; check-deps explains why the adapter may not import provider packages. Review REVIEW-DESIGN12-SLICE housekeeping complete: M-1…M-4 and L1–L10 addressed (M-4 by wording, with evidence). Gates pass. [Evidence](../evidence/WORK/PROVIDER-MODULES/README.md).
 
 2026-10-08 housekeeping step 4 (L3, L4): one plan-name helper (`catalog.PlanName`) replaces Z.ai's `capitalize` and quota's `planName`; Z.ai's model list refuses an empty key like its plan read does, and a test shows no request goes out without a key. Gates pass.
