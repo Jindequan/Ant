@@ -226,3 +226,21 @@ left, resets in 3h 20m"; "A preview: nothing is sent to any model." `GET /api/ro
 → the same sample plan (its endpoint serves both models). Other sample accounts that list
 `kimi-k3` (OpenRouter, SiliconFlow, OpenCode, Bailian free quota) aren't modules yet, so they
 aren't in the preview — as designed (design 12 §9).
+
+## Design 13 phase B: model-scoped meters (2026-10-09)
+
+**B1** (`3e8d1ca`): the rule, design 13 §4.1.
+
+**B2 — the preview resolves `scope:model`.** `observed.DrawModelScope` in an offer's draws takes
+every meter of the account scoped to the offer's model; a plain ref no longer draws a meter scoped
+to another model. The canonical rule moved from `catalog.ModelID` to `observed.ModelID` (the one
+rule, now usable by the core; `catalog.ModelID` removed, its callers and test moved). Stored scopes
+are unchanged, so no existing meter is split from its history.
+
+`TestRoutePreviewModelScopedMeters` (one MiniMax-style account, a text window scoped to
+`MiniMax/MiniMax-M3` at 60 % and a speech window scoped to `speech-2.6`, used up):
+`minimax-m3` → "Plan: Text · 5 hours 60% left" (its own window only, matched through the vendor
+prefix); `speech-2.6` → excluded "Speech · Day used up · resets in 2h"; a model with no meter of
+its own → "Nothing it draws on was read"; an offer naming the text window by ref for another model
+→ the same. **Mutation checks:** dropping the other-model guard makes the last case eligible;
+comparing scopes without the canonical rule makes `minimax-m3` lose its window. Both fail the test.

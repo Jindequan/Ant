@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 13 step B2 (core, deliberate): the route preview resolves `scope:model` — a model's own meters, matched canonically — and never draws a meter scoped to another model. The canonical model rule moved to `observed.ModelID` (catalog's copy removed). Mutation-checked. Gates pass.
+
 2026-10-09 design 13 step B1: the rule for model-scoped meters ([design 13 §4.1](../design/13-NEXT-PROVIDER-MODULES.md)) — offers may draw `scope:model` (the account's meters scoped to the offer's model, compared canonically); a plain ref never draws another model's meter; free grants are used first while they have room and skipped when used up if the route draws on anything else; new class `free` between use-before-lost and plan. The canonical model rule moves to `domain/observed` (one rule the core can use); stored scopes stay as they are so no meter loses its history. Note only. Gates pass.
 
 2026-10-08 design 13 step A5 — **the module design passed its test:** Kimi (two products, two regions) was added as the third module with no change to the engine, reconciler, preview, store, migrations or observed types (`git diff --stat 15bb7c3..29d698e` over the core: empty, by shell glob and by git pathspec). Demo walkthrough: `kimi-for-coding` → the Kimi Code plan, "use before it's lost". Phase A closed; phase B (model-scoped meters) next. Gates pass.

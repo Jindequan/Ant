@@ -130,17 +130,6 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-// ModelID is the canonical id of an upstream model id: lower-case, without
-// a "vendor/" prefix ("Zhipu/GLM-5.3" and "glm-5.3" are one model). Ids that
-// differ otherwise stay different models: nothing is guessed.
-func ModelID(upstream string) string {
-	id := strings.ToLower(strings.TrimSpace(upstream))
-	if i := strings.LastIndexByte(id, '/'); i >= 0 {
-		id = id[i+1:]
-	}
-	return id
-}
-
 // Offers are what an account serves: each listed model at each endpoint
 // that serves the account's credential.
 func Offers(s *Supply, session Session, models []observed.UpstreamModel) []observed.Offer {
@@ -150,7 +139,7 @@ func Offers(s *Supply, session Session, models []observed.UpstreamModel) []obser
 			continue
 		}
 		for _, m := range models {
-			if id := ModelID(m.ID); id != "" {
+			if id := observed.ModelID(m.ID); id != "" {
 				out = append(out, observed.Offer{Endpoint: e.Base, Protocol: e.Protocol, UpstreamModel: m.ID, ModelID: id, Draws: e.Draws})
 			}
 		}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ant/server/internal/domain"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/store"
 )
 
@@ -103,13 +104,10 @@ func (e *Engine) Preview(ctx context.Context, model string) (Preview, error) {
 			pkgOf[p.PackageID] = p
 			pkgsOfAccount[p.AccountID] = append(pkgsOfAccount[p.AccountID], p)
 		}
-		resOf := map[domain.ID]map[string]store.SupplyResourceRecord{} // account → template ref
+		resOf := map[domain.ID][]store.SupplyResourceRecord{} // by account
 		for _, r := range resources {
 			a := pkgOf[r.PackageID].AccountID
-			if resOf[a] == nil {
-				resOf[a] = map[string]store.SupplyResourceRecord{}
-			}
-			resOf[a][r.TemplateRef] = r
+			resOf[a] = append(resOf[a], r)
 		}
 		for _, o := range offers {
 			c, ok := credOf[o.CredentialID]
@@ -120,11 +118,7 @@ func (e *Engine) Preview(ctx context.Context, model string) (Preview, error) {
 			var draws []string
 			_ = json.Unmarshal(o.DrawsJSON, &draws)
 			var meters []meter
-			for _, ref := range draws {
-				r, found := resOf[c.AccountID][ref]
-				if !found {
-					continue
-				}
+			for _, r := range drawn(resOf[c.AccountID], draws, o.ModelID) {
 				m := meter{res: r, pkg: pkgOf[r.PackageID]}
 				readings, err := sx.ListSupplyReadings(e.ns, r.ResourceID, now-ms(balanceLookback))
 				if err != nil {
@@ -166,6 +160,44 @@ func (e *Engine) Preview(ctx context.Context, model string) (Preview, error) {
 		return a.fresh > b.fresh
 	})
 	return out, err
+}
+
+// drawn are the account's meters a call to model draws on (design 13
+// §4.1), in the order of draws: each ref's meters, and for
+// observed.DrawModelScope every meter scoped to the model. A meter scoped
+// to another model is never drawn.
+func drawn(resources []store.SupplyResourceRecord, draws []string, model string) []store.SupplyResourceRecord {
+	var out []store.SupplyResourceRecord
+	seen := map[domain.ID]bool{}
+	for _, ref := range draws {
+		for _, r := range resources {
+			scoped := scopeModel(r)
+			var ok bool
+			if ref == observed.DrawModelScope {
+				ok = scoped != "" && observed.ModelID(scoped) == model
+			} else {
+				ok = r.TemplateRef == ref && (scoped == "" || observed.ModelID(scoped) == model)
+			}
+			if ok && !seen[r.ResourceID] {
+				seen[r.ResourceID] = true
+				out = append(out, r)
+			}
+		}
+	}
+	return out
+}
+
+// scopeModel is the model a meter is scoped to, as the provider names it;
+// "" for a meter of the whole account.
+func scopeModel(r store.SupplyResourceRecord) string {
+	var sc struct {
+		Kind  string `json:"kind"`
+		Model string `json:"model"`
+	}
+	if json.Unmarshal(r.ScopeJSON, &sc) != nil || sc.Kind != "model" {
+		return ""
+	}
+	return sc.Model
 }
 
 func verifiedAt(c store.SupplyCredentialRecord) domain.Millis {

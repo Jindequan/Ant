@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"ant/server/internal/domain"
-	"ant/server/internal/providers/catalog"
+	"ant/server/internal/domain/observed"
 	"ant/server/internal/quota"
 	"ant/server/internal/store"
 	"ant/server/internal/supply"
@@ -288,7 +288,7 @@ type Routes struct {
 // Preview is the engine's route preview for a model named any way the user
 // or a provider names it, with each account as its card calls it.
 func (r Routes) Preview(ctx context.Context, model string) (quota.RoutePreview, error) {
-	p, err := r.Engine.Preview(ctx, catalog.ModelID(model))
+	p, err := r.Engine.Preview(ctx, observed.ModelID(model))
 	if err != nil {
 		return quota.RoutePreview{}, err
 	}

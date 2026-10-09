@@ -2,6 +2,7 @@ package supply
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -209,5 +210,61 @@ func TestRoutePreviewReasonOrderAcrossMeters(t *testing.T) {
 	p, err := e.Preview(context.Background(), "glm-5.3")
 	if err != nil || len(p.Excluded) != 1 || p.Excluded[0].Reason != "5 hours used up · resets in 2h" {
 		t.Fatalf("preview = %+v %v", p, err)
+	}
+}
+
+// modelWindow is a plan window scoped to one model (MiniMax-style).
+func modelWindow(ref, model, label string, leftPct int64, endsIn, now domain.Millis) observed.ResourceReading {
+	r := planWindow(ref, label, leftPct, endsIn, now)
+	r.ScopeJSON = []byte(`{"kind":"model","model":"` + model + `"}`)
+	return r
+}
+
+// Design 13 §4.1: scope:model draws the meters of the offer's model only,
+// matched canonically; a plain ref never draws another model's meter.
+func TestRoutePreviewModelScopedMeters(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	offer := func(model string, draws ...string) observed.Offer {
+		return observed.Offer{Endpoint: "https://api.example.com/v1", Protocol: "openai-chat", UpstreamModel: model, ModelID: observed.ModelID(model), Draws: draws}
+	}
+	src.creds = []Credential{found("k")}
+	src.results["k"] = Result{Outcome: OutcomeOK, Inventory: &observed.Inventory{Packages: []observed.PackageReading{{TemplateRef: "mm/plan", Kind: "subscription", Basis: "observed",
+		Resources: []observed.ResourceReading{
+			modelWindow("window/text", "MiniMax/MiniMax-M3", "Text · 5 hours", 60, 3*hour+24*hour, now),
+			modelWindow("window/speech", "speech-2.6", "Speech · Day", 0, 2*hour, now),
+		}}}},
+		Offers: []observed.Offer{
+			offer("MiniMax-M3", observed.DrawModelScope),
+			offer("speech-2.6", observed.DrawModelScope),
+			offer("other-model", observed.DrawModelScope),
+			offer("sneaky", "window/text"), // names a meter scoped to MiniMax-M3
+		}}
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	for model, want := range map[string]string{
+		"minimax-m3":  "use:Plan: Text · 5 hours 60% left", // its own window only, matched through the vendor prefix
+		"speech-2.6":  "not:Speech · Day used up · resets in 2h",
+		"other-model": "not:Nothing it draws on was read", // no grant or window of its own
+		"sneaky":      "not:Nothing it draws on was read",
+	} {
+		p, err := e.Preview(context.Background(), model)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got string
+		switch {
+		case len(p.Eligible) == 1 && len(p.Excluded) == 0:
+			got = "use:" + p.Eligible[0].Reason
+		case len(p.Excluded) == 1 && len(p.Eligible) == 0:
+			got = "not:" + p.Excluded[0].Reason
+		default:
+			got = fmt.Sprintf("%+v", p)
+		}
+		if got != want {
+			t.Errorf("%s: %s, want %s", model, got, want)
+		}
 	}
 }
