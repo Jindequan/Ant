@@ -41,9 +41,6 @@ function mark(provider, name, cls = "") {
 const MEDIA_LABEL = { text: "Text", image: "Image", video: "Video", music: "Music", speech: "Speech", audio: "Audio", design: "Design", agent: "Agent", search: "Search" };
 const MEDIA_ORDER = Object.keys(MEDIA_LABEL);
 const KIND_LABEL = { subscription: "Subscription", api: "API balance", free: "Free" };
-const URGENT_HOURS = 24; // a window renewing this soon with this much left is "use it"
-const URGENT_LEFT = 30;
-const EXPIRING_DAYS = 14; // a grant ending this soon is "use it"
 
 const state = { snap: null, providers: [], insights: {}, view: "cards", sort: "soon", q: "", busy: false, open: new Set() };
 const PREFS = ["view"];
@@ -76,24 +73,11 @@ function until(t) {
 const dateFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
 const dayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
-// percentLeft is what's left of a window, 0–100, or null when unknown.
-function percentLeft(w) {
-  if (w.usedPercent != null) return Math.max(0, Math.min(100, 100 - w.usedPercent));
-  if (w.left != null && w.limit) return Math.max(0, Math.min(100, (w.left / w.limit) * 100));
-  if (w.used != null && w.limit) return Math.max(0, Math.min(100, 100 - (w.used / w.limit) * 100));
-  return null;
-}
-// urgency says what to use before it is lost. When the recent pace uses an
-// allowance up before it resets or expires (a), nothing is lost: no urgency.
-function urgency(w, a) {
-  if (w.aside) return null;
-  if (a && windowInsight(a, w)?.outlook === "runs_out") return null;
-  const r = time(w.resetsAt);
-  if (r == null) return null;
-  if (w.expires) return r - Date.now() < EXPIRING_DAYS * 864e5 ? "Use before it expires" : null;
-  const p = percentLeft(w);
-  return p != null && p >= URGENT_LEFT && r - Date.now() < URGENT_HOURS * 3600e3 ? "Use before reset" : null;
-}
+// percentLeft and urgency are what Ant's view says of a window (the server
+// applies the one use-first rule, design 15); the page keeps no rule.
+const percentLeft = (w) => w.percentLeft ?? null;
+const USE_FIRST = { reset: "Use before reset", end: "Use before it expires" };
+const urgency = (w) => USE_FIRST[w.useFirst] || null;
 function money(currency, amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return esc(amount);
@@ -134,28 +118,19 @@ function leftText(w) {
 // renderSummary is the top of the page: what to use before it's lost, and
 // one line of totals.
 function renderSummary(accounts) {
-  const ok = accounts.filter((a) => a.status === "ok");
-  const urgent = ok.flatMap((a) => allWindows(a).filter((w) => urgency(w, a)).map((w) => ({ a, w })));
-  urgent.sort((x, y) => time(x.w.resetsAt) - time(y.w.resetsAt));
-  const subs = ok.filter((a) => a.kind === "subscription");
-  const free = ok.filter((a) => a.kind === "free");
-  const next = subs.map((a) => ({ t: time(a.renewsAt) || time(a.endsAt), ends: !a.renewsAt && !!a.endsAt })).filter((x) => x.t).sort((x, y) => x.t - y.t)[0];
-  const totals = {};
-  for (const a of ok) {
-    // money held: an API account's balances and unlabelled group balances;
-    // a labelled group amount ("Last month") is what was spent, not held
-    const held = (a.groups || []).flatMap((g) => g.balances || []).filter((b) => !b.label);
-    const bs = a.kind === "api" ? [...(a.balances || []), ...held] : held;
-    for (const b of bs) if (b.currency !== "credits") totals[b.currency] = (totals[b.currency] || 0) + Number(b.amount);
-  }
-  const balance = Object.entries(totals).map(([c, n]) => money(c, n.toFixed(2)));
-  const problems = accounts.filter((a) => a.status === "signed_out" || a.status === "error").length;
+  const g = state.snap.glance;
+  const byID = new Map(accounts.map((a) => [a.id, a]));
+  const urgent = g.useFirst.map((u) => ({ a: byID.get(u.account), w: u.window })).filter((x) => x.a);
+  const subs = accounts.filter((a) => a.status === "ok" && a.kind === "subscription");
+  const next = g.nextRenewal && { t: time(g.nextRenewal.at), ends: !!g.nextRenewal.ends };
+  const balance = g.held.map((b) => money(b.currency, b.amount));
+  const problems = g.needsYou.length;
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const facts = [
-    subs.length ? plural(subs.length, "subscription", "subscriptions") + (next ? `, next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : "") : "",
+    g.subscriptions ? plural(g.subscriptions, "subscription", "subscriptions") + (next ? `, next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : "") : "",
     monthly(subs),
     balance.length ? `${balance.join(" + ")} prepaid` : "",
-    free.length ? plural(free.length, "free allowance", "free allowances") : "",
+    g.free ? plural(g.free, "free allowance", "free allowances") : "",
     problems ? `<span class="bad">${plural(problems, "account needs", "accounts need")} you</span>` : "",
   ].filter(Boolean);
   const shown = urgent.slice(0, 4);

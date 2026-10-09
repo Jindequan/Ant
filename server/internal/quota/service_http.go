@@ -20,12 +20,13 @@ import (
 func (s *Service) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/quota", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, s.Snapshot())
+		writeJSON(w, http.StatusOK, s.View(r.Context()))
 	})
 	mux.HandleFunc("POST /api/quota/refresh", s.change(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), s.readTimeout+5*time.Second)
 		defer cancel()
-		writeJSON(w, http.StatusOK, s.Refresh(ctx))
+		s.Refresh(ctx)
+		writeJSON(w, http.StatusOK, s.View(r.Context()))
 	}))
 	mux.HandleFunc("GET /api/insights", func(w http.ResponseWriter, r *http.Request) {
 		out := map[string][]Insight{}

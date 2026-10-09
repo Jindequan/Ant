@@ -26,6 +26,9 @@ struct Window: Decodable, Hashable {
     var expires: Bool?
     var aside: Bool?
     var model: String?
+    // what Ant's view says of it (the one use-first rule, on the server)
+    var percentLeft: Double?
+    var useFirst: String?
 }
 
 struct Balance: Decodable, Hashable {
@@ -63,19 +66,22 @@ struct Account: Decodable, Identifiable, Hashable {
     var all: [Window] { ((windows ?? []) + (groups ?? []).flatMap { $0.windows ?? [] }).filter { $0.aside != true } }
 }
 
-struct Snapshot: Decodable { var accounts: [Account]?; var refreshedAt: String?; var refreshing: Bool? }
-struct Insight: Decodable { var window: String?; var model: String?; var outlook: String? }
+// Glance is the top of the panel, as Ant's server says it (design 15):
+// the panel draws it and keeps no rule of its own.
+struct Glance: Decodable {
+    struct UseFirst: Decodable { var account: String; var window: Window; var at: String }
+    var useFirst: [UseFirst]
+    var needsYou: [String]
+    var held: [Balance]
+}
+struct Snapshot: Decodable { var accounts: [Account]?; var refreshedAt: String?; var refreshing: Bool?; var glance: Glance? }
 struct ServerState: Decodable { var url: String; var pid: Int32 }
 
 let isoFrac: ISO8601DateFormatter = { let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f }()
 let isoPlain = ISO8601DateFormatter()
 func date(_ s: String?) -> Date? { s.flatMap { isoFrac.date(from: $0) ?? isoPlain.date(from: $0) } }
 
-func percentLeft(_ w: Window) -> Double? {
-    if let u = w.usedPercent { return max(0, min(100, 100 - u)) }
-    if let l = w.left, let m = w.limit, m > 0 { return max(0, min(100, l / m * 100)) }
-    return nil
-}
+func percentLeft(_ w: Window) -> Double? { w.percentLeft }
 
 func until(_ d: Date) -> String {
     let m = max(0, Int(d.timeIntervalSinceNow / 60))
@@ -119,28 +125,12 @@ func money(_ currency: String, _ amount: Double) -> String {
 
 func money(_ b: Balance) -> String { Double(b.amount).map { money(b.currency, $0) } ?? "\(b.amount) \(b.currency)" }
 
-// One allowance to use before it's lost (the page's rule).
+// One allowance to use before it's lost.
 struct Urgent: Identifiable, Hashable {
     var account: Account
     var window: Window
     var at: Date
     var id: String { account.id + "|" + window.name + "|" + (window.model ?? "") }
-}
-
-func urgent(_ accounts: [Account], _ insights: [String: [Insight]]) -> [Urgent] {
-    var out: [Urgent] = []
-    for a in accounts where a.status == "ok" {
-        for w in a.all {
-            guard let at = date(w.resetsAt), at > Date() else { continue }
-            if (insights[a.id] ?? []).contains(where: { $0.window == w.name && ($0.model ?? "") == (w.model ?? "") && $0.outlook == "runs_out" }) { continue }
-            if w.expires == true {
-                if at.timeIntervalSinceNow < 14 * 86400 { out.append(Urgent(account: a, window: w, at: at)) }
-            } else if let p = percentLeft(w), p >= 30, at.timeIntervalSinceNow < 86400 {
-                out.append(Urgent(account: a, window: w, at: at))
-            }
-        }
-    }
-    return out.sorted { $0.at < $1.at }
 }
 
 // MARK: - the server
@@ -220,22 +210,24 @@ final class Server: @unchecked Sendable {
 final class Model: ObservableObject {
     @Published var base: URL?
     @Published var accounts: [Account] = []
-    @Published var urgentNow: [Urgent] = []
+    @Published var glance: Glance?
     @Published var refreshedAt: Date?
     @Published var reading = false
     @Published var openAtLogin = fm.fileExists(atPath: launchAgent.path)
     let server = Server()
     var timer: Timer?
 
-    var needsYou: [Account] { accounts.filter { $0.status == "signed_out" || $0.status == "error" } }
-    var ok: [Account] { accounts.filter { $0.status == "ok" } }
-    var prepaid: String {
-        var totals: [String: Double] = [:]
-        for a in ok where a.kind == "api" {
-            for b in a.balances ?? [] where b.currency != "credits" { totals[b.currency, default: 0] += Double(b.amount) ?? 0 }
+    var byID: [String: Account] { Dictionary(accounts.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
+    var urgentNow: [Urgent] {
+        let by = byID
+        return (glance?.useFirst ?? []).compactMap { u in
+            guard let a = by[u.account], let at = date(u.at) else { return nil }
+            return Urgent(account: a, window: u.window, at: at)
         }
-        return totals.sorted { $0.key < $1.key }.map { money($0.key, $0.value) }.joined(separator: " · ")
     }
+    var needsYou: [Account] { let by = byID; return (glance?.needsYou ?? []).compactMap { by[$0] } }
+    var ok: [Account] { accounts.filter { $0.status == "ok" } }
+    var prepaid: String { (glance?.held ?? []).map(money).joined(separator: " · ") }
 
     func boot() {
         let server = self.server
@@ -262,12 +254,8 @@ final class Model: ObservableObject {
         Task {
             guard let (data, _) = try? await URLSession.shared.data(for: r),
                   let snap = try? JSONDecoder().decode(Snapshot.self, from: data) else { return }
-            var insights: [String: [Insight]] = [:]
-            if let ri = request("api/insights"), let (d, _) = try? await URLSession.shared.data(for: ri) {
-                insights = (try? JSONDecoder().decode([String: [Insight]].self, from: d)) ?? [:]
-            }
             accounts = snap.accounts ?? []
-            urgentNow = urgent(accounts, insights)
+            glance = snap.glance
             refreshedAt = date(snap.refreshedAt)
             reading = snap.refreshing ?? false
             // the first read is still under way: look again soon, not in a minute

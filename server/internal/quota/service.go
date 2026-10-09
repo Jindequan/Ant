@@ -59,6 +59,9 @@ type Service struct {
 	snap      Snapshot
 	conns     map[string]Connection // as of the last refresh
 	running   bool
+	// the history's outlooks as of insightsAt (view.go)
+	insightsAt    time.Time
+	insightsCache map[string][]Insight
 
 	wg sync.WaitGroup
 }

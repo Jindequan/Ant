@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 15 step 2: the server says what the accounts mean — /api/quota is a View: every window carries percentLeft and useFirst (the one rule), and a glance (use first, needs you, money held by currency, counts, next renewal), computed once; history outlooks are read once per read, not per request (notifications use the same cache). The page and the panel draw it and drop their own rules: the panel's prepaid total now counts group balances as the page does; a used-up grant is no longer 'use first'. Checked on the demo server: 14 use-first, ¥112.29 + $16.50 held, no console errors. Gates pass.
+
 2026-10-09 [design 15](../design/15-ONE-VIEW-KEPT.md) step 1: one use-first rule (internal/domain/usefirst) — the router preview and notifications ask it instead of their own copies; percent left is computed once. Behavior: the router no longer calls a free grant 'use before lost' when the recent pace uses it up first (as it already did for windows). Gates pass.
 
 2026-10-09 [design 14](../design/14-SUPPLY-FOUNDATION.md): the supply foundation the router stands on — nine promises of the supply store (only what exists, removed stays removed, many accounts per provider, one identity, exact readings, routable means usable, a model's own meters, sealed keys with small failures, lasting sign-ins), each held by a named test; and the gaps before the router (offers for 4 of 27 providers first). Gates pass.

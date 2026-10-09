@@ -12,10 +12,7 @@ func (s *Service) notifyOnce(ctx context.Context) {
 		return
 	}
 	snap := s.Snapshot()
-	var insights map[string][]Insight
-	if s.insights != nil {
-		insights, _ = s.insights.Insights(ctx) // alerts without history still work
-	}
+	insights := s.insightsOf(ctx, snap) // alerts without history still work
 	s.mu.Lock()
 	for _, a := range snap.Accounts { // signed in again: a later sign-out is news again
 		if a.Status == StatusOK {

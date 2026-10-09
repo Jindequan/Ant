@@ -8,7 +8,11 @@
 // account's own usage or balance.
 package quota
 
-import "time"
+import (
+	"time"
+
+	"ant/server/internal/domain/usefirst"
+)
 
 // Kind is how a mode is paid for.
 type Kind string
@@ -54,6 +58,10 @@ type Window struct {
 	// Aside: using it up doesn't stop the main use (Z.ai's monthly MCP
 	// tool calls beside its model windows).
 	Aside bool `json:"aside,omitempty"`
+	// PercentLeft and UseFirst are what the view says of the window
+	// (view.go): readers leave them empty.
+	PercentLeft *float64     `json:"percentLeft,omitempty"`
+	UseFirst    usefirst.Why `json:"useFirst,omitempty"`
 }
 
 // Balance is money or credit held on an account, as an exact decimal string.
