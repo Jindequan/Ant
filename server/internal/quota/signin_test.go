@@ -135,7 +135,7 @@ func TestOneAlibabaSignInConnectsEachInstance(t *testing.T) {
 	}
 	store := NewStore(l.AccountsFile())
 	s := newTestService(l, store)
-	code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"payg"}`, nil)
+	code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"token-plan"}`, nil)
 	if code != 200 {
 		t.Fatalf("%d %v", code, out)
 	}
@@ -143,8 +143,9 @@ func TestOneAlibabaSignInConnectsEachInstance(t *testing.T) {
 	for _, a := range accountsIn(out) {
 		modes[a["mode"].(string)] = a["status"].(string)
 	}
-	// pay-as-you-go needs an AccessKey: the console sign-in doesn't open bills
-	if len(modes) != 3 || modes["token-plan"] != "ok" || modes["payg"] != "not_connected" || modes["free-quota"] != "ok" {
+	// pay-as-you-go needs an AccessKey or the browser's session: the sign-in
+	// doesn't open bills, so it doesn't add a pay-as-you-go account at all
+	if len(modes) != 2 || modes["token-plan"] != "ok" || modes["free-quota"] != "ok" {
 		t.Fatalf("instances = %v", modes)
 	}
 	idOf := func(out map[string]any, mode string) []string {
@@ -184,18 +185,18 @@ func TestOneAlibabaSignInConnectsEachInstance(t *testing.T) {
 	// a second sign-in adds accounts (one provider, many accounts); this
 	// one is the same Alibaba Cloud account again, so its Token Plan (same
 	// instance) and its free quota (same grants) still show as one card each
-	code, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"payg"}`, nil)
-	if code != 200 || kept() != 6 || len(idOf(out, "token-plan")) != 1 || len(idOf(out, "free-quota")) != 1 {
+	code, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"token-plan"}`, nil)
+	if code != 200 || kept() != 4 || len(idOf(out, "token-plan")) != 1 || len(idOf(out, "free-quota")) != 1 {
 		t.Fatalf("second sign-in: %d, %d kept, cards %v", code, kept(), modesOf(out))
 	}
 	// signing in again renews that account: nothing is added, its id stays
 	code, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"free-quota","id":"`+first[0]+`"}`, nil)
-	if code != 200 || kept() != 6 || !slices.Contains(keysOf(out, "free-quota"), first[0]) {
+	if code != 200 || kept() != 4 || !slices.Contains(keysOf(out, "free-quota"), first[0]) {
 		t.Fatalf("signing in again: %d, %d kept, %v", code, kept(), keysOf(out, "free-quota"))
 	}
 	// each instance is managed on its own: removing one card removes the
 	// sign-ins folded into it, and nothing else
-	if code, _ := call(t, s.Handler(), "DELETE", "/api/accounts/"+idOf(out, "free-quota")[0], "", nil); code != 200 || kept() != 4 {
+	if code, _ := call(t, s.Handler(), "DELETE", "/api/accounts/"+idOf(out, "free-quota")[0], "", nil); code != 200 || kept() != 2 {
 		t.Fatalf("%d, %d kept", code, kept())
 	}
 }
@@ -220,7 +221,7 @@ func TestEachSignInHasItsOwnProfile(t *testing.T) {
 	old := signInRunner
 	signInRunner = func(_ context.Context, _ Local, _ SignIn, key string) ([]siteCookie, error) {
 		keys = append(keys, key)
-		return []siteCookie{{"auth.suno.com", "__client", "client-" + key}, {".suno.com", "__client_uat", "1791"}}, nil
+		return []siteCookie{{"auth.suno.com", "__client", "client-cookie"}, {".suno.com", "__client_uat", "1791"}}, nil // both read
 	}
 	t.Cleanup(func() { signInRunner = old })
 	store := NewStore(l.AccountsFile())
@@ -252,5 +253,38 @@ func TestEachSignInHasItsOwnProfile(t *testing.T) {
 	}
 	if keys[2] != strings.TrimPrefix(ids[1][strings.LastIndex(ids[1], "-signin-"):], "-signin-") {
 		t.Fatalf("signed in again with profile %q for %s", keys[2], ids[1])
+	}
+}
+
+// A new sign-in that works retires the provider's earlier sign-ins that have
+// ended: the list keeps the account that reads, not a dead copy beside it.
+func TestANewSignInRetiresTheEndedOne(t *testing.T) {
+	srv := sunoServer(t, `{"total_credits_left":30,"period":"day"}`)
+	defer srv.Close()
+	l := sunoLocal(t, srv)
+	cookie := "ended-cookie" // the first session no longer reads
+	old := signInRunner
+	signInRunner = func(_ context.Context, _ Local, _ SignIn, _ string) ([]siteCookie, error) {
+		return []siteCookie{{"auth.suno.com", "__client", cookie}, {".suno.com", "__client_uat", "1791"}}, nil
+	}
+	t.Cleanup(func() { signInRunner = old })
+	store := NewStore(l.AccountsFile())
+	s := newTestService(l, store)
+	_, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"suno","mode":"account"}`, nil)
+	if as := accountsIn(out); len(as) != 1 || as[0]["status"] != "signed_out" {
+		t.Fatalf("first sign-in = %v", as)
+	}
+	ended := accountsIn(out)[0]["id"].(string)
+	cookie = "client-cookie"
+	_, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"suno","mode":"account"}`, nil)
+	as := accountsIn(out)
+	if len(as) != 1 || as[0]["status"] != "ok" || as[0]["id"] == ended {
+		t.Fatalf("after signing in again: %v", as)
+	}
+	d, _ := store.Data()
+	for _, c := range d.Accounts {
+		if c.ID == ended {
+			t.Fatal("the ended sign-in is still stored")
+		}
 	}
 }

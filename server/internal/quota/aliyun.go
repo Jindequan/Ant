@@ -52,6 +52,13 @@ func aliyunProvider() Provider {
 		if mode != "free-quota" {
 			w.Discover = discoverBailian(mode)
 		}
+		if mode == "payg" {
+			// the console token Ant's sign-in yields doesn't open bills: a
+			// sign-in never connects pay-as-you-go; the browser's own
+			// aliyun.com sign-in (found) and an AccessKey do
+			w.SignIn, w.Name = nil, "Your browser's Alibaba Cloud sign-in"
+			w.Hint = "Ant reads the aliyun.com sign-in of your browser to open your bill. Or add a read-only AccessKey."
+		}
 		return w
 	}
 	bl := func(mode string, read func(context.Context, Local, Connection) Account) Way {

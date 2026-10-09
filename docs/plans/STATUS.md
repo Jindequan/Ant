@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 diagnosis fixes 2–3: a Bailian sign-in no longer adds a Pay-as-you-go account that can't read (the console token doesn't open bills; the browser's own session and an AccessKey still do); a new sign-in that works retires the provider's earlier Ant sign-ins that have ended, with their profiles. Tests. Gates pass.
+
 2026-10-09 diagnosis of Ant on a real Mac ([DIAGNOSIS](../DIAGNOSIS-2026-10-09.md)): 9 findings by root cause. Fix 1: accounts that couldn't be deleted (Bailian Pay-as-you-go) were rebuilt on every read from an old combined Bailian record; migration now happens once, in the store, and two old records no longer make duplicates. Tests reproduce the user's case; a removed account also leaves the page at once (regression test). Gates pass.
 
 2026-10-09 Ant.app: the walking ant in the menu bar (a count when something should be used first; Use first with provider logos; Open Ant ⌘O, read again ⌘R, Open at login, Quit), with Ant's server inside (or the one already running), no Dock icon. `make app` / `make install-app` (~/Applications). Ant's database now lives in ~/.config/ant with its key and accounts (copied once from data/, kept as backup, private). Checked in demo mode: same 14 use-first items as the page; quitting by signal stops the server. [Evidence](../evidence/WORK/STAGE-1/README.md). Gates pass.

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -212,6 +213,7 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way, again string)
 	}
 	// one sign-in connects every instance of the provider that reads with it
 	var first Connection
+	made := map[string]bool{}
 	for _, sibMode := range p.Modes {
 		sib, sibWay, found := sibMode, "", false
 		for _, w := range sibMode.allWays() {
@@ -240,8 +242,37 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way, again string)
 		if sib.ID == m.ID {
 			first = c
 		}
+		made[sib.ID] = true
+	}
+	if again == "" {
+		s.retireEnded(p.ID, made, tail)
 	}
 	return first, nil
+}
+
+// retireEnded removes the provider's earlier sign-ins made in Ant that have
+// ended, for the modes a new sign-in just connected: the list keeps the
+// account that reads, not a dead copy beside it. Their profiles go too.
+func (s *Service) retireEnded(provider string, modes map[string]bool, tail string) {
+	s.sync()
+	s.mu.Lock()
+	var dead []Connection
+	for _, a := range s.snap.Accounts {
+		if a.Provider != provider || a.Status != StatusSignedOut || !modes[a.Mode] {
+			continue
+		}
+		for _, k := range a.Keys {
+			if c, ok := s.conns[k]; ok && c.Origin == OriginAdded && strings.Contains(c.ID, "-signin") && !strings.HasSuffix(c.ID, tail) {
+				dead = append(dead, c)
+			}
+		}
+	}
+	s.mu.Unlock()
+	for _, c := range dead {
+		if s.store.Remove(c.ID, false) == nil && c.Values["profile"] != "" {
+			_ = os.RemoveAll(antProfile(s.local, c.Values["profile"]))
+		}
+	}
 }
 
 // remove removes an account and every sign-in merged into it.
