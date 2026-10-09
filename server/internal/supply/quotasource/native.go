@@ -110,6 +110,9 @@ func (n *natives) listModels(ctx context.Context, c quota.Connection, s catalog.
 // plan (Token Plan's tool benefits), the inverse of inventory().
 func project(a *quota.Account, inv observed.Inventory) {
 	a.Identity, a.Message = inv.DisplayGroup, inv.Note
+	if a.Identity == "" {
+		a.Identity = inv.Identity // the account the provider names: one card however it's reached
+	}
 	for i, p := range inv.Packages {
 		if i > 0 {
 			g := quota.Group{Title: p.Plan}

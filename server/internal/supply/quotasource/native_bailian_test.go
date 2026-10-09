@@ -140,6 +140,13 @@ func TestNativeModuleReadsBailian(t *testing.T) {
 	if len(snap.Accounts) != 3 {
 		t.Fatalf("cards = %+v", snap.Accounts)
 	}
+	// the card carries the instance Bailian names, so another way into the same
+	// instance (a browser session read by quota's reader) folds into this card
+	for _, a := range snap.Accounts {
+		if a.Mode == "token-plan" && a.Identity != "sfm_tokenplansolo_public_cn-x" {
+			t.Fatalf("Token Plan card identity = %q", a.Identity)
+		}
+	}
 	plan, payg, free := cards["token-plan"], cards["payg"], cards["free-quota"]
 	if plan.Status != quota.StatusOK || plan.Plan != "Pro" || len(plan.Windows) != 3 || plan.Windows[0].Name != "5 hours" || *plan.Windows[1].UsedPercent != 50 ||
 		plan.Windows[2].Name != "Add-on credits" || *plan.Windows[2].Left != 120.5 || len(plan.Groups) != 1 || plan.Groups[0].Title != "Tool benefits" ||
