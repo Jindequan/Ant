@@ -170,6 +170,10 @@ func Connections(local Local, store *Store, providers []Provider) ([]Connection,
 }
 
 func connections(local Local, store *Store, providers []Provider, demo bool) ([]Connection, error) {
+	if !demo {
+		// what earlier versions saved becomes today's records once, in the store
+		_ = store.Migrate(migrate)
+	}
 	d, err := store.Data()
 	if err != nil {
 		return nil, err
@@ -264,6 +268,7 @@ func migrate(in []Connection) []Connection {
 			n := c
 			n.ID, n.Mode, n.Way, n.Values = id, mode, "sign-in", map[string]string{"session": c.Values["session"]}
 			out = append(out, n)
+			have[id] = true // a second old record doesn't make it twice
 		}
 	}
 	return out

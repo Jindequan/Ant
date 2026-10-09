@@ -631,6 +631,39 @@ func TestTheOldBailianAccountBecomesItsInstances(t *testing.T) {
 	}
 }
 
+// The old Bailian account is migrated once, in the store: a migrated
+// instance the user removes stays removed (it used to be rebuilt from the
+// old record on every read, so Pay-as-you-go could never be deleted).
+func TestMigratedAccountsCanBeRemoved(t *testing.T) {
+	l := testLocal(t, nil)
+	writeFile(t, l.AccountsFile(), `{"version":1,"accounts":[
+		{"id":"aliyun-console-signin","provider":"aliyun","mode":"console","origin":"added","values":{"session":"[]"}},
+		{"id":"aliyun-browser","provider":"aliyun","mode":"console","origin":"added","values":{"session":"[]"}}]}`)
+	store := NewStore(l.AccountsFile())
+	s := newTestService(l, store)
+	if _, err := s.connections(); err != nil {
+		t.Fatal(err)
+	}
+	d, _ := store.Data()
+	var ids []string
+	for _, c := range d.Accounts {
+		ids = append(ids, c.ID)
+	}
+	if strings.Join(ids, " ") != "aliyun-token-plan-signin aliyun-payg-signin aliyun-free-quota-signin" {
+		t.Fatalf("stored after migrating = %v", ids)
+	}
+	s.Refresh(context.Background())
+	if code, out := call(t, s.Handler(), "DELETE", "/api/accounts/aliyun-payg-signin", "", nil); code != 200 {
+		t.Fatalf("%d %v", code, out)
+	}
+	conns, _ := s.connections()
+	for _, c := range conns {
+		if c.ID == "aliyun-payg-signin" {
+			t.Fatal("the removed Pay-as-you-go account came back")
+		}
+	}
+}
+
 // fixture reads a canonical provider reply, shared with the provider
 // modules' own tests (one file, not copies).
 func fixture(t *testing.T, path string) []byte {

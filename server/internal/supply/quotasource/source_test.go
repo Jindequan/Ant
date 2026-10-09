@@ -1,6 +1,8 @@
 package quotasource
 
 import (
+	"ant/server/internal/providers/deepseek"
+	"ant/server/internal/transport"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -158,6 +160,51 @@ func TestThePageShowsWhatTheEngineRead(t *testing.T) {
 }
 
 // fixture reads a canonical provider reply (internal/providers/*/testdata).
+// Removing an account takes its card away at once: the page's read after
+// the removal finds the accounts again instead of reading the removed one
+// from the last list (a removed Bailian account used to stay on screen).
+func TestRemovedAccountLeavesThePageAtOnce(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(fixture(t, "../../providers/deepseek/testdata/balance.json"))
+	}))
+	defer srv.Close()
+	m := deepseek.SupplyModule(srv.URL)
+	fetch, _ := transport.NewObservationFetch(m.Supply.Origins, srv.Client().Transport)
+	env := map[string]string{"DEEPSEEK_API_KEY": "sk-found"}
+	local := quota.Local{Home: t.TempDir(), Getenv: func(k string) string { return env[k] },
+		HTTP: &http.Client{Timeout: 5 * time.Second, Transport: loopbackOnly{}}, Now: time.Now, URLs: map[string]string{}}
+	var providers []quota.Provider
+	for _, p := range quota.Providers() {
+		if p.ID == "deepseek" {
+			providers = append(providers, p)
+		}
+	}
+	accounts := quota.NewStore(filepath.Join(t.TempDir(), "accounts.json"))
+	src := New(local, accounts, providers, Native{Module: m, Fetch: fetch})
+	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close(context.Background()) }()
+	if err := sqlite.Migrate(context.Background(), st); err != nil {
+		t.Fatal(err)
+	}
+	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+	page := quota.NewService(local, accounts, quota.Options{Reader: Reader{Source: src, Engine: engine}})
+	snap := page.Refresh(context.Background())
+	if len(snap.Accounts) != 1 {
+		t.Fatalf("cards before = %+v", snap.Accounts)
+	}
+	req := httptest.NewRequest(http.MethodDelete, "http://127.0.0.1:8080/api/accounts/"+snap.Accounts[0].ID, nil)
+	req.RemoteAddr = "127.0.0.1:50000"
+	req.Header.Set("X-Ant", "1")
+	rec := httptest.NewRecorder()
+	page.Handler().ServeHTTP(rec, req)
+	if rec.Code != 200 || strings.Contains(rec.Body.String(), `"provider":"deepseek"`) {
+		t.Fatalf("after removing: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
 func fixture(t *testing.T, path string) []byte {
 	t.Helper()
 	b, err := os.ReadFile(path)

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sync"
 )
@@ -128,6 +129,24 @@ func (s *Store) Put(c Connection) error {
 	d.Accounts = slices.DeleteFunc(d.Accounts, func(x Connection) bool { return x.ID == c.ID })
 	d.Accounts = append(d.Accounts, c)
 	d.Hidden = slices.DeleteFunc(d.Hidden, func(x string) bool { return x == c.ID })
+	return s.save(d)
+}
+
+// Migrate rewrites the saved accounts with fn, once: only when fn changes
+// them, so what earlier versions saved becomes today's records for good
+// (and what the user removes afterwards stays removed).
+func (s *Store) Migrate(fn func([]Connection) []Connection) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.load()
+	if err != nil {
+		return err
+	}
+	out := fn(cloneData(d).Accounts)
+	if reflect.DeepEqual(out, d.Accounts) {
+		return nil
+	}
+	d.Accounts = out
 	return s.save(d)
 }
 
