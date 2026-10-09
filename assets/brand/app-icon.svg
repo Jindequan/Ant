@@ -1,20 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <title>Ant</title>
-  <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2b2a27"/>
-      <stop offset="1" stop-color="#161614"/>
-    </linearGradient>
-  </defs>
-  <!-- macOS icon grid: an 824 px tile centred on the 1024 canvas -->
-  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
-  <g transform="translate(192 215) scale(20)" fill="none" stroke="#f3efe6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="7.3" cy="16.4" rx="4.4" ry="3.4" transform="rotate(-12 7.3 16.4)"/>
-    <path d="M11.6 15.3H14.5"/>
-    <ellipse cx="17.5" cy="15" rx="3" ry="2.1" transform="rotate(-8 17.5 15)"/>
-    <circle cx="23.5" cy="12.4" r="2.9"/>
-    <path d="M24.4 9.6L25.7 6.2 28.7 5.4"/>
-    <path d="M15.9 16.9L12.8 19.8 11.8 24.1M17.6 17.1L17.4 20.7 16 24.3M19.3 16.7L22.3 19.8 23.5 23.9"/>
-    <circle cx="24.5" cy="11.8" r=".3" stroke-width="1.8"/>
+  <!-- no tile: the ant alone. A soft light outline under the lines keeps it
+       visible on a dark Dock; on a light one it doesn't show. -->
+  <g transform="translate(28 100) scale(29)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#f7f6f2" stroke-width="3.6" opacity=".9">
+    <ellipse cx="8.6" cy="15.4" rx="5" ry="3.7" transform="rotate(-10 8.6 15.4)"/>
+    <ellipse cx="16.6" cy="14.4" rx="2.7" ry="1.9" transform="rotate(-14 16.6 14.4)"/>
+    <circle cx="23.4" cy="11.6" r="3"/>
+    <path d="M24.6 8.8L25.9 5.4 28.8 4.6"/>
+    <path d="M15.1 15.9L12 19.3 10.9 23.6M16.6 16.3L16.8 20.3 15.4 23.8M18.1 15.6L21.1 19 22.5 23.5"/>
+    <circle cx="24.5" cy="11" r=".3" stroke-width="1.8"/>
+    </g>
+    <g stroke="#1b1b19" stroke-width="2">
+    <ellipse cx="8.6" cy="15.4" rx="5" ry="3.7" transform="rotate(-10 8.6 15.4)"/>
+    <ellipse cx="16.6" cy="14.4" rx="2.7" ry="1.9" transform="rotate(-14 16.6 14.4)"/>
+    <circle cx="23.4" cy="11.6" r="3"/>
+    <path d="M24.6 8.8L25.9 5.4 28.8 4.6"/>
+    <path d="M15.1 15.9L12 19.3 10.9 23.6M16.6 16.3L16.8 20.3 15.4 23.8M18.1 15.6L21.1 19 22.5 23.5"/>
+    <circle cx="24.5" cy="11" r=".3" stroke-width="1.8"/>
+    </g>
   </g>
 </svg>

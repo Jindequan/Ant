@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 Ant's logo is the drawing the user chose ("C2 · walking ant, line 2"): one line drawing, no background, everywhere — page header, favicon (light/dark), app icon (the ant alone, with a soft outline for dark Docks), menu bar template. Gates pass.
+
 2026-10-09 Ant's logo: an ant in simple lines (walking, one antenna, one eye), with a small-size drawing for 12–24 px. App icon (macOS grid, every size, `Ant.icns`), menu bar template image (18 pt, @2x), page header and favicon; sources and `scripts/brand.sh` in `assets/brand/`. No menu bar app exists yet: the template icon is ready for one. Gates pass.
 
 2026-10-09 page redesign (user: "make it simple and beautiful"): one row per account with its detail on open; "Use first" and one line of totals replace the three tiles; view switch and search replace four controls; row actions replace the popup menu. Demo page 5,040 → 2,288 px. Checked desktop, phone and dark. Fixed on the way: the prepaid total no longer counts money already spent; rows headline the account's own allowance; the route preview's note no longer names only two providers. [Evidence](../evidence/WORK/STAGE-1/README.md). Gates pass.

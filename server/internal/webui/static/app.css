@@ -61,9 +61,9 @@ code { font: 13px var(--mono); }
 
 /* ---------- header ---------- */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.logo { width: 30px; height: 30px; border-radius: 9px; background: var(--text); color: var(--bg); display: inline-flex; align-items: center; justify-content: center; }
-.logo svg { width: 24px; height: 24px; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.logo { display: inline-flex; color: var(--text); }
+.logo svg { width: 34px; height: 34px; }
 h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .actions { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .actions #updated { margin-right: 6px; }
