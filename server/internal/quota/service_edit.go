@@ -156,8 +156,10 @@ func (s *Service) update(id string, in accountInput) (Connection, error) {
 }
 
 // signIn opens the provider's sign-in window and keeps the session it
-// yields as the user's account of that mode.
-func (s *Service) signIn(ctx context.Context, provider, mode, way string) (Connection, error) {
+// yields as an account of that mode. A new sign-in adds an account (one
+// provider can have many); again names an account to sign in to again,
+// which keeps its connections, name and place.
+func (s *Service) signIn(ctx context.Context, provider, mode, way, again string) (Connection, error) {
 	p, ok := providerByID(s.providers, provider)
 	m, okMode := p.mode(mode)
 	if way == "" { // the mode's sign-in way
@@ -174,6 +176,20 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way string) (Conne
 	}
 	if s.demo {
 		return Connection{}, inputError("Demo mode doesn't open sign-in windows.")
+	}
+	// tail ties one sign-in's connections together, one per mode it reads
+	tail := "-signin-" + newID("")[1:]
+	if again != "" {
+		s.sync()
+		s.mu.Lock()
+		c, ok := s.conns[again]
+		s.mu.Unlock()
+		if !ok || c.Provider != p.ID {
+			return Connection{}, inputError("no such account")
+		}
+		if i := strings.LastIndex(c.ID, "-signin"); i >= 0 {
+			tail = c.ID[i:] // "-signin" for a sign-in kept before accounts could be many
+		}
 	}
 	var values map[string]string
 	if m.SignIn.Login != nil {
@@ -206,8 +222,13 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way string) (Conne
 		for k, x := range values {
 			v[k] = x
 		}
-		c := Connection{ID: p.ID + "-" + sib.ID + "-signin", Provider: p.ID, Mode: sib.ID, Way: sibWay, Origin: OriginAdded,
+		c := Connection{ID: p.ID + "-" + sib.ID + tail, Provider: p.ID, Mode: sib.ID, Way: sibWay, Origin: OriginAdded,
 			Source: "Signed in with Ant", Values: v, AddedAt: time.Now().UTC()}
+		s.mu.Lock()
+		if old, ok := s.conns[c.ID]; ok { // signed in again: keep its name and place
+			c.Label, c.AddedAt = old.Label, old.AddedAt
+		}
+		s.mu.Unlock()
 		if err := s.store.Put(c); err != nil {
 			return Connection{}, err
 		}

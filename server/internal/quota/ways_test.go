@@ -59,9 +59,20 @@ func TestClaudeSignInUsage(t *testing.T) {
 	if a.Status != StatusOK || len(a.Windows) != 2 || a.Plan != "Max" || *a.Windows[1].UsedPercent != 55 {
 		t.Fatalf("%+v", a)
 	}
+	// this Mac's Claude Code login is one account however it's read
+	if a.Identity != claudeLocal {
+		t.Fatalf("found sign-in identity = %q", a.Identity)
+	}
 	a = readClaudeOAuth(context.Background(), l, Connection{Way: "token", Values: map[string]string{"accessToken": "bad"}})
 	if a.Status != StatusSignedOut {
 		t.Fatalf("%+v", a)
+	}
+	// pasted tokens are accounts of their own: two of them stay two cards
+	pasted := func(id string) Account {
+		return readClaudeOAuth(context.Background(), l, Connection{ID: id, Provider: "claude", Mode: "plan", Way: "token", Origin: OriginAdded, Values: map[string]string{"accessToken": "tok"}})
+	}
+	if cards := mergeSame([]Account{pasted("claude-a"), pasted("claude-b")}); len(cards) != 2 || cards[0].Identity != "" {
+		t.Fatalf("two pasted Claude tokens became %d card(s): %+v", len(cards), cards)
 	}
 }
 

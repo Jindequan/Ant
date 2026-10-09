@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -146,10 +147,65 @@ func TestOneAlibabaSignInConnectsEachInstance(t *testing.T) {
 	if len(modes) != 3 || modes["token-plan"] != "ok" || modes["payg"] != "not_connected" || modes["free-quota"] != "ok" {
 		t.Fatalf("instances = %v", modes)
 	}
-	// each instance is managed on its own
-	if code, out := call(t, s.Handler(), "DELETE", "/api/accounts/aliyun-free-quota-signin", "", nil); code != 200 || len(accountsIn(out)) != 2 {
-		t.Fatalf("%d %v", code, out)
+	idOf := func(out map[string]any, mode string) []string {
+		var ids []string
+		for _, a := range accountsIn(out) {
+			if a["mode"] == mode {
+				ids = append(ids, a["id"].(string))
+			}
+		}
+		return ids
 	}
+	keysOf := func(out map[string]any, mode string) []string { // every sign-in a card stands for
+		var ids []string
+		for _, a := range accountsIn(out) {
+			if a["mode"] == mode {
+				for _, k := range a["keys"].([]any) {
+					ids = append(ids, k.(string))
+				}
+			}
+		}
+		return ids
+	}
+	first := idOf(out, "free-quota")
+	kept := func() int {
+		n := 0
+		d, err := store.Data()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range d.Accounts {
+			if c.Provider == "aliyun" {
+				n++
+			}
+		}
+		return n
+	}
+	// a second sign-in adds accounts (one provider, many accounts); this
+	// one is the same Alibaba Cloud account again, so its Token Plan (same
+	// instance) and its free quota (same grants) still show as one card each
+	code, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"payg"}`, nil)
+	if code != 200 || kept() != 6 || len(idOf(out, "token-plan")) != 1 || len(idOf(out, "free-quota")) != 1 {
+		t.Fatalf("second sign-in: %d, %d kept, cards %v", code, kept(), modesOf(out))
+	}
+	// signing in again renews that account: nothing is added, its id stays
+	code, out = call(t, s.Handler(), "POST", "/api/signin", `{"provider":"aliyun","mode":"free-quota","id":"`+first[0]+`"}`, nil)
+	if code != 200 || kept() != 6 || !slices.Contains(keysOf(out, "free-quota"), first[0]) {
+		t.Fatalf("signing in again: %d, %d kept, %v", code, kept(), keysOf(out, "free-quota"))
+	}
+	// each instance is managed on its own: removing one card removes the
+	// sign-ins folded into it, and nothing else
+	if code, _ := call(t, s.Handler(), "DELETE", "/api/accounts/"+idOf(out, "free-quota")[0], "", nil); code != 200 || kept() != 4 {
+		t.Fatalf("%d, %d kept", code, kept())
+	}
+}
+
+func modesOf(out map[string]any) []string {
+	var m []string
+	for _, a := range accountsIn(out) {
+		m = append(m, a["mode"].(string)+":"+a["id"].(string))
+	}
+	return m
 }
 
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }

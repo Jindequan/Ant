@@ -270,7 +270,7 @@ function cardBody(a) {
   const mode = modeOf(a);
   const buttons = [];
   if (a.status === "signed_out" && mode?.signIn) {
-    buttons.push(`<button type="button" class="btn primary" data-signin-card="${esc(a.provider)}" data-mode="${esc(a.mode)}" data-way="${esc(a.way || "")}">Sign in${a.message?.includes("again") ? " again" : ""}</button>`);
+    buttons.push(`<button type="button" class="btn primary" data-signin-card="${esc(a.provider)}" data-mode="${esc(a.mode)}" data-way="${esc(a.way || "")}" data-id="${esc(a.id)}">Sign in${a.message?.includes("again") ? " again" : ""}</button>`);
   }
   if (a.status === "not_connected" && mode?.fields?.length) {
     const what = mode.fields.find((f) => !f.optional || f.type === "secret" || f.id.toLowerCase().includes("key"));
@@ -688,9 +688,10 @@ function showStep(title, html, back) {
 
 function stepProviders() {
   sheetStack = [];
-  const have = new Set((state.snap?.accounts || []).filter((a) => a.status === "ok").map((a) => a.provider));
+  const have = {};
+  for (const a of state.snap?.accounts || []) if (a.status === "ok") have[a.provider] = (have[a.provider] || 0) + 1;
   showStep("Add account", `
-    <p class="sheet-lead">Ant already finds the sign-ins of apps on this Mac. Add anything it didn't find.</p>
+    <p class="sheet-lead">Ant already finds the sign-ins of apps on this Mac. Add anything it didn't find — as many accounts per provider as you have.</p>
     <label class="search sheet-search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
       <input id="provider-search" type="search" placeholder="Provider, or image, video…" aria-label="Search providers" autocomplete="off" spellcheck="false">
@@ -698,7 +699,7 @@ function stepProviders() {
     <div class="pick">${state.providers.map((p) => `
       <button type="button" data-provider="${esc(p.id)}" data-hay="${esc(norm([p.name, p.id, ...(p.media || ["text"]).map((m) => MEDIA_LABEL[m] || m)].join(" ")))}" style="--hue:${HUES[p.id] ?? 30}">
         ${mark(p.id, p.name)}<span class="n">${esc(p.name)}</span>
-        ${have.has(p.id) ? '<span class="kind">Connected</span>' : ""}
+        ${have[p.id] ? `<span class="kind">${have[p.id]} added</span>` : ""}
       </button>`).join("")}</div>
     <p class="empty" id="provider-none" hidden>No provider matches. Ant reads only the providers listed here.</p>`, false);
   const input = $("provider-search");
@@ -732,6 +733,7 @@ function wayTag(w) {
   if (w.browserDomain) return (state.snap?.browserSites || []).includes(w.browserDomain) ? "Allowed" : "Asks first";
   if (w.signIn) return "Sign in";
   if (!(w.fields || []).length) return "Uses another app";
+  if (w.fields.some((f) => f.id === "folder")) return "Folder";
   if (w.fields.some((f) => f.id.toLowerCase().includes("cookie"))) return "Paste";
   return "Key";
 }
@@ -744,10 +746,10 @@ function stepWays(p, m, back) {
     .filter((a) => a.provider === p.id && a.mode === m.id && a.status === "ok").map((a) => a.way || ""));
   showStep(`${p.name} · ${m.name}`, `
     ${back ? "" : `<div class="rule"><b>${esc(m.name)}.</b> ${esc(m.rule)}</div>`}
-    <p class="sheet-lead">Ant can read this several ways, easiest first. One is enough.</p>
+    <p class="sheet-lead">Ant can read this several ways, easiest first.</p>
     <div class="modes ways">${m.ways.map((w) => `
       <button type="button" data-way="${esc(w.id)}">
-        <span class="t"><span>${esc(w.name)}</span><span class="kind">${have.has(w.id) ? "Connected" : esc(wayTag(w))}</span></span>
+        <span class="t"><span>${esc(w.name)}</span><span class="kind">${have.has(w.id) ? ((w.fields || []).length || w.signIn ? "In use · add another" : "In use") : esc(wayTag(w))}</span></span>
         ${w.hint ? `<span class="r">${esc(w.hint)}</span>` : ""}
       </button>`).join("")}</div>`, back);
   const body = $("sheet-body");
@@ -951,7 +953,9 @@ async function savePrice(remove) {
   }
 }
 
-async function signIn(providerID, modeID, wayID) {
+// signIn signs in to a provider: a new account, or again (againID) the
+// account that has ended.
+async function signIn(providerID, modeID, wayID, againID) {
   const p = provider(providerID);
   const m = asWay(p.modes.find((x) => x.id === modeID), wayID);
   if (!sheet.open) {
@@ -990,7 +994,7 @@ async function signIn(providerID, modeID, wayID) {
     }
   })();
   try {
-    state.snap = await api("POST", "/api/signin", { provider: providerID, mode: modeID, way: m.way });
+    state.snap = await api("POST", "/api/signin", { provider: providerID, mode: modeID, way: m.way, id: againID || undefined });
     watching = false;
     if (sheet.open) sheet.close();
     render();
@@ -1031,7 +1035,7 @@ $("sheet-body").addEventListener("click", (e) => {
   else if (t.dataset.browser) setBrowser(t.dataset.browser === "on");
   else if (t.hasAttribute("data-price-save")) savePrice(false);
   else if (t.hasAttribute("data-price-remove")) savePrice(true);
-  else if (t.hasAttribute("data-signin")) signIn(body.dataset.provider, body.dataset.mode, body.dataset.way);
+  else if (t.hasAttribute("data-signin")) signIn(body.dataset.provider, body.dataset.mode, body.dataset.way, body.dataset.id);
   else if (t.hasAttribute("data-signin-finish")) { t.disabled = true; t.textContent = "Reading your session…"; api("POST", "/api/signin/finish").catch(() => {}); }
   else if (t.hasAttribute("data-signin-cancel")) api("POST", "/api/signin/cancel").catch(() => {});
 });
@@ -1112,7 +1116,7 @@ $("cards").addEventListener("click", (e) => {
   const price = e.target.closest("[data-price]");
   if (price) stepPrice(price.dataset.price);
   const again = e.target.closest("[data-signin-card]");
-  if (again) signIn(again.dataset.signinCard, again.dataset.mode, again.dataset.way);
+  if (again) signIn(again.dataset.signinCard, again.dataset.mode, again.dataset.way, again.dataset.id);
 });
 document.querySelector(".views").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-view]");

@@ -41,6 +41,10 @@ func claudeProvider() Provider {
 	}}}
 }
 
+// claudeLocal is this Mac's Claude Code login, read two ways (asking
+// Claude Code, reading its sign-in): one account, one card.
+const claudeLocal = "claude-code-on-this-mac"
+
 // claudeBinary is where Claude Code is installed, "" when it isn't.
 func claudeBinary(l Local) string {
 	for _, p := range []string{l.path(".claude", "local", "claude"), l.path(".local", "bin", "claude")} {
@@ -124,7 +128,7 @@ func readClaudeCode(ctx context.Context, l Local, c Connection) Account {
 		}
 		return a
 	}
-	a.Status, a.Windows, a.Identity = StatusOK, ws, "claude-plan"
+	a.Status, a.Windows, a.Identity = StatusOK, ws, claudeLocal
 	return a
 }
 
@@ -318,7 +322,10 @@ func readClaudeOAuth(ctx context.Context, l Local, c Connection) Account {
 		a.Status, a.Message = StatusError, short(err.Error())
 		return a
 	}
-	a.Status, a.Windows, a.Identity = StatusOK, ws, "claude-plan"
+	a.Status, a.Windows = StatusOK, ws
+	if c.Origin == OriginFound {
+		a.Identity = claudeLocal // a pasted token is its own account, never folded into this Mac's
+	}
 	withModels(&a, l, fingerprint("claude", "models", token), func() ([]Model, error) { return claudeModels(ctx, l, token) })
 	return a
 }

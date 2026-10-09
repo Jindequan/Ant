@@ -92,6 +92,21 @@ func (l Local) path(parts ...string) string {
 	return filepath.Join(append([]string{l.Home}, parts...)...)
 }
 
+// expand is a folder the user typed, with ~ as home; relative ones are
+// taken from home too.
+func (l Local) expand(p string) string {
+	p = strings.TrimSpace(p)
+	switch {
+	case p == "~":
+		return l.Home
+	case strings.HasPrefix(p, "~/"):
+		return l.path(p[2:])
+	case filepath.IsAbs(p):
+		return filepath.Clean(p)
+	}
+	return l.path(p)
+}
+
 // display shortens a path under home to ~/… for the page.
 func (l Local) display(p string) string {
 	if l.Home != "" && strings.HasPrefix(p, l.Home+string(filepath.Separator)) {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -25,11 +26,14 @@ import (
 func chatGPTProvider() Provider {
 	return Provider{ID: "chatgpt", Name: "ChatGPT", Link: "https://chatgpt.com/codex/settings/usage", Modes: []Mode{{
 		ID: "plan", Name: "ChatGPT plan", Kind: KindSubscription, Live: true,
-		Rule:     "Codex use is limited by a 5-hour window and a weekly window. Extra credits are spent once a window runs out.",
-		Fields:   []Field{},
-		Connect:  "Sign in to Codex with your ChatGPT account: run codex login in Terminal. Ant reads that sign-in.",
-		Discover: discoverChatGPT,
-		Read:     readChatGPT,
+		Rule: "Codex use is limited by a 5-hour window and a weekly window. Extra credits are spent once a window runs out.",
+		Ways: []Way{
+			{ID: "", Name: "Codex on this Mac", Hint: "Sign in to Codex with your ChatGPT account: run codex login in Terminal. Ant reads that sign-in.",
+				Fields: []Field{}, Discover: discoverChatGPT, Read: readChatGPT},
+			{ID: "folder", Name: "Another ChatGPT account", Key: "folder", Read: readChatGPT,
+				Hint:   "Each ChatGPT account signs in to Codex in its own folder. In Terminal: CODEX_HOME=~/.codex-work codex login — then give that folder here.",
+				Fields: []Field{{ID: "folder", Label: "Codex folder", Type: "text", Placeholder: "~/.codex-work", Help: "The folder you signed in with (CODEX_HOME)."}}},
+		},
 	}}}
 }
 
@@ -69,8 +73,15 @@ func readChatGPT(ctx context.Context, l Local, c Connection) Account {
 	now := l.Now()
 	a := base(p, p.Modes[0], c, now)
 	var auth codexAuth
-	if !readJSON(c.Values["authPath"], &auth) || auth.Tokens.AccessToken == "" {
+	path := c.Values["authPath"]
+	if f := strings.TrimSpace(c.Values["folder"]); f != "" {
+		path = filepath.Join(l.expand(f), "auth.json")
+	}
+	if !readJSON(path, &auth) || auth.Tokens.AccessToken == "" {
 		a.Status, a.Message = StatusSignedOut, "Codex is signed out. Run codex login again."
+		if c.Values["folder"] != "" {
+			a.Message = "No Codex sign-in in " + c.Values["folder"] + ". Run: CODEX_HOME=" + c.Values["folder"] + " codex login"
+		}
 		return a
 	}
 	id := jwtClaims(auth.Tokens.IDToken)

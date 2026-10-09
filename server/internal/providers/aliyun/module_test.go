@@ -255,7 +255,7 @@ func TestFreeQuotaInventory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(inv.Packages) != 1 || inv.Note != "2 models with free quota · 1 more used up or expired." || inv.DisplayGroup != "aliyun:free-quota" || inv.Identity != "" {
+	if len(inv.Packages) != 1 || inv.Note != "2 models with free quota · 1 more used up or expired." || inv.DisplayGroup != GrantsGroup([]Grant{{Model: "kimi-k3", Ends: 1794873600000}, {Model: "qwen-image-2.1-pro", Ends: 1798732800000}}) || inv.Identity != "" {
 		t.Fatalf("inventory = %+v", inv)
 	}
 	p := inv.Packages[0]
@@ -303,5 +303,16 @@ func TestFreeQuotaOffers(t *testing.T) {
 	}
 	if o := catalog.Offers(m.Supply, free(map[string]string{"token": "t", "site": "international"}, time.Now()), models); len(o) != 0 {
 		t.Fatalf("international offers = %+v", o)
+	}
+}
+
+// One account's grants end at the same times however it's reached; another
+// account's don't: the card grouping follows the grants (display only).
+func TestGrantsGroupRecognisesAnAccount(t *testing.T) {
+	a := []Grant{{Model: "kimi-k3", Ends: 1794873600000}, {Model: "qwen3-max", Ends: 1794873600000}}
+	reordered := []Grant{a[1], a[0]}
+	other := []Grant{{Model: "kimi-k3", Ends: 1794873601000}, {Model: "qwen3-max", Ends: 1794873600000}}
+	if GrantsGroup(a) == "" || GrantsGroup(a) != GrantsGroup(reordered) || GrantsGroup(a) == GrantsGroup(other) || GrantsGroup(nil) != "" {
+		t.Fatalf("groups: %q %q %q %q", GrantsGroup(a), GrantsGroup(reordered), GrantsGroup(other), GrantsGroup(nil))
 	}
 }

@@ -93,10 +93,10 @@ func bailianClient(ctx context.Context, l Local, c Connection, a *Account) baili
 
 // readFreeQuotaList is the grants with room left, as windows, and how many
 // more are used up or expired (the module's listing and parsing).
-func readFreeQuotaList(ctx context.Context, g bailianAPI, now time.Time) ([]Window, int, error) {
+func readFreeQuotaList(ctx context.Context, g bailianAPI, now time.Time) ([]Window, int, string, error) {
 	grants, gone, err := aliyun.FreeQuota(ctx, g.gateway, now)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
 	ws := make([]Window, len(grants))
 	for i, gr := range grants {
@@ -106,7 +106,7 @@ func readFreeQuotaList(ctx context.Context, g bailianAPI, now time.Time) ([]Wind
 			ws[i].ResetsAt = ptr(time.UnixMilli(gr.Ends).UTC())
 		}
 	}
-	return ws, gone, nil
+	return ws, gone, aliyun.GrantsGroup(grants), nil
 }
 
 func readBailianFreeQuota(ctx context.Context, l Local, c Connection) Account {
@@ -119,12 +119,13 @@ func readBailianFreeQuota(ctx context.Context, l Local, c Connection) Account {
 		a.Status, a.Message = StatusSignedOut, "Sign in with Alibaba Cloud to list each model's free quota."
 		return a
 	}
-	ws, gone, err := readFreeQuotaList(ctx, newBailianCLI(l, c), l.Now())
+	ws, gone, group, err := readFreeQuotaList(ctx, newBailianCLI(l, c), l.Now())
 	if err != nil {
 		bailianFailed(&a, err)
 		return a
 	}
-	a.Status, a.Identity, a.Windows = StatusOK, "free-quota", ws
+	// one card per account, recognised by its grants (Bailian reports no account)
+	a.Status, a.Identity, a.Windows = StatusOK, group, ws
 	for _, w := range ws { // each grant is one model's, callable with the account's keys
 		a.Models = append(a.Models, Model{ID: w.Model, Media: w.Media})
 	}

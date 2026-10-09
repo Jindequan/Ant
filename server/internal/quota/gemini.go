@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -30,8 +31,13 @@ func geminiProvider() Provider {
 	return Provider{ID: "gemini", Name: "Gemini CLI", Link: "https://aistudio.google.com/usage", Modes: []Mode{{
 		ID: "code-assist", Name: "Code Assist", Kind: KindFree, Live: true,
 		Rule: "A daily allowance per model on Google's Code Assist (free tier, or Standard / Enterprise), renewing each day.",
-		Ways: []Way{{ID: "cli", Name: "Gemini CLI", Hint: "Ant reads Gemini CLI's Google sign-in (~/.gemini). Run gemini and sign in with Google.",
-			Fields: []Field{}, Discover: discoverGemini, Read: readGemini}},
+		Ways: []Way{
+			{ID: "cli", Name: "Gemini CLI", Hint: "Ant reads Gemini CLI's Google sign-in (~/.gemini). Run gemini and sign in with Google.",
+				Fields: []Field{}, Discover: discoverGemini, Read: readGemini},
+			{ID: "folder", Name: "Another Google account", Key: "folder", Read: readGemini,
+				Hint:   "Keep each Google account's Gemini CLI sign-in in its own folder: sign in with that account, copy ~/.gemini/oauth_creds.json into a folder such as ~/.gemini-work, and give that folder here.",
+				Fields: []Field{{ID: "folder", Label: "Folder with oauth_creds.json", Type: "text", Placeholder: "~/.gemini-work"}}},
+		},
 	}}}
 }
 
@@ -85,8 +91,15 @@ func readGemini(ctx context.Context, l Local, c Connection) Account {
 	p := geminiProvider()
 	a := base(p, p.Modes[0], c, l.Now())
 	var creds geminiCreds
-	if !readJSON(c.Values["creds"], &creds) || creds.RefreshToken == "" {
+	path := c.Values["creds"]
+	if f := strings.TrimSpace(c.Values["folder"]); f != "" {
+		path = filepath.Join(l.expand(f), "oauth_creds.json")
+	}
+	if !readJSON(path, &creds) || creds.RefreshToken == "" {
 		a.Status, a.Message = StatusSignedOut, "Gemini CLI is signed out. Run gemini and sign in with Google."
+		if c.Values["folder"] != "" {
+			a.Message = "No Gemini CLI sign-in (oauth_creds.json) in " + c.Values["folder"] + "."
+		}
 		return a
 	}
 	a.User = claimString(jwtClaims(creds.IDToken), "email")

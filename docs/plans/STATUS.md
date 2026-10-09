@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 many accounts per provider (user: "I can have many accounts per provider, but now only 1 for 1"): a sign-in through Ant's window now adds an account instead of replacing the last one (signing in again renews that account); Claude no longer folds every account into one card (only this Mac's Claude Code login, read two ways, is one card); Bailian free quota is grouped by its own grants, not a constant; ChatGPT and Gemini CLI take further accounts from their own sign-in folders (CODEX_HOME). Also fixed: provider logos were invisible in the Add panel (percentage padding resolves against the parent's width). Tests for each. Gates pass.
+
 2026-10-09 provider logos: each provider's own icon (26 of 27; fetched once from its site with the user's approval, converted to 64 px PNGs, ~120 KB) replaces the coloured initial everywhere on the page, on a small white tile that reads in light and dark. Served only as `/logos/<id>.png` (tested: nothing else under /logos); the page still contacts no provider. Leonardo.Ai keeps its initial (its site blocks the fetch). Sources in `webui/static/logos/SOURCES.md`. Gates pass.
 
 2026-10-09 Ant's logo is the drawing the user chose ("C2 · walking ant, line 2"): one line drawing, no background, everywhere — page header, favicon (light/dark), app icon (the ant alone, with a soft outline for dark Docks), menu bar template. Gates pass.

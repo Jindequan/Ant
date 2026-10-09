@@ -216,6 +216,41 @@ func TestChatGPTReadsCodexSignInAndUsage(t *testing.T) {
 	}
 }
 
+// A second ChatGPT account is a Codex sign-in in its own folder
+// (CODEX_HOME), added on the page; it reads like the first and stays its
+// own account.
+func TestChatGPTAnotherAccountInItsOwnCodexFolder(t *testing.T) {
+	var gotAccount string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAccount = r.Header.Get("chatgpt-account-id")
+		_, _ = w.Write([]byte(`{"plan_type":"pro","rate_limit":{"primary_window":{"used_percent":10,"limit_window_seconds":18000,"reset_at":1791400000}}}`))
+	}))
+	defer srv.Close()
+	l := testLocal(t, nil)
+	l.URLs["chatgpt.usage"] = srv.URL
+	access := jwt(map[string]any{"exp": float64(testNow.Add(time.Hour).Unix())})
+	id := jwt(map[string]any{"email": "work@example.com"})
+	writeFile(t, l.path(".codex-work", "auth.json"), `{"tokens":{"id_token":"`+id+`","access_token":"`+access+`","account_id":"acct-work"}}`)
+	s := newTestService(l, NewStore(""))
+	code, out := call(t, s.Handler(), "POST", "/api/accounts", `{"provider":"chatgpt","mode":"plan","way":"folder","values":{"folder":"~/.codex-work"}}`, nil)
+	if code != 200 {
+		t.Fatalf("%d %v", code, out)
+	}
+	var work map[string]any
+	for _, a := range accountsIn(out) {
+		if a["provider"] == "chatgpt" {
+			work = a
+		}
+	}
+	if work == nil || work["status"] != "ok" || work["user"] != "work@example.com" || gotAccount != "acct-work" {
+		t.Fatalf("second ChatGPT account = %v (account header %q)", work, gotAccount)
+	}
+	a := readChatGPT(context.Background(), l, Connection{ID: "x", Provider: "chatgpt", Mode: "plan", Way: "folder", Values: map[string]string{"folder": "~/.codex-missing"}})
+	if a.Status != StatusSignedOut || !strings.Contains(a.Message, "CODEX_HOME=~/.codex-missing codex login") {
+		t.Fatalf("empty folder = %s %q", a.Status, a.Message)
+	}
+}
+
 func TestChatGPTExpiredTokenIsReportedWithoutCalling(t *testing.T) {
 	called := false
 	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called = true }))

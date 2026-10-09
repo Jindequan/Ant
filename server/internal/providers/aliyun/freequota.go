@@ -2,8 +2,12 @@ package aliyun
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"ant/server/internal/domain"
@@ -203,9 +207,26 @@ func freeQuota(ctx context.Context, g gateway, now time.Time) (observed.Inventor
 		}
 		p.Resources = append(p.Resources, r)
 	}
-	// every way into one Alibaba Cloud account reads the same grants: one card
-	inv := observed.Inventory{Packages: []observed.PackageReading{p}, DisplayGroup: "aliyun:free-quota", Note: FreeQuotaNote(len(grants), gone)}
+	// every way into one Alibaba Cloud account reads the same grants, ending
+	// to the millisecond: one card (display only; another account's grants
+	// end at other times, so it keeps its own)
+	inv := observed.Inventory{Packages: []observed.PackageReading{p}, DisplayGroup: GrantsGroup(grants), Note: FreeQuotaNote(len(grants), gone)}
 	return inv, grants, nil
+}
+
+// GrantsGroup recognises an account by its grants: each model and when its
+// grant ends. "" when there are none to go by.
+func GrantsGroup(grants []Grant) string {
+	if len(grants) == 0 {
+		return ""
+	}
+	parts := make([]string, len(grants))
+	for i, g := range grants {
+		parts[i] = g.Model + "@" + strconv.FormatInt(g.Ends, 10)
+	}
+	sort.Strings(parts)
+	sum := sha256.Sum256([]byte(strings.Join(parts, ",")))
+	return "aliyun:free-quota:" + hex.EncodeToString(sum[:8])
 }
 
 // freeQuotaModels are the models the grants are for.

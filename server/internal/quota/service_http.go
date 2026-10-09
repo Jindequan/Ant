@@ -73,12 +73,13 @@ func (s *Service) Handler() http.Handler {
 			Provider string `json:"provider"`
 			Mode     string `json:"mode"`
 			Way      string `json:"way"`
+			Again    string `json:"id"` // the account to sign in to again; none adds one
 		}
 		if !decode(w, r, &in) {
 			return
 		}
 		// the window stays open if the page reloads meanwhile
-		_, err := s.signIn(context.WithoutCancel(r.Context()), in.Provider, in.Mode, in.Way)
+		_, err := s.signIn(context.WithoutCancel(r.Context()), in.Provider, in.Mode, in.Way, in.Again)
 		s.respond(w, r, "*"+in.Provider, err)
 	}))
 	mux.HandleFunc("GET /api/signin/status", func(w http.ResponseWriter, r *http.Request) {

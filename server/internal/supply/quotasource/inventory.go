@@ -31,8 +31,10 @@ const (
 // constant: both still group cards on the page, but the store never merges
 // accounts on them (design 11 §2.6).
 func reportedIdentity(a quota.Account) string {
-	switch a.Provider {
-	case "aliyun", "copilot": // Bailian instance / account owner, GitHub login
+	switch {
+	case a.Provider == "aliyun" && a.Mode == "free-quota":
+		return "" // grouped by its grants on the page: inferred, never merged in the store
+	case a.Provider == "aliyun", a.Provider == "copilot": // Bailian instance / account owner, GitHub login
 		return a.Identity
 	}
 	return ""

@@ -138,8 +138,9 @@ h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .list, .models, .tl-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 
 .mark { width: 32px; height: 32px; flex: none; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; color: #fff; background: hsl(var(--hue) 42% 44%); }
-.mark.logo-mark { background: #fff; box-shadow: inset 0 0 0 1px rgba(27, 27, 25, .08); padding: 9%; }
-.mark.logo-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.mark.logo-mark { background: #fff; box-shadow: inset 0 0 0 1px rgba(27, 27, 25, .08); }
+/* sized by the tile itself (percentage padding would follow the parent's width) */
+.mark.logo-mark img { display: block; width: 82%; height: 82%; object-fit: contain; }
 .mark.sm { width: 28px; height: 28px; border-radius: 8px; font-size: 12.5px; }
 
 /* an account: one row, its detail when open */
