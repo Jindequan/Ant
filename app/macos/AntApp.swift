@@ -270,6 +270,13 @@ final class Model: ObservableObject {
             urgentNow = urgent(accounts, insights)
             refreshedAt = date(snap.refreshedAt)
             reading = snap.refreshing ?? false
+            // the first read is still under way: look again soon, not in a minute
+            if (reading || refreshedAt == nil || accounts.isEmpty) && soon < 90 {
+                soon += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.load() }
+            } else if !reading && !accounts.isEmpty {
+                soon = 0
+            }
             if let path = ProcessInfo.processInfo.environment["ANT_SNAPSHOT"], !snapshotted {
                 snapshotted = true // the panel as a picture, for checking its design
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.snapshot(to: path) }
@@ -283,6 +290,7 @@ final class Model: ObservableObject {
     }
 
     var snapshotted = false
+    var soon = 0
     func snapshot(to path: String) {
         let r = ImageRenderer(content: Panel(model: self).background(Color(nsColor: .windowBackgroundColor)).environment(\.colorScheme, ProcessInfo.processInfo.environment["ANT_SNAPSHOT_DARK"] == "1" ? .dark : .light))
         r.scale = 2
@@ -437,6 +445,13 @@ struct Panel: View {
                             Text("Ant is starting…").font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(36)
+                    } else if model.accounts.isEmpty {
+                        VStack(spacing: 8) {
+                            if model.reading || model.refreshedAt == nil { ProgressView().controlSize(.small) }
+                            Text(model.reading || model.refreshedAt == nil ? "Reading your accounts…" : "No accounts yet. Open Ant to add one.")
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        }
+                        .padding(36)
                     } else {
                         useFirst
                         needsYou
@@ -449,6 +464,7 @@ struct Panel: View {
             footer
         }
         .frame(width: 370)
+        .onAppear { model.load() } // fresh each time it opens
     }
 
     @ViewBuilder func scroll<C: View>(@ViewBuilder _ c: () -> C) -> some View {
@@ -608,10 +624,7 @@ struct AntApp: App {
         MenuBarExtra {
             Panel(model: model)
         } label: {
-            HStack(spacing: 3) {
-                Image(nsImage: menuBarAnt())
-                if !model.urgentNow.isEmpty { Text("\(model.urgentNow.count)").monospacedDigit() }
-            }
+            Image(nsImage: menuBarAnt()) // the ant alone
         }
         .menuBarExtraStyle(.window)
     }

@@ -2,6 +2,7 @@ package supply
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"sync"
@@ -354,5 +355,51 @@ func TestRoutePreviewFreeGrants(t *testing.T) {
 	}
 	if len(p.Excluded) != 1 || p.Excluded[0].CredentialID != "spent" || p.Excluded[0].Reason != "qwen3-max used up" {
 		t.Fatalf("excluded = %+v", p.Excluded)
+	}
+}
+
+// A credential no longer found (removed by the user, signed out of the app
+// that held it) is marked hidden in the store and offers nothing: what a
+// router reads never includes an account that's gone. Found again, it's back.
+func TestGoneCredentialsLeaveTheStore(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, path, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	src.creds = []Credential{found("kept"), found("removed")}
+	src.results["kept"] = zaiResult("glm-5.3", planWindow("window/short", "5 hours", 50, 4*hour, now), planWindow("window/week", "Week", 50, 72*hour, now))
+	src.results["removed"] = zaiResult("glm-5.3", planWindow("window/short", "5 hours", 90, 4*hour, now), planWindow("window/week", "Week", 90, 72*hour, now))
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := e.Preview(context.Background(), "glm-5.3"); len(p.Eligible) != 2 {
+		t.Fatalf("before: %+v", p)
+	}
+	src.creds = []Credential{found("kept")} // the user removed one
+	if err := e.Discover(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := e.Preview(context.Background(), "glm-5.3")
+	if len(p.Eligible) != 1 || p.Eligible[0].CredentialID != "kept" || len(p.Excluded) != 0 {
+		t.Fatalf("after removing: %+v", p)
+	}
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var status string
+	var offers int
+	_ = db.QueryRow(`SELECT status FROM supply_credentials WHERE credential_id='removed'`).Scan(&status)
+	_ = db.QueryRow(`SELECT COUNT(*) FROM supply_offers WHERE credential_id='removed'`).Scan(&offers)
+	if status != "hidden" || offers != 0 {
+		t.Fatalf("removed credential: status %q, %d offers", status, offers)
+	}
+	// found again: read and offered again
+	src.creds = []Credential{found("kept"), found("removed")}
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := e.Preview(context.Background(), "glm-5.3"); len(p.Eligible) != 2 {
+		t.Fatalf("found again: %+v", p)
 	}
 }

@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 router foundation: every discovery now retires stored credentials it no longer finds (removed by the user, gone from this Mac) — status hidden, offers dropped — so a removed account is never routed or previewed; found again, it's back (test). On the user's store: the four removed/hidden credentials became hidden with 0 offers. Menu panel: it re-asks every 2 s while the first read runs (it was empty for a minute), reloads when opened, says 'Reading your accounts…' instead of an empty list; the menu bar shows the ant alone. Gates pass.
+
 2026-10-09 a module's card carries the account the provider names (Bailian's Token Plan instance), so the same instance reached two ways (the module's token, an old browser session) shows as one card — found on the user's Mac after the repair. Their accounts: all 11 load; Copilot reads (the proxy); the old Bailian record migrated into deletable records. Gates pass.
 
 2026-10-09 regression fix, found on the user's Mac right after fix 1: the persisted migration gave the three new Bailian records the old record's key reference; resealing it for the first left the old record pointing at a revision gone by, and one unopenable key made every account fail to load ("revision conflict", no accounts shown). Now migrated records get keys of their own, and one key that won't open marks only its account (its record left untouched, never resealed; migration waits); none opening at all is still an error. Tests with a vault (the earlier test had none). Gates pass.

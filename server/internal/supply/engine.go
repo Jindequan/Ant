@@ -184,7 +184,51 @@ func (e *Engine) Discover(ctx context.Context) error {
 			e.log.Warn("supply: recording discovered credentials failed", "err", err)
 		}
 	}
+	e.retireGone(ctx, creds)
 	return nil
+}
+
+// retireGone marks every stored credential this discovery didn't find
+// (removed by the user, or no longer on this Mac) as hidden and drops its
+// offers: what Ant routes over never includes an account that's gone.
+// Found again, discovery records it anew.
+func (e *Engine) retireGone(ctx context.Context, creds []Credential) {
+	current := make(map[domain.ID]bool, len(creds))
+	for _, c := range creds {
+		current[c.ID] = true
+	}
+	var gone []store.SupplyCredentialRecord
+	err := e.st.Read(ctx, func(rx store.ReaderTx) error {
+		sx, ok := rx.(store.SupplyReaderTx)
+		if !ok {
+			return errNoSupplyStore
+		}
+		all, err := sx.ListSupplyCredentials(e.ns)
+		for _, r := range all {
+			if !current[r.CredentialID] && r.Status != "hidden" {
+				r.Status, r.StatusDetail = "hidden", "Removed, or no longer on this Mac"
+				gone = append(gone, r)
+			}
+		}
+		return err
+	})
+	if err != nil || len(gone) == 0 {
+		return
+	}
+	err = e.write(ctx, "supply-retire", func(tx store.SupplyWriterTx) error {
+		for _, r := range gone {
+			if err := tx.UpsertSupplyCredential(r); err != nil {
+				return err
+			}
+			if err := tx.ReplaceSupplyOffers(e.ns, r.CredentialID, nil); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		e.log.Warn("supply: retiring credentials no longer found failed", "err", err)
+	}
 }
 
 // credentialRecord is s as a supply_credentials row; call with e.mu held or
