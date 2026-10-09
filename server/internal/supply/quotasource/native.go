@@ -115,7 +115,9 @@ func project(a *quota.Account, inv observed.Inventory) {
 			g := quota.Group{Title: p.Plan}
 			for _, r := range p.Resources {
 				if r.Currency != "" {
-					g.Balances = append(g.Balances, balanceOf(r))
+					b := balanceOf(r)
+					b.Label = r.Label // "This month", "Last month"
+					g.Balances = append(g.Balances, b)
 				} else {
 					g.Windows = append(g.Windows, windowOf(r))
 				}

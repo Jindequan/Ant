@@ -3,6 +3,7 @@ package quotasource
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,8 @@ func demoSource() DemoSource {
 		"deepseek": {Base: "https://api.deepseek.com", Protocol: "openai-chat"},
 		// a module with several products: the sample is Kimi Code's endpoint
 		"kimi": {Base: "https://api.kimi.com/coding/v1", Protocol: "openai-chat", Product: "code"},
+		// a provider whose products are called at different places: by provider/mode
+		"aliyun/free-quota": {Base: "https://dashscope.aliyuncs.com/compatible-mode/v1", Protocol: "openai-chat", Product: "free-quota"},
 	}}
 }
 
@@ -36,11 +39,11 @@ func TestDemoSourceHasNoNetwork(t *testing.T) {
 func TestDemoSourceSamplesProvidersWithEndpoints(t *testing.T) {
 	d := demoSource()
 	creds, err := d.Discover(context.Background())
-	if err != nil || len(creds) != 3 {
+	if err != nil || len(creds) != 4 {
 		t.Fatalf("credentials = %+v %v", creds, err)
 	}
 	for _, c := range creds {
-		if c.Origin != supply.OriginFound || (c.ProviderID != "zai" && c.ProviderID != "deepseek" && c.ProviderID != "kimi") {
+		if c.Origin != supply.OriginFound || (c.ProviderID != "zai" && c.ProviderID != "deepseek" && c.ProviderID != "kimi" && c.ID != "demo-aliyun-free") {
 			t.Fatalf("credential = %+v", c)
 		}
 		r := d.Collect(context.Background(), c)
@@ -48,7 +51,11 @@ func TestDemoSourceSamplesProvidersWithEndpoints(t *testing.T) {
 			t.Fatalf("%s: %+v", c.ID, r)
 		}
 		for _, o := range r.Offers {
-			if o.Endpoint != d.Endpoints[string(c.ProviderID)].Base || len(o.Draws) == 0 {
+			e := d.Endpoints[string(c.ProviderID)]
+			if c.ProviderID == "aliyun" {
+				e = d.Endpoints["aliyun/free-quota"]
+			}
+			if o.Endpoint != e.Base || len(o.Draws) == 0 {
 				t.Fatalf("%s offer = %+v", c.ID, o)
 			}
 			for _, ref := range o.Draws {
@@ -67,5 +74,21 @@ func TestDemoSourceSamplesProvidersWithEndpoints(t *testing.T) {
 	}
 	if got, _ := (DemoSource{Now: time.Now}).Discover(context.Background()); len(got) != 0 {
 		t.Fatalf("without endpoints nothing is sampled: %+v", got)
+	}
+}
+
+// Bailian's sample free quota: each model's offer, through the preview's
+// rule, draws on that model's grant only (the sample draws every meter it
+// holds; meters scoped to another model are never drawn).
+func TestDemoSourceFreeQuotaIsPerModel(t *testing.T) {
+	d := demoSource()
+	r := d.Collect(context.Background(), supply.Credential{ID: "demo-aliyun-free"})
+	if r.Outcome != supply.OutcomeOK || len(r.Offers) < 2 || r.Inventory.Packages[0].Kind != "free_grant" {
+		t.Fatalf("free quota sample = %+v", r)
+	}
+	for _, res := range r.Inventory.Packages[0].Resources {
+		if !strings.Contains(string(res.ScopeJSON), `"kind":"model"`) {
+			t.Errorf("%s isn't scoped to its model: %s", res.TemplateRef, res.ScopeJSON)
+		}
 	}
 }

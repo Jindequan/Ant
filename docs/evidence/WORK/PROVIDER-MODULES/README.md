@@ -348,3 +348,26 @@ for every way into the account (display group), no identity merge (none is repor
   (module) and `TestFreeQuotaIsListedThroughTheCLISignIn` (quota).
 - The route preview over a real store (grant used first, another model not) is C5's end-to-end
   test.
+
+**C5 — wiring.** The server reads Bailian through its module (`providerModules`, a Fetch limited
+to its five origins); sessions the module doesn't read (browser sign-ins) stay with quota's
+readers. Demo samples Bailian's Token Plan and free quota with the module's endpoints, looked up
+by `provider/mode` (a provider whose products are called at different places). Group balances on
+cards keep their labels ("This month", "Last month").
+
+`TestNativeModuleReadsBailian` (TLS fakes over the canonical fixtures; the quota readers' own
+client reaches nothing): a bl profile (token, Token Plan model key) and an AccessKey in the
+environment →
+- three cards: Token Plan "Pro" with 5 hours / Week / add-on credits and a "Tool benefits"
+  group; pay-as-you-go `1234.50` with "Charged by Bailian" (`1.504321` last month, labelled);
+  free quota with `kimi-k3` 820,000 tokens and an image grant;
+- stored: three accounts, two with the identities Bailian reports (instance, owner); one
+  `free_grant` package; `grant/kimi-k3` scoped to `kimi-k3`;
+- offers: `kimi-k3` at DashScope drawing `scope:model`; `qwen3-max` at the Token Plan endpoint
+  and **not** at DashScope (no grant for it);
+- `GET /api/route?model=Kimi-K3` → one route, class `free`, "Free: kimi-k3 820,000 tokens left,
+  ends in …"; `?model=qwen3-max` → the plan, "Plan: 5 hours 80% left, Week 50% left";
+- after `bl` signs out, both token cards say "The Bailian CLI is signed out. Run bl login."
+  without a request to Bailian.
+
+`TestDemoSourceFreeQuotaIsPerModel`: every meter of the sample free quota is scoped to its model.

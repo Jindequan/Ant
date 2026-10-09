@@ -14,6 +14,7 @@ import (
 
 	"ant/server/internal/application"
 	"ant/server/internal/domain"
+	"ant/server/internal/providers/aliyun"
 	"ant/server/internal/providers/catalog"
 	"ant/server/internal/providers/deepseek"
 	"ant/server/internal/providers/kimi"
@@ -41,11 +42,12 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	local := quota.DefaultLocal()
 	if demo {
 		// sample accounts, additions kept in memory; the real engine runs the
-		// route preview over the sample Z.ai, DeepSeek and Kimi accounts, in its own
+		// route preview over the sample Z.ai, DeepSeek, Kimi and Bailian accounts, in its own
 		// namespace, reading nothing
 		src := quotasource.DemoSource{Now: time.Now, Endpoints: map[string]catalog.Endpoint{
 			"zai": zai.Module(zai.DefaultBase).Supply.Endpoints[0], "deepseek": deepseek.SupplyModule(deepseek.DefaultBase).Supply.Endpoints[0],
-			"kimi": kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase).Supply.Endpoints[0]}} // the sample is Kimi Code
+			"kimi":              kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase).Supply.Endpoints[0], // the sample is Kimi Code
+			"aliyun/token-plan": aliyunEndpoint(aliyun.ProductTokenPlan), "aliyun/free-quota": aliyunEndpoint(aliyun.ProductFreeQuota)}}
 		engine := supply.NewEngine("demo", st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply-demo"))
 		return quota.NewService(local, quota.NewStore(""), quota.Options{Demo: true, Router: quotasource.Routes{Engine: engine, Name: src.Name}}), engine, nil
 	}
@@ -73,7 +75,7 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 // 12), each with a Fetch limited to the origins it declares.
 func providerModules() ([]quotasource.Native, error) {
 	var out []quotasource.Native
-	for _, m := range []catalog.Module{zai.Module(zai.DefaultBase), deepseek.SupplyModule(deepseek.DefaultBase), kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase)} {
+	for _, m := range []catalog.Module{zai.Module(zai.DefaultBase), deepseek.SupplyModule(deepseek.DefaultBase), kimi.Module(kimi.CodeBase, kimi.CNBase, kimi.AIBase), aliyun.Module(aliyun.DefaultBases())} {
 		fetch, err := transport.NewObservationFetch(m.Supply.Origins, nil)
 		if err != nil {
 			return nil, fmt.Errorf("provider module %s: %w", m.ID, err)
@@ -81,6 +83,16 @@ func providerModules() ([]quotasource.Native, error) {
 		out = append(out, quotasource.Native{Module: m, Fetch: fetch})
 	}
 	return out, nil
+}
+
+// aliyunEndpoint is the Bailian module's endpoint for one of its products.
+func aliyunEndpoint(product string) catalog.Endpoint {
+	for _, e := range aliyun.Module(aliyun.DefaultBases()).Supply.Endpoints {
+		if e.Product == product {
+			return e
+		}
+	}
+	panic("Bailian's module has no endpoint for " + product)
 }
 
 // localVault keeps the page's account values encrypted in Ant's database

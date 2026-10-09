@@ -13,18 +13,30 @@ import (
 )
 
 // DemoSource feeds the real engine with the sample accounts of the
-// providers that have modules (Z.ai, DeepSeek, Kimi), so demo mode shows
-// the real route preview without reading anything. Each sample account's meters and
-// models become an inventory and offers the way a module's would.
+// providers that have modules (Z.ai, DeepSeek, Kimi, Bailian), so demo
+// mode shows the real route preview without reading anything. Each sample
+// account's meters and models become an inventory and offers the way a
+// module's would.
 type DemoSource struct {
-	Now       func() time.Time
-	Endpoints map[string]catalog.Endpoint // by provider: the modules' endpoints
+	Now func() time.Time
+	// Endpoints are the modules' endpoints, by "provider/mode" where a
+	// provider's products are called at different places (Bailian's Token
+	// Plan and free quota), else by provider.
+	Endpoints map[string]catalog.Endpoint
+}
+
+func (d DemoSource) endpoint(a quota.Account) (catalog.Endpoint, bool) {
+	if e, ok := d.Endpoints[a.Provider+"/"+a.Mode]; ok {
+		return e, true
+	}
+	e, ok := d.Endpoints[a.Provider]
+	return e, ok
 }
 
 func (d DemoSource) accounts() map[domain.ID]quota.Account {
 	out := map[domain.ID]quota.Account{}
 	for _, a := range quota.DemoAccounts(d.Now()) {
-		if _, ok := d.Endpoints[a.Provider]; ok {
+		if _, ok := d.endpoint(a); ok {
 			out[domain.ID(a.ID)] = a
 		}
 	}
@@ -51,7 +63,7 @@ func (d DemoSource) Collect(_ context.Context, c supply.Credential) supply.Resul
 	}
 	inv := inventory(a)
 	// the module's endpoint, drawing on what this sample account holds
-	e := d.Endpoints[a.Provider]
+	e, _ := d.endpoint(a)
 	e.Draws = nil
 	for _, p := range inv.Packages {
 		for _, res := range p.Resources {
