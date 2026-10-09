@@ -27,7 +27,7 @@ type queryer interface {
 // whole-command deadline, and an expired budget aborts the transaction.
 type writerTx struct {
 	ctx context.Context
-	tx  *sql.Tx
+	tx  queryer // stmtTx: the command's *sql.Tx behind the statement cache
 }
 
 // CommandContext exposes the command-wide deadline context so a callback can

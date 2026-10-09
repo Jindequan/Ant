@@ -175,7 +175,9 @@ func (s *Store) Close(ctx context.Context) error {
 		return fmt.Errorf("sqlite: writer drain exceeded close deadline: %w", ctx.Err())
 	}
 
-	return errors.Join(s.writeDB.Close(), s.readDB.Close())
+	// The writer has exited, so no command can bind a cached statement any
+	// more; close them before the pool that owns their connection.
+	return errors.Join(s.stmts.close(), s.writeDB.Close(), s.readDB.Close())
 }
 
 // writerLoop serializes every durable change. Fairness per 01-ARCHITECTURE
@@ -265,6 +267,17 @@ func (s *Store) execCommand(qc *queueCommand) {
 	}
 	s.restoreBusyTimeout()
 	qc.done <- err
+	s.fillStatements()
+}
+
+// fillStatements prepares the statements the last command ran uncached
+// (stmtcache.go). It runs after the result is delivered and before the next
+// dequeue, so it costs no command any budget; the bound only caps the wait
+// for the connection.
+func (s *Store) fillStatements() {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.CommandBudget)
+	defer cancel()
+	s.stmts.fill(ctx)
 }
 
 func (s *Store) execMaintenance(qc *queueCommand) {
@@ -322,7 +335,7 @@ func (s *Store) runOnce(cmd store.WriteCommand, deadline time.Time) error {
 	if err != nil {
 		return budgetError(ctx, err)
 	}
-	if err := cmd.Run(&writerTx{ctx: ctx, tx: tx}); err != nil {
+	if err := cmd.Run(&writerTx{ctx: ctx, tx: &stmtTx{tx: tx, cache: s.stmts}}); err != nil {
 		_ = tx.Rollback()
 		return budgetError(ctx, err)
 	}

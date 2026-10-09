@@ -88,6 +88,10 @@ const (
 	openTimeout = 5 * time.Second
 )
 
+// writeDriverName is the database/sql driver of the write pool. Only the
+// statement-cache test substitutes it, with a wrapper that counts prepares.
+var writeDriverName = "sqlite"
+
 // ErrInvalidConfig wraps every Open validation failure; errors.Join lists
 // each violation with its Config field name.
 var ErrInvalidConfig = errors.New("sqlite: invalid config")
@@ -149,8 +153,9 @@ func validateConfig(c Config) (Config, error) {
 // bootstrap in migrate.go.
 type Store struct {
 	cfg     Config
-	writeDB *sql.DB // SetMaxOpenConns(1): exactly one writer connection
-	readDB  *sql.DB // query-only pool
+	writeDB *sql.DB    // SetMaxOpenConns(1): exactly one writer connection
+	readDB  *sql.DB    // query-only pool
+	stmts   *stmtCache // prepared statements on writeDB (stmtcache.go)
 
 	controlCh chan *queueCommand
 	normalCh  chan *queueCommand
@@ -176,7 +181,7 @@ func Open(dsn string, cfg Config) (store.Store, error) {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
 
-	writeDB, err := sql.Open("sqlite", buildDSN(dsn, writeParams(cfg)))
+	writeDB, err := sql.Open(writeDriverName, buildDSN(dsn, writeParams(cfg)))
 	if err != nil {
 		return nil, fmt.Errorf("%w: open write pool: %w", store.ErrUnavailable, err)
 	}
@@ -205,6 +210,7 @@ func Open(dsn string, cfg Config) (store.Store, error) {
 		cfg:       cfg,
 		writeDB:   writeDB,
 		readDB:    readDB,
+		stmts:     newStmtCache(writeDB),
 		controlCh: make(chan *queueCommand, cfg.ControlReserved),
 		normalCh:  make(chan *queueCommand, cfg.WriterQueueLimit-cfg.ControlReserved),
 		loopDone:  make(chan struct{}),
