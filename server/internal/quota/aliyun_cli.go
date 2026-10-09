@@ -3,6 +3,7 @@ package quota
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"ant/server/internal/providers/aliyun"
 	"ant/server/internal/providers/catalog"
 )
 
@@ -61,47 +63,12 @@ func (b *bailianCLI) gateway(ctx context.Context, api string, data map[string]an
 		}
 		return err
 	}
-	var env struct {
-		Data json.RawMessage `json:"data"`
+	inner, err := aliyun.ParseCLIReply(body)
+	if errors.Is(err, catalog.ErrSignedOut) {
+		return errBailianSignedOut
 	}
-	if json.Unmarshal(body, &env) != nil {
-		return errBailianChanged
-	}
-	var gw struct {
-		Success   *bool  `json:"success"`
-		ErrorCode any    `json:"errorCode"`
-		ErrorMsg  string `json:"errorMsg"`
-		DataV2    *struct {
-			Data json.RawMessage `json:"data"`
-		} `json:"DataV2"`
-		Data json.RawMessage `json:"data"`
-	}
-	if json.Unmarshal(env.Data, &gw) != nil {
-		return errBailianChanged
-	}
-	if gw.Success != nil && !*gw.Success {
-		code := fmt.Sprint(gw.ErrorCode)
-		if strings.Contains(code, "NotLogin") {
-			return errBailianSignedOut
-		}
-		return fmt.Errorf("Bailian: %s", strings.TrimSpace(code+" "+gw.ErrorMsg))
-	}
-	// the call's own data: DataV2.data.data, else DataV2.data, else data
-	inner := gw.Data
-	if gw.DataV2 != nil {
-		var d struct {
-			Success *bool           `json:"success"`
-			ErrorMs string          `json:"errorMsg"`
-			Data    json.RawMessage `json:"data"`
-		}
-		if json.Unmarshal(gw.DataV2.Data, &d) == nil && d.Data != nil {
-			if d.Success != nil && !*d.Success {
-				return fmt.Errorf("Bailian: %s", d.ErrorMs)
-			}
-			inner = d.Data
-		} else {
-			inner = gw.DataV2.Data
-		}
+	if err != nil {
+		return err
 	}
 	if dst == nil || len(inner) == 0 || string(inner) == "null" {
 		return nil

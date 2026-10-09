@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"ant/server/internal/providers/aliyun"
 	"ant/server/internal/providers/catalog"
 )
 
@@ -47,7 +48,7 @@ const aliyunConnect = "Sign in with Alibaba Cloud in your browser, the way Baili
 // One Alibaba Cloud sign-in authorizes them all.
 func aliyunProvider() Provider {
 	signIn := func(mode string, read func(context.Context, Local, Connection) Account) Way {
-		w := Way{ID: "sign-in", Name: "Sign in with Alibaba Cloud", Hint: aliyunConnect, SignIn: aliyunSignIn, Fields: []Field{}, Read: read}
+		w := Way{ID: "sign-in", Name: "Sign in with Alibaba Cloud", Hint: aliyunConnect, SignIn: aliyunSignIn, Fields: []Field{}, Read: read, Resolve: resolveSignIn}
 		if mode != "free-quota" {
 			w.Discover = discoverBailian(mode)
 		}
@@ -85,6 +86,23 @@ func aliyunProvider() Provider {
 			Ways: []Way{bl("free-quota", readBailianFreeQuota), signIn("free-quota", readBailianFreeQuota)},
 		},
 	}}
+}
+
+// resolveSignIn gives a sign-in's values with the site as bl names it:
+// unset for the China site (the console-login page says "domestic"),
+// "international" otherwise.
+func resolveSignIn(_ Local, c Connection) (map[string]string, error) {
+	v := map[string]string{}
+	for k, x := range c.Values {
+		v[k] = x
+	}
+	switch v["site"] {
+	case "domestic", "china":
+		delete(v, "site")
+	case "intl":
+		v["site"] = "international"
+	}
+	return v, nil
 }
 
 // --- the console, through the browser's sign-in ---
@@ -259,97 +277,8 @@ func (s *bailianSession) openAPI(ctx context.Context, product, action string, pa
 	return nil
 }
 
-var errBailianChanged = errors.New("Bailian's console changed; Ant needs an update to read it")
-
-// The replies Ant reads, as the console's calls answer them (2026-10-07).
-type tokenPlanSubscription struct {
-	InstanceCode  string `json:"instanceCode"`
-	SpecCode      string `json:"specCode"`
-	StartTime     int64  `json:"startTime"`
-	EndTime       int64  `json:"endTime"`
-	AutoRenewFlag *bool  `json:"autoRenewFlag"`
-	Status        string `json:"status"`
-}
-
-type tokenPlanAddons struct {
-	RemainingCredits float64 `json:"remainingCredits"`
-	TotalCredits     float64 `json:"totalCredits"`
-	ActiveCount      int     `json:"activeCount"`
-}
-
-type tokenPlanEquity struct {
-	EquityType       string  `json:"equityType"`
-	AvailableQuota   float64 `json:"availableQuota"`
-	TotalQuota       float64 `json:"totalQuota"`
-	InstanceEndTime  int64   `json:"instanceEndTime"`
-	InstanceStartTim int64   `json:"instanceStartTime"`
-}
-
-// tokenPlanTools names the plan's tool benefits and their units, as the
-// console labels them.
-var tokenPlanTools = map[string]struct{ name, unit string }{
-	"tokenplan_harnesstool_image_generation": {"Image generation MCP", "images"},
-	"tokenplan_mcp_codeinterpreter":          {"Code interpreter MCP", "calls"},
-	"tokenplan_harnesstool_search_pro":       {"Web search pro MCP", "calls"},
-	"tokenplan_harnesstool_vertical_search":  {"Vertical search MCP", "calls"},
-	"tokenplan_harnesstool_webfetch":         {"Web page parsing MCP", "calls"},
-	"tokenplan_harnesstool_tts":              {"Speech synthesis MCP", "characters"},
-	"tokenplan_harnesstool_asr":              {"Speech recognition MCP", "seconds"},
-}
-
-// usageWindowRE matches the usage reply's window keys: per1MonthPercentage,
-// per5HourPercentage, per7DayPercentage…
-var usageWindowRE = regexp.MustCompile(`^per(\d+)(Hour|Day|Week|Month)Percentage$`)
-
-// parseTokenPlanUsage turns {"per1MonthPercentage":1.0,"per1MonthResetTime":…}
-// into windows. The percentage is a fraction of the window used.
-func parseTokenPlanUsage(raw map[string]json.RawMessage) []Window {
-	type found struct {
-		n     int
-		unit  string
-		order int
-		w     Window
-	}
-	order := map[string]int{"Hour": 0, "Day": 1, "Week": 2, "Month": 3}
-	var ws []found
-	for k, v := range raw {
-		m := usageWindowRE.FindStringSubmatch(k)
-		if m == nil {
-			continue
-		}
-		var f float64
-		if json.Unmarshal(v, &f) != nil {
-			continue
-		}
-		n, _ := strconv.Atoi(m[1])
-		w := Window{Name: windowName(n, m[2]), UsedPercent: ptr(f * 100)}
-		if r, ok := raw["per"+m[1]+m[2]+"ResetTime"]; ok {
-			var ms int64
-			if json.Unmarshal(r, &ms) == nil && ms > 0 {
-				w.ResetsAt = ptr(time.UnixMilli(ms).UTC())
-			}
-		}
-		ws = append(ws, found{n, m[2], order[m[2]], w})
-	}
-	sort.Slice(ws, func(i, j int) bool {
-		if ws[i].order != ws[j].order {
-			return ws[i].order < ws[j].order
-		}
-		return ws[i].n < ws[j].n
-	})
-	out := make([]Window, len(ws))
-	for i, f := range ws {
-		out[i] = f.w
-	}
-	return out
-}
-
-func windowName(n int, unit string) string {
-	if n == 1 {
-		return map[string]string{"Hour": "Hour", "Day": "Day", "Week": "Week", "Month": "Month"}[unit]
-	}
-	return fmt.Sprintf("%d %ss", n, strings.ToLower(unit))
-}
+// errBailianChanged: a reply Ant doesn't understand (the module's sentinel).
+var errBailianChanged = aliyun.ErrChanged
 
 // openFor opens the console for connection c, or fills a with why not.
 func openFor(ctx context.Context, l Local, c Connection, a *Account) *bailianSession {
@@ -373,6 +302,8 @@ func bailianFailed(a *Account, err error) {
 	}
 }
 
+// readTokenPlan reads the Token Plan through the console (a browser
+// session or the CLI token), with the module's parsers.
 func readTokenPlan(ctx context.Context, l Local, c Connection) Account {
 	p := aliyunProvider()
 	a := base(p, p.Modes[0], c, l.Now())
@@ -383,8 +314,8 @@ func readTokenPlan(ctx context.Context, l Local, c Connection) Account {
 	if c.Values["token"] != "" {
 		a.Source = "Signed in with Alibaba Cloud"
 	}
-	var sub tokenPlanSubscription
-	if err := s.gateway(ctx, "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/subscription", nil, &sub); err != nil {
+	var sub aliyun.Subscription
+	if err := s.gateway(ctx, aliyun.APISubscription, nil, &sub); err != nil {
 		bailianFailed(&a, err)
 		return a
 	}
@@ -396,11 +327,11 @@ func readTokenPlan(ctx context.Context, l Local, c Connection) Account {
 	a.Identity = sub.InstanceCode
 	a.Plan = catalog.PlanName(sub.SpecCode)
 	a.AutoRenew = sub.AutoRenewFlag
-	if sub.EndTime > 0 {
-		end := time.UnixMilli(sub.EndTime).UTC()
-		a.EndsAt = &end
+	if end, err := sub.EndTime.Int64(); err == nil && end > 0 {
+		t := time.UnixMilli(end).UTC()
+		a.EndsAt = &t
 		if sub.AutoRenewFlag != nil && *sub.AutoRenewFlag {
-			a.RenewsAt = &end
+			a.RenewsAt = &t
 		}
 	}
 	if !strings.EqualFold(sub.Status, "VALID") && sub.Status != "" {
@@ -409,32 +340,42 @@ func readTokenPlan(ctx context.Context, l Local, c Connection) Account {
 	ending := sub.AutoRenewFlag != nil && !*sub.AutoRenewFlag
 
 	var usage map[string]json.RawMessage
-	if err := s.gateway(ctx, "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/usage", nil, &usage); err != nil {
+	if err := s.gateway(ctx, aliyun.APIUsage, nil, &usage); err != nil {
 		a.Message = "Couldn't read usage: " + short(err.Error())
-	} else {
-		a.Windows = parseTokenPlanUsage(usage)
 	}
-	var addons tokenPlanAddons
-	if err := s.gateway(ctx, "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/addon/summary", nil, &addons); err == nil && addons.TotalCredits > 0 {
-		a.Windows = append(a.Windows, Window{Name: "Add-on credits", Left: ptr(addons.RemainingCredits), Limit: ptr(addons.TotalCredits), Unit: "credits"})
+	for _, w := range aliyun.ParseUsage(usage) {
+		f, err := strconv.ParseFloat(w.Used, 64)
+		if err != nil {
+			continue
+		}
+		win := Window{Name: w.Name, UsedPercent: ptr(f * 100)}
+		if w.ResetsAt > 0 {
+			win.ResetsAt = ptr(time.UnixMilli(w.ResetsAt).UTC())
+		}
+		a.Windows = append(a.Windows, win)
+	}
+	var addons aliyun.Addons
+	if err := s.gateway(ctx, aliyun.APIAddons, nil, &addons); err == nil {
+		total, _ := addons.TotalCredits.Float64()
+		left, _ := addons.RemainingCredits.Float64()
+		if total > 0 {
+			a.Windows = append(a.Windows, Window{Name: "Add-on credits", Left: ptr(left), Limit: ptr(total), Unit: "credits"})
+		}
 	}
 
-	tools := Group{Title: "Tool benefits", Note: "Other AgentStudio tools are 12% off while the plan is active."}
-	var equity struct {
-		Infos []tokenPlanEquity `json:"tokenPlanEquityInfos"`
-	}
-	if err := s.gateway(ctx, "zeldaEasy.bailian-commerce.tokenPlan.queryTokenPlanEquityInfo",
-		map[string]any{"queryTokenPlanEquityInfoRequest": map[string]any{"requestId": requestID()}}, &equity); err != nil {
+	tools := Group{Title: "Tool benefits", Note: aliyun.ToolsNote}
+	var equity aliyun.Equities
+	if err := s.gateway(ctx, aliyun.APIEquity,
+		map[string]any{"queryTokenPlanEquityInfoRequest": map[string]any{"requestId": aliyun.RequestID()}}, &equity); err != nil {
 		tools.Note = "Couldn't read tool benefits: " + short(err.Error())
 	}
 	for _, e := range equity.Infos {
-		t, ok := tokenPlanTools[e.EquityType]
-		if !ok {
-			t.name = strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(e.EquityType, "tokenplan_"), "harnesstool_"), "_", " ")
-		}
-		w := Window{Name: t.name, Left: ptr(e.AvailableQuota), Limit: ptr(e.TotalQuota), Unit: t.unit, Expires: ending}
-		if e.InstanceEndTime > 0 {
-			w.ResetsAt = ptr(time.UnixMilli(e.InstanceEndTime).UTC())
+		name, unit := aliyun.Tool(e.EquityType)
+		left, _ := e.AvailableQuota.Float64()
+		total, _ := e.TotalQuota.Float64()
+		w := Window{Name: name, Left: ptr(left), Limit: ptr(total), Unit: unit, Expires: ending}
+		if end, err := e.InstanceEndTime.Int64(); err == nil && end > 0 {
+			w.ResetsAt = ptr(time.UnixMilli(end).UTC())
 		}
 		tools.Windows = append(tools.Windows, w)
 	}

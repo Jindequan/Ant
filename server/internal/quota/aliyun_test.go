@@ -192,17 +192,6 @@ func TestBailianEndedSignInIsSignedOut(t *testing.T) {
 	}
 }
 
-func TestTokenPlanUsageWindowsKeepTheirSpans(t *testing.T) {
-	ws := parseTokenPlanUsage(map[string]json.RawMessage{
-		"per1MonthPercentage": json.RawMessage(`0.25`), "per1MonthResetTime": json.RawMessage(`1792252800000`),
-		"per5HourPercentage": json.RawMessage(`0.5`), "per7DayPercentage": json.RawMessage(`0.1`), "note": json.RawMessage(`"x"`),
-	})
-	if len(ws) != 3 || ws[0].Name != "5 hours" || ws[1].Name != "7 days" || ws[2].Name != "Month" ||
-		*ws[0].UsedPercent != 50 || ws[2].ResetsAt == nil || ws[0].ResetsAt != nil {
-		t.Fatalf("windows = %+v", ws)
-	}
-}
-
 func TestBrowserSessionSendsOnlyTheSitesCookies(t *testing.T) {
 	s := browserSession{cookies: []siteCookie{
 		{".aliyun.com", "a", "1"}, {"bailian.console.aliyun.com", "b", "2"}, {".console.aliyun.com", "c", "3"}, {"evil-aliyun.com", "d", "4"},
@@ -257,10 +246,15 @@ func bailianCLIServer(t *testing.T) *httptest.Server {
 				{"model":"qwen-image-2.1-pro","quotaTotal":"10","quotaInitTotal":"10","quotaValidityPeriod":1798732800000,"quotaStatus":"VALID"},
 				{"model":"old-model","quotaTotal":0,"quotaInitTotal":1000000,"quotaValidityPeriod":1780000000000,"quotaStatus":"EXPIRED"},
 				{"model":"qwen-image","quotaTotal":0,"quotaInitTotal":0,"quotaStatus":"VALID"}]}`)))
+		// the Token Plan's replies are the module's canonical fixtures
 		case "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/subscription":
-			_, _ = w.Write([]byte(ok(`{"instanceCode":"sfm_tokenplansolo_public_cn-x","specCode":"pro","endTime":1792252800000,"autoRenewFlag":true,"status":"VALID"}`)))
+			_, _ = w.Write(aliyunFixture(t, "subscription.json"))
 		case "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/usage":
-			_, _ = w.Write([]byte(ok(`{"per5HourPercentage":0.2,"per5HourResetTime":1791400000000,"per1WeekPercentage":0.5,"per1WeekResetTime":1791900000000}`)))
+			_, _ = w.Write(aliyunFixture(t, "usage.json"))
+		case "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/addon/summary":
+			_, _ = w.Write(aliyunFixture(t, "addons.json"))
+		case "zeldaEasy.bailian-commerce.tokenPlan.queryTokenPlanEquityInfo":
+			_, _ = w.Write(aliyunFixture(t, "equity.json"))
 		default:
 			_, _ = w.Write([]byte(ok(`{}`)))
 		}
@@ -293,10 +287,23 @@ func TestTokenPlanThroughTheCLISignInShowsItsWeek(t *testing.T) {
 	l := testLocal(t, nil)
 	l.URLs["aliyun.cli"] = srv.URL
 	a := readTokenPlan(context.Background(), l, Connection{ID: "p", Provider: "aliyun", Mode: "token-plan", Values: map[string]string{"token": "tok"}})
-	if a.Status != StatusOK || a.Plan != "Pro" || a.RenewsAt == nil || len(a.Windows) != 2 ||
-		a.Windows[0].Name != "5 hours" || a.Windows[1].Name != "Week" || *a.Windows[1].UsedPercent != 50 {
+	if a.Status != StatusOK || a.Plan != "Pro" || a.RenewsAt == nil || len(a.Windows) != 3 ||
+		a.Windows[0].Name != "5 hours" || a.Windows[1].Name != "Week" || *a.Windows[1].UsedPercent != 50 ||
+		a.Windows[2].Name != "Add-on credits" || *a.Windows[2].Left != 120.5 || *a.Windows[2].Limit != 500 {
 		t.Fatalf("token plan = %+v", a)
 	}
+	if tools := a.Groups[0]; len(tools.Windows) != 2 || tools.Windows[1].Name != "Speech recognition MCP" || *tools.Windows[1].Left != 17940.5 {
+		t.Fatalf("tools = %+v", a.Groups)
+	}
+}
+
+func aliyunFixture(t *testing.T, name string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "providers", "aliyun", "testdata", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func TestAlibabaCloudLoginTakesTheTokenTheConsoleHandsBack(t *testing.T) {
@@ -328,5 +335,17 @@ func TestAlibabaCloudLoginTakesTheTokenTheConsoleHandsBack(t *testing.T) {
 	v, err := aliyunLogin(context.Background(), l)
 	if err != nil || v["token"] != "tok" || v["region"] != "cn-beijing" || v["site"] != "domestic" {
 		t.Fatalf("login = %v, %v", v, err)
+	}
+}
+
+// A sign-in's site reaches the module as bl names it, so the China
+// endpoints serve it (design 13 §5.1).
+func TestSignInSiteIsNamedAsBlNamesIt(t *testing.T) {
+	for in, want := range map[string]string{"domestic": "", "china": "", "": "", "intl": "international", "international": "international"} {
+		c := Connection{Provider: "aliyun", Mode: "token-plan", Way: "sign-in", Values: map[string]string{"token": "tok", "site": in}}
+		got, err := Resolve(Providers(), testLocal(t, nil), c)
+		if err != nil || got.Values["site"] != want || got.Values["token"] != "tok" || c.Values["site"] != in {
+			t.Errorf("site %q: %v %v (want %q, the stored values untouched)", in, got.Values, err, want)
+		}
 	}
 }

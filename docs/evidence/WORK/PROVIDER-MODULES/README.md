@@ -285,3 +285,26 @@ Tests: `TestSupplyReadsWhatItRequires`, the `When` cases in `TestOffersFollowPro
 session stays with the quota reader; a second package becomes a "Tool benefits" group),
 `TestNativeModuleResolveSignedOut`. **Mutation check:** routing every session to the module
 makes the browser session reach the module, and the test fails.
+
+**C2 — `providers/aliyun`: Token Plan.** Read through Bailian's CLI gateway with a console
+token (bl's, or Ant's own console sign-in): the plan (identity = the instance code, plan name,
+start/end, auto-renew, status), its usage windows as percent (`window/5hour`, `window/1week`,
+`window/1month`…, exact from the reported fraction), add-on credits (exact, 10^-6), and the tool
+benefits as a second package ("Tool benefits", aside: they never limit models) with the 12 %-off
+sentence in the note. China vs international site picks the gateway host; the region comes from
+the session (default `cn-beijing`). Offers: the Token Plan endpoint
+(`token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`) for China-site sessions only;
+models only through a bl profile's model key whose base is that origin.
+
+- One parser per reply, shared with quota: `aliyun.ParseCLIReply` (the CLI gateway envelope;
+  quota's CLI client now calls it), `ParseUsage`, `Tool`, the reply types (numbers as
+  `json.Number`). Quota's Token Plan reader (browser and CLI paths) uses them;
+  `parseTokenPlanUsage`, `windowName`, the tool table and `requestID` left quota.
+- Ant's sign-in records the site as the console-login page says it ("domestic"); the sign-in way
+  now resolves it as bl names it (unset for China), so the China endpoint serves it
+  (`TestSignInSiteIsNamedAsBlNamesIt`).
+- Fixtures `providers/aliyun/testdata/` (CLI envelope; subscription, usage, add-ons, tools,
+  not-logged-in, no-plan — the last constructed, see its README), read by the module's tests and
+  by quota's CLI tests. **Mutation check:** week `0.5→0.6` in `usage.json` fails
+  `TestTokenPlanInventory` (module) and `TestTokenPlanThroughTheCLISignInShowsItsWeek` (quota).
+- Not wired yet (C5): until then no session reaches the module.

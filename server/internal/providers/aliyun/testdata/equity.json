@@ -1,0 +1,1 @@
+{"code":"200","data":{"DataV2":{"data":{"success":true,"data":{"tokenPlanEquityInfos":[{"availableQuota":20,"equityType":"tokenplan_harnesstool_image_generation","totalQuota":20,"instanceEndTime":1792252800000},{"availableQuota":17940.5,"equityType":"tokenplan_harnesstool_asr","totalQuota":18000,"instanceEndTime":1792252800000}],"userId":"1"}}},"success":true}}
