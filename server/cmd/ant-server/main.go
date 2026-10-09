@@ -59,8 +59,12 @@ func run() error {
 		demo                  bool
 		backupTo              string
 		restoreFrom           string
+		nextFreePort          bool
+		stateFile             string
 	)
-	flag.StringVar(&addr, "addr", "127.0.0.1:8080", "listen address")
+	flag.StringVar(&addr, "addr", defaultAddr, "listen address")
+	flag.BoolVar(&nextFreePort, "next-free-port", false, "if the port is taken, listen on the next free one")
+	flag.StringVar(&stateFile, "state-file", "", "write where the server listens to this file (e.g. ~/.config/ant/server.json) while it runs")
 	flag.StringVar(&supplyNamespace, "supply-namespace", "local", "namespace the supply engine records this machine's accounts in")
 	flag.StringVar(&dsn, "db", "", "sqlite database path (required)")
 	flag.BoolVar(&bootstrapAdmin, "bootstrap-admin", false, "create the one-time local administrator token, print once, and exit")
@@ -407,7 +411,7 @@ func run() error {
 		// global write deadline (08-API §4).
 	}
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenFrom(addr, nextFreePort)
 	if err != nil {
 		if executionHost != nil {
 			_ = executionHost.Close(context.Background())
@@ -424,6 +428,14 @@ func run() error {
 	}
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
+	addr = ln.Addr().String()
+	srv.Addr = addr
+	removeState, err := writeState(stateFile, addr)
+	if err != nil {
+		logger.Warn("couldn't record where Ant listens", "err", err)
+		removeState = func() {}
+	}
+	defer removeState()
 	logger.Info("http ready", "addr", addr)
 
 	select {

@@ -10,7 +10,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 (cd server && go build -o "../$APP/Contents/Resources/ant-server" ./cmd/ant-server)
-swiftc -O -o "$APP/Contents/MacOS/Ant" app/macos/AntApp.swift -framework AppKit
+swiftc -O -swift-version 5 -parse-as-library -o "$APP/Contents/MacOS/Ant" app/macos/AntApp.swift -framework AppKit -framework SwiftUI
 cp assets/brand/Ant.icns "$APP/Contents/Resources/Ant.icns"
 cp assets/brand/menubar/AntTemplate.png assets/brand/menubar/AntTemplate@2x.png "$APP/Contents/Resources/"
 

@@ -31,7 +31,7 @@ ant-home:
 		echo "Ant's database is now $(ANT_DB) (data/ant.db kept as a backup)"; fi
 
 run: build ant-home
-	./bin/ant-server -db $(ANT_DB)
+	./bin/ant-server -db $(ANT_DB) -next-free-port -state-file $(ANT_HOME)/server.json
 
 # Ant.app: the menu bar ant, with the server inside (bin/Ant.app);
 # install-app puts it in ~/Applications.

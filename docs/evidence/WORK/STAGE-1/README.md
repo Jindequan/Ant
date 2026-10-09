@@ -158,3 +158,23 @@ Ant starts.
 (kept as a backup) and makes it private (600). Checked: integrity ok, 31 sealed secrets,
 byte-identical to the original. Installed to `~/Applications/Ant.app`; not opened (opening it
 reads the real accounts — the user's to do).
+
+## Diagnosis fixes 5–7: runs itself, and a real menu bar panel (2026-10-09)
+
+[Diagnosis](../../../DIAGNOSIS-2026-10-09.md) findings 5–7.
+
+- **Port** (6): Ant's port is 17890 (8080 is everyone's); `-next-free-port` moves to the next free
+  one when it's taken; `-state-file` records where Ant listens (`~/.config/ant/server.json`,
+  private, removed on exit). The app and `make run` use both; the app finds a running Ant there.
+  Tested (a taken port moves; the state file says where and goes).
+- **Environment** (5): the app starts the server with the login shell's environment (`$SHELL -lic
+  env`), as Terminal would: on the user's Mac that brings `HTTPS_PROXY` (Copilot's "TLS handshake
+  timeout" came from its absence) and `PATH`. Checked on the running demo server: both set.
+- **Panel** (7): a designed panel instead of a plain menu — header (the ant, updated, read again,
+  open), colour chips (amber "use first", red "need you", green prepaid), **Use first** with bars
+  and times, **Needs you** (signed out / couldn't read), and every account by kind
+  (Subscriptions, Free, Balances) with the one value that matters, in one column; footer: Open
+  Ant, an Open-at-login switch, Quit. Light and dark below (drawn offscreen with `ANT_SNAPSHOT`;
+  logos load in the live panel, not offscreen).
+
+![Ant's menu bar panel, light and dark](menubar-panel.png)
