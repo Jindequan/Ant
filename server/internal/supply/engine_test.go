@@ -13,6 +13,11 @@ import (
 	"ant/server/internal/store/sqlite"
 )
 
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
+
 type fixedClock struct{ now atomic.Int64 }
 
 func (c *fixedClock) Now() domain.Millis { return domain.Millis(c.now.Load()) }
@@ -71,7 +76,7 @@ func newTestEngine(t *testing.T, src Source, p Policy) (*Engine, string, *fixedC
 	path := filepath.Join(t.TempDir(), "ant.db")
 	clock := &fixedClock{}
 	clock.now.Store(1_000_000)
-	st, err := sqlite.Open(path, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

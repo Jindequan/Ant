@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"ant/server/internal/domain"
 	"ant/server/internal/runtime"
@@ -12,11 +13,16 @@ import (
 	"ant/server/internal/store/sqlite"
 )
 
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
+
 func openAuthStore(t *testing.T) (*sqlite.Store, *Store) {
 	t.Helper()
 	clock := runtime.NewClock()
 	path := filepath.Join(t.TempDir(), "auth.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

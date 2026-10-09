@@ -10,14 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"ant/server/internal/runtime"
 	"ant/server/internal/store"
 	"ant/server/internal/store/sqlite"
 )
 
 func TestMigrateFreshDatabaseCreatesEveryTable(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -36,7 +35,7 @@ func TestMigrateFreshDatabaseCreatesEveryTable(t *testing.T) {
 func TestMigrateIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -62,7 +61,7 @@ func TestMigrateConcurrentAppliesExactlyOnce(t *testing.T) {
 	const racers = 2
 	stores := make([]store.Store, 0, racers)
 	for i := 0; i < racers; i++ {
-		st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+		st, err := sqlite.Open(path, testConfig())
 		if err != nil {
 			t.Fatalf("open store %d: %v", i, err)
 		}
@@ -109,7 +108,7 @@ func TestMigrateRejectsFutureSchema(t *testing.T) {
 		t.Fatalf("close future db: %v", err)
 	}
 
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -238,7 +237,7 @@ func TestSecretOwnershipMigrationCopyMatchesCanonicalFile(t *testing.T) {
 
 func TestForeignKeyConstraintEnforced(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -257,7 +256,7 @@ func TestForeignKeyConstraintEnforced(t *testing.T) {
 
 func TestStrictTablesRejectWrongTypes(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	_ "modernc.org/sqlite" // raw database/sql access for schema-level assertions
 
@@ -22,15 +23,24 @@ import (
 
 const validConfigFixture = "../../../contracts/fixtures/config-document-valid.json"
 
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: tests
+// here are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget). Budget tests set their own.
+const fixtureCommandBudget = 10 * time.Second
+
 func testConfig() sqlite.Config {
-	return sqlite.Config{Clock: runtime.NewClock()}
+	return sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget}
 }
 
-// openTestStore opens a store on a fresh file database and migrates it.
+// openTestStore opens a store on a fresh file database and migrates it. An
+// unset CommandBudget gets the fixture budget.
 func openTestStore(t *testing.T, cfg sqlite.Config) (store.Store, string) {
 	t.Helper()
 	if cfg.Clock == nil {
 		cfg.Clock = runtime.NewClock()
+	}
+	if cfg.CommandBudget == 0 {
+		cfg.CommandBudget = fixtureCommandBudget
 	}
 	path := filepath.Join(t.TempDir(), "ant.db")
 	st, err := sqlite.Open(path, cfg)

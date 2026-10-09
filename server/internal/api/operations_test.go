@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"ant/server/internal/application"
 	"ant/server/internal/domain"
@@ -15,6 +16,11 @@ import (
 	"ant/server/internal/runtime"
 	"ant/server/internal/store/sqlite"
 )
+
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
 
 type operationQueriesStub struct{ missing bool }
 
@@ -209,7 +215,7 @@ func TestOperationOutputRouteIsAuthenticatedAndValidatesPagination(t *testing.T)
 func TestOperationCancelRouteUsesSQLiteReceiptIdempotency(t *testing.T) {
 	ctx := context.Background()
 	clock := runtime.NewClock()
-	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -57,7 +57,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	accounts := quota.NewStore("")
 	src := New(local, accounts, providers, Native{Module: zm, Fetch: zf}, Native{Module: dm, Fetch: df})
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

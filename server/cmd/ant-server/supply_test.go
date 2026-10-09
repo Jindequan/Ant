@@ -6,11 +6,17 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"ant/server/internal/quota"
 	"ant/server/internal/runtime"
 	"ant/server/internal/store/sqlite"
 )
+
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
 
 // The vault needs no setup: the first start creates a private key file, a
 // restart reuses it, and a plaintext accounts.json is moved into the
@@ -26,7 +32,7 @@ func TestLocalVaultMovesPlaintextKeysAndSurvivesRestart(t *testing.T) {
 	}
 	keyPath := filepath.Join(dir, "master.key")
 	clock := runtime.NewClock()
-	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
