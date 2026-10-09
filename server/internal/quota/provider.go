@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"time"
 )
 
@@ -74,6 +75,33 @@ type Way struct {
 	Key           string                                           `json:"-"`
 	Discover      func(Local) []Connection                         `json:"-"`
 	Read          func(context.Context, Local, Connection) Account `json:"-"`
+	// Resolve, when set, reads the connection's values at read time (bl's
+	// sign-in, which bl login replaces): a provider module reads with them.
+	Resolve func(Local, Connection) (map[string]string, error) `json:"-"`
+}
+
+// ErrSignedOut: the values a connection reads with are gone (the app that
+// held them signed out). Wrapped with what the user should do.
+var ErrSignedOut = errors.New("signed out")
+
+// Resolve is connection c with the values it reads with now: its way's
+// Resolve, else the values it has.
+func Resolve(providers []Provider, l Local, c Connection) (Connection, error) {
+	p, _ := providerByID(providers, c.Provider)
+	m, _ := p.mode(c.Mode)
+	for i, w := range m.Ways {
+		if w.ID == c.Way || (c.Way == "" && i == 0) {
+			if w.Resolve != nil {
+				v, err := w.Resolve(l, c)
+				if err != nil {
+					return c, err
+				}
+				c.Values = v
+			}
+			break
+		}
+	}
+	return c, nil
 }
 
 // allWays is the mode's ways, or its one way.

@@ -261,3 +261,27 @@ judged on their balance ("Prepaid: 23.40 CNY left") or plan ("Plan: 5 hours 40% 
 left"). **Mutation checks:** not skipping used-up grants, ranking `free` with `plan`, and
 describing an account by its latest-ending grant each fail the test (the last needed a
 two-grant account, added after the first version of the test let it pass).
+
+## Design 13 phase C: Bailian (2026-10-09)
+
+Worked on branch `design13-phase-c` in its own worktree (`.claude/worktrees/phase-c`) at the
+user's choice, because another session's uncommitted debug traces were in the main checkout.
+
+**C0** (`c1e04bb`): phase C revised after reading quota's Bailian readers (design 13 §5.1).
+
+**C1 — contract, module layer only.**
+- `catalog.Supply.Requires` + `Supply.Reads(session)`: a module reads only sessions that hold
+  what the product requires; the others stay with the quota reader.
+- `catalog.Endpoint.When` replaces `Region`: session values that must match, `""` matching an
+  unset value (Kimi now `When{"region":"cn"}`).
+- `catalog.Session.Now`: the engine's clock for signed requests.
+- `quota.Way.Resolve` + `quota.Resolve`: values read at read time; bl's resolution is shared by
+  the quota reader (`withBLConfig`) and the module path; `quota.ErrSignedOut` when bl is signed out.
+- The adapter's card projection: packages after the first are the card's groups, titled by plan.
+
+Tests: `TestSupplyReadsWhatItRequires`, the `When` cases in `TestOffersFollowProductAndRegion`
+(an international-site session is offered no China endpoint), `TestNativeModuleReadsOnlyWhatItRequires`
+(a CLI session is read by the module with resolved values and the engine's clock; a browser
+session stays with the quota reader; a second package becomes a "Tool benefits" group),
+`TestNativeModuleResolveSignedOut`. **Mutation check:** routing every session to the module
+makes the browser session reach the module, and the test fails.

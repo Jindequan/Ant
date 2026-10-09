@@ -3,6 +3,7 @@ package quota
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,19 +75,28 @@ func discoverBLConfig(mode string) func(Local) []Connection {
 	}
 }
 
+// resolveBL is what a bl connection reads with now: bl's active profile.
+func resolveBL(_ Local, c Connection) (map[string]string, error) {
+	p := c.Values["blConfig"]
+	if p == "" {
+		return c.Values, nil
+	}
+	v := blProfile(p)
+	if v == nil || (v["token"] == "" && v["accessKeyId"] == "") {
+		return nil, fmt.Errorf("%w: The Bailian CLI is signed out. Run bl login.", ErrSignedOut)
+	}
+	return v, nil
+}
+
 // withBLConfig wraps a reader so a bl connection reads with what bl holds now.
 func withBLConfig(read func(context.Context, Local, Connection) Account) func(context.Context, Local, Connection) Account {
 	return func(ctx context.Context, l Local, c Connection) Account {
-		p := c.Values["blConfig"]
-		if p == "" {
-			return read(ctx, l, c)
-		}
-		v := blProfile(p)
-		if v == nil || (v["token"] == "" && v["accessKeyId"] == "") {
+		v, err := resolveBL(l, c)
+		if err != nil {
 			prov := aliyunProvider()
 			m, _ := prov.mode(c.Mode)
 			a := base(prov, m, c, l.Now())
-			a.Status, a.Message = StatusSignedOut, "The Bailian CLI is signed out. Run bl login."
+			a.Status, a.Message = StatusSignedOut, strings.TrimPrefix(err.Error(), ErrSignedOut.Error()+": ")
 			return a
 		}
 		c.Values = v

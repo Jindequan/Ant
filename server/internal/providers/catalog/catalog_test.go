@@ -75,9 +75,10 @@ func TestPlanName(t *testing.T) {
 func TestOffersFollowProductAndRegion(t *testing.T) {
 	s := &catalog.Supply{Endpoints: []catalog.Endpoint{
 		{Base: "https://api.kimi.com/coding/v1", Protocol: "openai-chat", Product: "code"},
-		{Base: "https://api.moonshot.cn/v1", Protocol: "openai-chat", Product: "api", Region: "cn"},
-		{Base: "https://api.moonshot.ai/v1", Protocol: "openai-chat", Product: "api", Region: "ai"},
-		{Base: "https://shared.example/v1", Protocol: "openai-chat"}, // no selector: every credential
+		{Base: "https://api.moonshot.cn/v1", Protocol: "openai-chat", Product: "api", When: map[string]string{"region": "cn"}},
+		{Base: "https://api.moonshot.ai/v1", Protocol: "openai-chat", Product: "api", When: map[string]string{"region": "ai"}},
+		{Base: "https://china-only.example/v1", Protocol: "openai-chat", Product: "plan", When: map[string]string{"site": ""}}, // "" = not set
+		{Base: "https://shared.example/v1", Protocol: "openai-chat"},                                                           // no selector: every credential
 	}}
 	models := []observed.UpstreamModel{{ID: "kimi-k3"}}
 	bases := func(session catalog.Session) string {
@@ -91,11 +92,36 @@ func TestOffersFollowProductAndRegion(t *testing.T) {
 		{Product: "code"}: "https://api.kimi.com/coding/v1 https://shared.example/v1",
 		{Product: "api", Values: map[string]string{"region": "cn"}}: "https://api.moonshot.cn/v1 https://shared.example/v1",
 		{Product: "api", Values: map[string]string{"region": "ai"}}: "https://api.moonshot.ai/v1 https://shared.example/v1",
-		{}: "https://shared.example/v1",
+		{}:                "https://shared.example/v1",
+		{Product: "plan"}: "https://china-only.example/v1 https://shared.example/v1",
+		{Product: "plan", Values: map[string]string{"site": "international"}}: "https://shared.example/v1",
 	} {
 		if got := bases(*session); got != want {
 			t.Errorf("%+v: %s, want %s", *session, got, want)
 		}
+	}
+}
+
+// A module reads a session only when it holds what the product requires.
+func TestSupplyReadsWhatItRequires(t *testing.T) {
+	s := &catalog.Supply{Requires: map[string][]string{"token-plan": {"token"}, "payg": {"accessKeyId", "accessKeySecret"}}}
+	for _, c := range []struct {
+		sess catalog.Session
+		want bool
+	}{
+		{catalog.Session{Product: "token-plan", Values: map[string]string{"token": "t"}}, true},
+		{catalog.Session{Product: "token-plan", Values: map[string]string{"session": "cookies"}}, false},
+		{catalog.Session{Product: "token-plan", Values: map[string]string{"token": " "}}, false},
+		{catalog.Session{Product: "payg", Values: map[string]string{"accessKeyId": "LTAI", "accessKeySecret": "s"}}, true},
+		{catalog.Session{Product: "payg", Values: map[string]string{"accessKeyId": "LTAI"}}, false},
+		{catalog.Session{Product: "free-quota"}, true}, // not listed: every session
+	} {
+		if got := s.Reads(c.sess); got != c.want {
+			t.Errorf("%+v: %v, want %v", c.sess, got, c.want)
+		}
+	}
+	if !(&catalog.Supply{}).Reads(catalog.Session{Product: "x"}) {
+		t.Error("a module without requirements reads every session")
 	}
 }
 

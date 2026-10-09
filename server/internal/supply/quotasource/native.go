@@ -48,10 +48,20 @@ func (n *natives) of(provider string) (Native, bool) {
 
 // collect reads one connection with its provider's module and returns the
 // page's card and the engine's result.
-func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quota.Connection, now time.Time, nat Native) (quota.Account, supply.Result) {
+// resolveErr is why the connection's values couldn't be read now.
+func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quota.Connection, now time.Time, nat Native, resolveErr error) (quota.Account, supply.Result) {
 	a := quota.NewAccount(providers, c, now)
 	a.Live = true
-	s := catalog.Session{Product: c.Mode, Values: c.Values}
+	if resolveErr != nil {
+		a.Status, a.Message = quota.StatusError, resolveErr.Error()
+		r := supply.Result{Outcome: supply.OutcomeError, Detail: a.Message}
+		if errors.Is(resolveErr, quota.ErrSignedOut) {
+			a.Status, a.Message = quota.StatusSignedOut, strings.TrimPrefix(resolveErr.Error(), quota.ErrSignedOut.Error()+": ")
+			r = supply.Result{Outcome: supply.OutcomeSignedOut, Detail: a.Message}
+		}
+		return a, r
+	}
+	s := catalog.Session{Product: c.Mode, Values: c.Values, Now: now}
 	inv, err := nat.Module.Supply.Collector.Inventory(ctx, s, nat.Fetch)
 	if err != nil {
 		a.Status, a.Message = quota.StatusError, err.Error()
@@ -95,13 +105,25 @@ func (n *natives) listModels(ctx context.Context, c quota.Connection, s catalog.
 }
 
 // project shows an inventory on its card: windows for allowances, balances
-// for money, the plan, the note, and the display-only grouping.
+// for money, the plan, the note, and the display-only grouping. The first
+// package is the card's own; each further one is a group titled by its
+// plan (Token Plan's tool benefits), the inverse of inventory().
 func project(a *quota.Account, inv observed.Inventory) {
 	a.Identity, a.Message = inv.DisplayGroup, inv.Note
-	for _, p := range inv.Packages {
-		if p.Plan != "" && a.Plan == "" {
-			a.Plan = p.Plan
+	for i, p := range inv.Packages {
+		if i > 0 {
+			g := quota.Group{Title: p.Plan}
+			for _, r := range p.Resources {
+				if r.Currency != "" {
+					g.Balances = append(g.Balances, balanceOf(r))
+				} else {
+					g.Windows = append(g.Windows, windowOf(r))
+				}
+			}
+			a.Groups = append(a.Groups, g)
+			continue
 		}
+		a.Plan = p.Plan
 		if p.Kind == "payg" && len(p.Resources) == 0 {
 			a.Kind, a.ModeName = quota.KindAPI, "API key"
 		}

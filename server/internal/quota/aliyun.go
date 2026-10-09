@@ -55,7 +55,7 @@ func aliyunProvider() Provider {
 	}
 	bl := func(mode string, read func(context.Context, Local, Connection) Account) Way {
 		return Way{ID: "bl", Name: "Bailian CLI", Hint: "Ant reads the Bailian CLI's sign-in (~/.bailian). Run bl login.",
-			Fields: []Field{}, Discover: discoverBLConfig(mode), Read: withBLConfig(read)}
+			Fields: []Field{}, Discover: discoverBLConfig(mode), Read: withBLConfig(read), Resolve: resolveBL}
 	}
 	return Provider{ID: "aliyun", Name: "Alibaba Cloud Bailian", Link: bailianConsole + bailianPlanPage, Media: []string{"text", "image", "video", "speech"}, Modes: []Mode{
 		{

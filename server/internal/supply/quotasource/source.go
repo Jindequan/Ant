@@ -13,6 +13,7 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/domain/observed"
+	"ant/server/internal/providers/catalog"
 	"ant/server/internal/quota"
 	"ant/server/internal/store"
 	"ant/server/internal/supply"
@@ -79,9 +80,14 @@ func (s *Source) Collect(ctx context.Context, cred supply.Credential) supply.Res
 		return supply.Result{Outcome: supply.OutcomeError, Detail: "connection vanished before it was read"}
 	}
 	if nat, ok := s.natives.of(c.Provider); ok {
-		a, r := s.natives.collect(ctx, s.providers, c, s.local.Now(), nat)
-		s.keep(c, a)
-		return r
+		// the module reads the sessions holding what it needs; the others
+		// (a browser sign-in) stay with the quota reader
+		rc, err := quota.Resolve(s.providers, s.local, c)
+		if err != nil || nat.Module.Supply.Reads(catalog.Session{Product: rc.Mode, Values: rc.Values}) {
+			a, r := s.natives.collect(ctx, s.providers, rc, s.local.Now(), nat, err)
+			s.keep(c, a)
+			return r
+		}
 	}
 	a := quota.Read(ctx, s.providers, s.local, c)
 	if err := quota.KeepRenewed(s.store, c, &a); err != nil {

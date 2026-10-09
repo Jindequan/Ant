@@ -57,8 +57,8 @@ func Module(codeBase, cnBase, aiBase string) catalog.Module {
 		Origins: []string{codeBase, cnBase, aiBase},
 		Endpoints: []catalog.Endpoint{
 			{Base: codeBase + "/coding/v1", Protocol: "openai-chat", Draws: codeDraws, Product: ProductCode},
-			{Base: cnBase + "/v1", Protocol: "openai-chat", Draws: []string{"balance/cny"}, Product: ProductAPI, Region: "cn"},
-			{Base: aiBase + "/v1", Protocol: "openai-chat", Draws: []string{"balance/usd"}, Product: ProductAPI, Region: "ai"},
+			{Base: cnBase + "/v1", Protocol: "openai-chat", Draws: []string{"balance/cny"}, Product: ProductAPI, When: map[string]string{"region": "cn"}},
+			{Base: aiBase + "/v1", Protocol: "openai-chat", Draws: []string{"balance/usd"}, Product: ProductAPI, When: map[string]string{"region": "ai"}},
 		},
 		Collector: collector{code: codeBase, regions: rs},
 	}}

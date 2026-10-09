@@ -27,33 +27,60 @@ type Supply struct {
 	Origins   []string // every https origin the collector may contact
 	Endpoints []Endpoint
 	Collector Collector
+	// Requires names, per product, the values a session must hold for the
+	// module to read it (Bailian's module reads a console token or an
+	// AccessKey; a browser sign-in stays with its quota reader). A product
+	// not listed: the module reads every session.
+	Requires map[string][]string
+}
+
+// Reads reports whether the module reads this session.
+func (s *Supply) Reads(sess Session) bool {
+	for _, k := range s.Requires[sess.Product] {
+		if strings.TrimSpace(sess.Values[k]) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // Endpoint is where an account's models are called, and the meters a call
-// there draws on (resource template refs of the inventory). Product and
-// Region select which credentials it serves, when a module holds several
-// products (Kimi Code and the Moonshot platform) or regions (moonshot.cn
-// and moonshot.ai); empty serves every credential of the module.
+// there draws on (resource template refs of the inventory, or
+// observed.DrawModelScope). Product and When select which credentials it
+// serves, when a module holds several products (Kimi Code and the Moonshot
+// platform) or sites (moonshot.cn and moonshot.ai): the session's product,
+// and session values that must match exactly ("" matches a value that
+// isn't set). Without them it serves every credential of the module.
 type Endpoint struct {
 	Base     string
 	Protocol string // openai-chat, anthropic-messages, …
 	Draws    []string
 	Product  string
-	Region   string
+	When     map[string]string
 }
 
 // serves reports whether a credential reads through this endpoint.
 func (e Endpoint) serves(s Session) bool {
-	return (e.Product == "" || e.Product == s.Product) && (e.Region == "" || e.Region == s.Values["region"])
+	if e.Product != "" && e.Product != s.Product {
+		return false
+	}
+	for k, v := range e.When {
+		if s.Values[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 // Session is the credential a collector reads with: which of the module's
 // products it is for (the connection's mode, e.g. "code" or "api"; "" when
-// the module has one) and its values (an API key, a token, a region),
-// resolved by the engine. Collectors keep nothing.
+// the module has one), its values (an API key, a token, a region),
+// resolved by the engine, and the engine's clock, for signed requests.
+// Collectors keep nothing and read no clock of their own.
 type Session struct {
 	Product string
 	Values  map[string]string
+	Now     time.Time
 }
 
 // Collector reads one account. Implementations parse only: the network is
