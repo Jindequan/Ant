@@ -86,7 +86,42 @@ draws on M's own grant, and on nothing scoped to another model.
 |---|---|---|
 | **B1** Design note (§ in this file, updated) | The rule: an endpoint may declare `Draws` entries that are template refs (as today) **and** the token `scope:model` = "every meter of the account whose scope is this offer's model". Model ids compare canonically (`catalog.ModelID`). A meter scoped to another model is never drawn. | Note reviewed in the commit; no code. |
 | **B2** Core: preview resolves `scope:model` | `supply/preview.go` resolves the token per offer; outlook and reasons unchanged. | Tests: a model's own grant is drawn, another model's isn't, canonical matching, empty grant → excluded "used up", grant + balance → grant first (use before lost / free first). |
-| **B3** Order class for free grants | Design 11 §3.5's order already puts "use before it's lost" first; a **free grant** (`free_grant` package) with room is ordered with it (it expires and costs nothing). | Test: free grant ahead of plan headroom and prepaid. |
+| **B3** Order class for free grants | Design 11 §3.5's order already puts "use before it's lost" first; a **free grant** (`free_grant` package) with room comes next, as its own class `free` (§4.1). | Test: free grant ahead of plan headroom and prepaid, behind use-before-lost; soonest-ending grant first. |
+
+### 4.1 The rule (B1, 2026-10-09)
+
+**What a route draws on.** An offer's `Draws` lists template refs, as today, and may also hold the
+token **`scope:model`**: every meter of the account whose scope is `{"kind":"model","model":M}`
+with `canonical(M)` equal to the offer's model id. And one guard for plain refs: a ref that names a
+meter scoped to *another* model is not drawn (today the preview would take it).
+
+**One canonical rule.** `canonical` is today's `catalog.ModelID` (lower-case, drop a `vendor/`
+prefix, nothing guessed). The core needs it to compare a scope with an offer, and the core may
+not import `providers/catalog`, so the rule moves to the leaf `domain/observed` (`observed.ModelID`)
+and `catalog.ModelID` is removed in its favour: one rule, one place. Scopes are **not** rewritten
+to hold a canonical id: a resource's id includes its scope JSON, so rewriting would split every
+existing model-scoped meter (Bailian's free quota through the quota adapter) from its history.
+
+**How drawn meters combine.** Windows and balances are *all needed* (today's rule: one used up
+excludes the route). A **free grant** — a meter of a `free_grant` package — is *used first while
+it has room* and is *skipped* once used up, when the route draws on anything else:
+
+| The route draws on | Grant has room | Grant used up |
+|---|---|---|
+| the model's grant only | eligible, class `free` | excluded: "qwen3-max used up" |
+| the grant and a balance | eligible, class `free` | judged on the balance alone (prepaid) |
+| the grant and plan windows | eligible, class `free` | judged on the windows alone (plan) |
+| no grant for this model | — | judged as today |
+
+Paused, signed out, couldn't read and not read still come first (design 12 §5, unchanged).
+
+**Order (B3).** Classes, best first: `use_before_lost`, **`free`**, `plan`, `prepaid`, `payg`. A
+free grant costs nothing and ends; plan headroom renews. A grant that ends within 24 h with at
+least 30 % left is `use_before_lost`, the same rule as plan windows. Among free candidates, the one
+that ends soonest comes first. Reason: "Free: qwen3-max 820,000 tokens left, ends in 41 days".
+
+**Not changed:** store schema, migrations, the reconciler, outlook; only `supply/preview.go`
+(resolution, combination, the new class) and `domain/observed` (the moved rule).
 
 ## 5. Phase C — Alibaba Cloud Bailian as the fourth module
 
