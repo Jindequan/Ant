@@ -15,7 +15,7 @@ func TestRestoreGuardIsAuditedVersionedAndIdempotent(t *testing.T) {
 	ctx := context.Background()
 	clock := &testClock{now: 1_800_000_000_000}
 	dbPath := filepath.Join(t.TempDir(), "restore-guard.db")
-	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestRestoreGuardIsAuditedVersionedAndIdempotent(t *testing.T) {
 func TestRestoreGuardRequiresManageAndEvidence(t *testing.T) {
 	ctx := context.Background()
 	clock := &testClock{now: 1}
-	st, err := sqlite.Open(filepath.Join(t.TempDir(), "restore-guard-auth.db"), sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(filepath.Join(t.TempDir(), "restore-guard-auth.db"), sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

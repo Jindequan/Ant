@@ -17,7 +17,7 @@ import (
 func TestSecretCreateRotateAndOwnership(t *testing.T) {
 	clock := &testClock{now: 1_790_000_000_000}
 	dbPath := filepath.Join(t.TempDir(), "secrets.db")
-	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

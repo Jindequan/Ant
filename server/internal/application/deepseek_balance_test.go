@@ -50,7 +50,7 @@ func TestDeepSeekBalanceObservationIsAuditedAndIdempotent(t *testing.T) {
 	ctx := context.Background()
 	clock := &testClock{now: 1_800_000_000_000}
 	path := filepath.Join(t.TempDir(), "deepseek-balance.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

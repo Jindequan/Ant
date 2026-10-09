@@ -19,7 +19,7 @@ func TestOperationQueriesAreNamespaceScopedAndKeysetStable(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "operations.db")
 	clock := &testClock{now: 1_790_000_000_000}
-	st, err := sqlite.Open(path, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

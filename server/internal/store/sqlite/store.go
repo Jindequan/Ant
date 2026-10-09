@@ -56,6 +56,14 @@ type Config struct {
 	// CommandBudget is the default whole-command budget for WriteCommands
 	// that do not set their own Budget. 0 → default (50ms); explicit values
 	// must be > 0.
+	//
+	// The 50ms default is sized for production builds, where commands take
+	// 1-3ms. Under -race the transpiled SQLite runs 10-17x slower (prepare
+	// ~14ms, activation ~20ms alone; up to 68ms with a loaded CPU), so a
+	// test whose subject is not the budget sets an explicit anti-hang budget
+	// here instead of grading host speed against the product limit (M-3).
+	// Budget tests set their budgets explicitly; the default itself is
+	// pinned by TestProfileDefaultsMatchStorageDesign.
 	CommandBudget time.Duration
 	// MaxRetries is how many times a command is retried in full (after a
 	// complete rollback) when SQLite reports busy/locked. 0 → default (2);

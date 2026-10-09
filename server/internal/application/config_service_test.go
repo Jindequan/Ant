@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"ant/server/internal/config"
 	"ant/server/internal/domain"
@@ -15,6 +16,11 @@ import (
 	"ant/server/internal/store"
 	"ant/server/internal/store/sqlite"
 )
+
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
 
 type testClock struct{ now domain.Millis }
 
@@ -30,7 +36,7 @@ func newServiceFixtureWithDBPath(t *testing.T) (*ConfigService, *testClock, doma
 	t.Helper()
 	clock := &testClock{now: 1_790_000_000_000}
 	dbPath := filepath.Join(t.TempDir(), "config.db")
-	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(dbPath, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"ant/server/internal/application"
 	"ant/server/internal/domain"
@@ -17,6 +18,11 @@ import (
 	"ant/server/internal/store"
 	"ant/server/internal/store/sqlite"
 )
+
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
 
 type faultClock struct{ now atomic.Int64 }
 
@@ -41,7 +47,7 @@ func openFaultStore(t *testing.T) (store.Store, *sql.DB, *faultClock) {
 	path := filepath.Join(t.TempDir(), "fault.db")
 	clock := &faultClock{}
 	clock.now.Store(100)
-	st, err := sqlite.Open(path, sqlite.Config{Clock: clock})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +117,7 @@ func TestRestoringOlderSnapshotClosesDispatchBeforePublishingDatabase(t *testing
 		t.Fatal(err)
 	}
 	oldPath := filepath.Join(dir, "old.db")
-	oldStore, err := sqlite.Open(oldPath, sqlite.Config{Clock: &faultClock{}})
+	oldStore, err := sqlite.Open(oldPath, sqlite.Config{Clock: &faultClock{}, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +154,7 @@ func TestRestoringOlderSnapshotClosesDispatchBeforePublishingDatabase(t *testing
 	}
 
 	targetPath := filepath.Join(dir, "live.db")
-	liveStore, err := sqlite.Open(targetPath, sqlite.Config{Clock: &faultClock{}})
+	liveStore, err := sqlite.Open(targetPath, sqlite.Config{Clock: &faultClock{}, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +173,7 @@ func TestRestoringOlderSnapshotClosesDispatchBeforePublishingDatabase(t *testing
 	if err := sqlite.RestoreBackup(ctx, backupPath, targetPath, 30); err != nil {
 		t.Fatalf("restore older backup: %v", err)
 	}
-	restored, err := sqlite.Open(targetPath, sqlite.Config{Clock: &faultClock{}})
+	restored, err := sqlite.Open(targetPath, sqlite.Config{Clock: &faultClock{}, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

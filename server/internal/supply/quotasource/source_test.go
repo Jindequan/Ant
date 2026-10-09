@@ -20,6 +20,11 @@ import (
 	"ant/server/internal/supply"
 )
 
+// fixtureCommandBudget is an anti-hang guard, not a graded threshold: these
+// tests are not about the 50ms product budget, which -race builds overrun
+// under load (see sqlite.Config.CommandBudget).
+const fixtureCommandBudget = 10 * time.Second
+
 // Every value a connection may carry as a secret stays out of the locator.
 func TestCredentialLocatorNeverHoldsASecret(t *testing.T) {
 	secrets := map[string]string{"apiKey": "SECRET-1", "cookie": "SECRET-2", "token": "SECRET-3", "session": "SECRET-4",
@@ -109,7 +114,7 @@ func TestThePageShowsWhatTheEngineRead(t *testing.T) {
 	src := New(local, accounts, providers)
 
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

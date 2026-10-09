@@ -120,7 +120,7 @@ func TestNativeModuleReadsBailian(t *testing.T) {
 	}
 	src := New(local, quota.NewStore(""), providers, Native{Module: m, Fetch: fetch})
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}

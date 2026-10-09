@@ -13,7 +13,6 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/ledger/commands"
-	"ant/server/internal/runtime"
 	"ant/server/internal/store"
 	"ant/server/internal/store/sqlite"
 )
@@ -248,7 +247,7 @@ func TestClaimProcessHelper(t *testing.T) {
 	if path == "" || worker == "" {
 		t.Fatal("helper environment incomplete")
 	}
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock()})
+	st, err := sqlite.Open(path, testConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
