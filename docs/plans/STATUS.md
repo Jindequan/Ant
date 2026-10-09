@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 13 step C3 (branch design13-phase-c): Bailian pay-as-you-go in the module — BssOpenApi with an AccessKey (RPC signature v1 on the session's clock, documented vector test): balance, this and last month's Bailian charges in Beijing-time cycles as an aside group, exact sums. Quota's AccessKey and browser bill paths use the module's signer, reply parser and sums (charges now exact). Refused key → signed out. Mutation-checked. Gates pass.
+
 2026-10-09 design 13 step C2 (branch design13-phase-c): `providers/aliyun` reads Bailian's Token Plan through the CLI gateway with a console token — plan, usage windows, add-on credits (exact), tool benefits as an aside group; offers at the Token Plan endpoint for China-site sessions. Quota's Token Plan reader and CLI client use the module's parsers over the same fixtures (mutation-checked); Ant's sign-in names its site as bl does. Not wired yet. Gates pass.
 
 2026-10-09 design 13 step C1 (branch design13-phase-c): module contract for Bailian — `Supply.Requires` (a module reads only sessions holding what it needs; browser sessions stay on quota), `Endpoint.When` (selection by session values, replacing `Region`), `Session.Now`, `quota.Way.Resolve` (bl's values read at read time, shared with the quota reader), further packages shown as card groups. Module layer only. Mutation-checked. Gates pass.

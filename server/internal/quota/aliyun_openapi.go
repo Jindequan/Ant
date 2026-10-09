@@ -2,19 +2,14 @@ package quota
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-	"sort"
 	"strings"
 	"time"
+
+	"ant/server/internal/providers/aliyun"
 )
 
 // --- the balance through the official API, with an AccessKey ---
@@ -65,7 +60,7 @@ func officialBilling(l Local, c Connection, now time.Time) billing {
 		for k, v := range params {
 			p[k] = fmt.Sprint(v)
 		}
-		q, err := signRPC(c.Values["accessKeyId"], c.Values["accessKeySecret"], p, now)
+		q, err := aliyun.SignRPC(c.Values["accessKeyId"], c.Values["accessKeySecret"], p, now)
 		if err != nil {
 			return err
 		}
@@ -76,14 +71,7 @@ func officialBilling(l Local, c Connection, now time.Time) billing {
 			}
 			return errors.New(aliyunError(err))
 		}
-		var ok struct {
-			Success bool   `json:"Success"`
-			Message string `json:"Message"`
-		}
-		if json.Unmarshal(b, &ok) != nil || !ok.Success {
-			return fmt.Errorf("Alibaba Cloud answered: %s", short(ok.Message))
-		}
-		return json.Unmarshal(b, dst)
+		return aliyun.ParseBSSReply(b, dst)
 	}
 }
 
@@ -96,49 +84,4 @@ func aliyunError(err error) string {
 		}
 	}
 	return short(err.Error())
-}
-
-// signRPC signs an Alibaba Cloud RPC request (signature version 1.0,
-// HMAC-SHA1) and returns its query string.
-func signRPC(id, secret string, params map[string]string, now time.Time) (string, error) {
-	if id == "" || secret == "" {
-		return "", fmt.Errorf("set the AccessKey ID and secret")
-	}
-	nonce := make([]byte, 16)
-	if _, err := rand.Read(nonce); err != nil {
-		return "", err
-	}
-	all := map[string]string{
-		"Format": "JSON", "AccessKeyId": id, "SignatureMethod": "HMAC-SHA1", "SignatureVersion": "1.0",
-		"SignatureNonce": hex.EncodeToString(nonce), "Timestamp": now.UTC().Format("2006-01-02T15:04:05Z"),
-	}
-	for k, v := range params {
-		all[k] = v
-	}
-	return rpcQuery(secret, all), nil
-}
-
-// rpcQuery is the canonical query of params followed by its signature.
-func rpcQuery(secret string, all map[string]string) string {
-	keys := make([]string, 0, len(all))
-	for k := range all {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	pairs := make([]string, len(keys))
-	for i, k := range keys {
-		pairs[i] = rpcEscape(k) + "=" + rpcEscape(all[k])
-	}
-	canonical := strings.Join(pairs, "&")
-	mac := hmac.New(sha1.New, []byte(secret+"&"))
-	mac.Write([]byte("GET&%2F&" + rpcEscape(canonical)))
-	return canonical + "&Signature=" + rpcEscape(base64.StdEncoding.EncodeToString(mac.Sum(nil)))
-}
-
-// rpcEscape is RFC 3986 percent-encoding, as Alibaba Cloud signs it.
-func rpcEscape(s string) string {
-	e := url.QueryEscape(s)
-	e = strings.ReplaceAll(e, "+", "%20")
-	e = strings.ReplaceAll(e, "*", "%2A")
-	return strings.ReplaceAll(e, "%7E", "~")
 }

@@ -308,3 +308,24 @@ models only through a bl profile's model key whose base is that origin.
   by quota's CLI tests. **Mutation check:** week `0.5→0.6` in `usage.json` fails
   `TestTokenPlanInventory` (module) and `TestTokenPlanThroughTheCLISignInShowsItsWeek` (quota).
 - Not wired yet (C5): until then no session reaches the module.
+
+**C3 — pay-as-you-go over an AccessKey.** The module calls BssOpenApi (RPC signature v1, signed
+with the session's clock): `QueryAccountBalance` → a `payg` package with the balance (exact,
+thousands separators accepted); `QueryBillOverview` for this month and last, in Beijing time →
+a second package "Charged by Bailian" (aside: spent money, never drawn on), the owner as identity
+(`payg:<owner>`), and "Usage worth … before free quota, plans and discounts." in the note. China
+or international billing host by the AccessKey's site. A refused key (unknown key, or a
+signature that doesn't match its secret) is signed out with Alibaba Cloud's code. No offers: an
+AccessKey lists no models.
+
+- Moved from quota and shared: `aliyun.SignRPC`/`RPCQuery` (with the documented signature
+  vector test), `ParseBSSReply`, `BillOverview`/`BillItem`, `SpendOf` (exact sums), `Money`,
+  `Cycles`. Quota's AccessKey and browser bill paths use them; quota's charged amounts are now
+  exact (`1.504321`, not `1.50`).
+- Fixtures `bss-balance.json`, `bss-bill-2026-09.json`, `bss-bill-empty.json`,
+  `bss-refused.json`, read by the module's tests and quota's AccessKey test. The fake billing
+  server re-signs each request with the secret, so a wrong secret is refused as Alibaba Cloud
+  refuses it. **Mutation check:** `0.004321→0.004322` in the September bill fails
+  `TestPaygInventory` (module) and `TestPayAsYouGoWithTheCLIsAccessKeyReadsTheOfficialBill`
+  (quota).
+- Cycles follow Beijing time: 17:30 UTC on Sep 30 is already October there (tested).

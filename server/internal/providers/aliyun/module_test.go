@@ -87,7 +87,7 @@ func newFake(t *testing.T) (*fakeBailian, catalog.Module, observed.Fetch) {
 	f.intl = httptest.NewTLSServer(handler("intl"))
 	t.Cleanup(f.srv.Close)
 	t.Cleanup(f.intl.Close)
-	m := Module(Bases{Gateway: f.srv.URL, GatewayIntl: f.intl.URL, TokenPlan: f.srv.URL})
+	m := Module(Bases{Gateway: f.srv.URL, GatewayIntl: f.intl.URL, TokenPlan: f.srv.URL, Business: f.srv.URL, BusinessIntl: f.intl.URL})
 	fetch, err := transport.NewObservationFetch(m.Supply.Origins, f.srv.Client().Transport)
 	if err != nil {
 		t.Fatal(err)

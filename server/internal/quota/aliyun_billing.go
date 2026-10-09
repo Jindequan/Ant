@@ -5,45 +5,18 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
+
+	"ant/server/internal/providers/aliyun"
 )
 
-// billItem is one line of the official BSS QueryBillOverview.
-type billItem struct {
-	ProductCode       string     `json:"ProductCode"`
-	SubscriptionType  string     `json:"SubscriptionType"`
-	PretaxAmount      flexNumber `json:"PretaxAmount"`
-	PretaxGrossAmount flexNumber `json:"PretaxGrossAmount"`
-	Currency          string     `json:"Currency"`
-	OwnerID           string     `json:"OwnerID"`
-}
-
-// bailianSpend is what Bailian (product sfm) charged pay-as-you-go in a
-// billing cycle, and what that usage was worth before free quota, coupons
-// and discounts.
-func bailianSpend(ctx context.Context, bill billing, cycle string) (charged, gross float64, currency, owner string, err error) {
-	var r struct {
-		Data struct {
-			Items struct {
-				Item []billItem `json:"Item"`
-			} `json:"Items"`
-		} `json:"Data"`
-	}
+// bailianSpend is what Bailian charged pay-as-you-go in a billing cycle,
+// summed exactly by the module.
+func bailianSpend(ctx context.Context, bill billing, cycle string) (aliyun.Spend, error) {
+	var r aliyun.BillOverview
 	if err := bill(ctx, "QueryBillOverview", map[string]any{"BillingCycle": cycle}, &r); err != nil {
-		return 0, 0, "", "", err
+		return aliyun.Spend{}, err
 	}
-	currency = "CNY"
-	for _, it := range r.Data.Items.Item {
-		owner = it.OwnerID
-		if it.ProductCode != "sfm" || it.SubscriptionType != "PayAsYouGo" {
-			continue
-		}
-		charged, gross = charged+float64(it.PretaxAmount), gross+float64(it.PretaxGrossAmount)
-		if it.Currency != "" {
-			currency = it.Currency
-		}
-	}
-	return charged, gross, currency, owner, nil
+	return aliyun.SpendOf(r.Data.Items.Item)
 }
 
 // flexNumber is an amount sent as a JSON number or as a string.
@@ -115,21 +88,20 @@ func readBailianPayg(ctx context.Context, l Local, c Connection) Account {
 		a.Balances = []Balance{{Label: "Balance", Currency: fund.Currency, Amount: strings.ReplaceAll(fund.AvailableAmount, ",", "")}}
 	}
 	spend := Group{Title: "Charged by Bailian"}
-	local := now.In(time.FixedZone("CST", 8*3600)) // Alibaba Cloud bills in Beijing time
 	var worth []string
-	for i, label := range []string{"This month", "Last month"} {
-		cycle := local.AddDate(0, -i, 1-local.Day()).Format("2006-01")
-		charged, gross, currency, owner, err := bailianSpend(ctx, bill, cycle)
+	for i, cycle := range aliyun.Cycles(now) { // Beijing time, as Alibaba Cloud bills
+		label := [2]string{"This month", "Last month"}[i]
+		sp, err := bailianSpend(ctx, bill, cycle)
 		if err != nil {
 			spend.Note = "Couldn't read the bill: " + short(err.Error())
 			break
 		}
-		if owner != "" {
-			a.Identity = "payg:" + owner
+		if sp.Owner != "" {
+			a.Identity = "payg:" + sp.Owner
 		}
-		spend.Balances = append(spend.Balances, Balance{Label: label, Currency: currency, Amount: money2(charged)})
-		if gross > charged {
-			worth = append(worth, fmt.Sprintf("%s ¥%s", strings.ToLower(label), money2(gross)))
+		spend.Balances = append(spend.Balances, Balance{Label: label, Currency: sp.Currency, Amount: aliyun.Money(sp.Charged)})
+		if sp.Gross > sp.Charged {
+			worth = append(worth, fmt.Sprintf("%s ¥%s", strings.ToLower(label), aliyun.Money(sp.Gross)))
 		}
 	}
 	if len(worth) > 0 && spend.Note == "" {

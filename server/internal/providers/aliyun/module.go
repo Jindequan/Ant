@@ -23,17 +23,21 @@ const (
 // Bases are the origins the module reads and the bases its models are
 // called at (DefaultBases in production; tests point them at fakes).
 type Bases struct {
-	Gateway     string // CLI gateway, China site (aliyun.com)
-	GatewayIntl string // CLI gateway, international site (alibabacloud.com)
-	TokenPlan   string // Token Plan's model endpoint origin (China)
+	Gateway      string // CLI gateway, China site (aliyun.com)
+	GatewayIntl  string // CLI gateway, international site (alibabacloud.com)
+	TokenPlan    string // Token Plan's model endpoint origin (China)
+	Business     string // billing API (BssOpenApi), China site
+	BusinessIntl string // billing API, international site
 }
 
 // DefaultBases, from Bailian's CLI and Alibaba Cloud's docs (design 13 §5.1).
 func DefaultBases() Bases {
 	return Bases{
-		Gateway:     "https://bailian-cs.console.aliyun.com",
-		GatewayIntl: "https://bailian-cs.console.alibabacloud.com",
-		TokenPlan:   "https://token-plan.cn-beijing.maas.aliyuncs.com",
+		Gateway:      "https://bailian-cs.console.aliyun.com",
+		GatewayIntl:  "https://bailian-cs.console.alibabacloud.com",
+		TokenPlan:    "https://token-plan.cn-beijing.maas.aliyuncs.com",
+		Business:     "https://business.aliyuncs.com",
+		BusinessIntl: "https://business.ap-southeast-1.aliyuncs.com",
 	}
 }
 
@@ -44,10 +48,10 @@ var tokenPlanDraws = []string{"window/5hour", "window/1day", "window/1week", "wi
 // Module is Alibaba Cloud Bailian.
 func Module(b Bases) catalog.Module {
 	trim := func(s string) string { return strings.TrimRight(s, "/") }
-	b = Bases{Gateway: trim(b.Gateway), GatewayIntl: trim(b.GatewayIntl), TokenPlan: trim(b.TokenPlan)}
+	b = Bases{Gateway: trim(b.Gateway), GatewayIntl: trim(b.GatewayIntl), TokenPlan: trim(b.TokenPlan), Business: trim(b.Business), BusinessIntl: trim(b.BusinessIntl)}
 	china := map[string]string{"site": ""} // the international site lists Token Plan for teams only
 	return catalog.Module{ID: "aliyun", Name: "Alibaba Cloud Bailian", Supply: &catalog.Supply{
-		Origins: []string{b.Gateway, b.GatewayIntl, b.TokenPlan},
+		Origins: []string{b.Gateway, b.GatewayIntl, b.TokenPlan, b.Business, b.BusinessIntl},
 		Endpoints: []catalog.Endpoint{
 			{Base: b.TokenPlan + "/compatible-mode/v1", Protocol: "openai-chat", Draws: tokenPlanDraws, Product: ProductTokenPlan, When: china},
 		},
@@ -80,6 +84,8 @@ func (c collector) Inventory(ctx context.Context, s catalog.Session, fetch obser
 			return observed.Inventory{}, fmt.Errorf("%w: Sign in with Alibaba Cloud.", catalog.ErrSignedOut)
 		}
 		return tokenPlan(ctx, c.gateway(s, fetch))
+	case ProductPayg:
+		return c.payg(ctx, s, fetch)
 	}
 	return observed.Inventory{}, fmt.Errorf("Bailian's module doesn't read %q yet", s.Product)
 }

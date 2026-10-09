@@ -14,7 +14,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -387,36 +386,26 @@ func TestSunoCookieIsFoundInChromeProfile(t *testing.T) {
 
 // --- Alibaba Cloud ---
 
-func TestAliyunRPCSignatureMatchesTheDocumentedExample(t *testing.T) {
-	// Alibaba Cloud's signature v1 example (DescribeRegions, secret "testsecret").
-	q := rpcQuery("testsecret", map[string]string{
-		"AccessKeyId": "testid", "Action": "DescribeRegions", "Format": "XML", "SignatureMethod": "HMAC-SHA1",
-		"SignatureNonce": "3ee8c1b8-83d3-44af-a94f-4e0ad82fd6cf", "SignatureVersion": "1.0",
-		"Timestamp": "2016-02-23T12:46:24Z", "Version": "2014-05-26",
-	})
-	v, _ := url.ParseQuery(q)
-	if v.Get("Signature") != "OLeaidS1JvxuMvnyHOwuJ+uX5qY=" {
-		t.Fatalf("signature = %q", v.Get("Signature"))
-	}
-}
+// The signature vector test moved with the signer (providers/aliyun).
 
 func TestPayAsYouGoWithTheCLIsAccessKeyReadsTheOfficialBill(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
+		// the replies are the module's canonical fixtures
 		if q.Get("AccessKeyId") != "LTAIx" || q.Get("Signature") == "" {
 			w.WriteHeader(http.StatusForbidden)
-			_, _ = w.Write([]byte(`{"Code":"InvalidAccessKeyId.NotFound","Message":"Specified access key is not found."}`))
+			_, _ = w.Write(aliyunFixture(t, "bss-refused.json"))
 			return
 		}
 		switch q.Get("Action") {
 		case "QueryAccountBalance":
-			_, _ = w.Write([]byte(`{"Code":"200","Success":true,"Data":{"AvailableAmount":"1,234.50","Currency":"CNY"}}`))
+			_, _ = w.Write(aliyunFixture(t, "bss-balance.json"))
 		case "QueryBillOverview":
-			items := `[]`
 			if q.Get("BillingCycle") == "2026-09" {
-				items = `[{"ProductCode":"sfm","SubscriptionType":"PayAsYouGo","PretaxAmount":"2.10","PretaxGrossAmount":"2.10","OwnerID":"1400"}]`
+				_, _ = w.Write(aliyunFixture(t, "bss-bill-2026-09.json"))
+				return
 			}
-			_, _ = w.Write([]byte(`{"Code":"Success","Success":true,"Data":{"Items":{"Item":` + items + `}}}`))
+			_, _ = w.Write(aliyunFixture(t, "bss-bill-empty.json"))
 		}
 	}))
 	defer srv.Close()
@@ -428,7 +417,8 @@ func TestPayAsYouGoWithTheCLIsAccessKeyReadsTheOfficialBill(t *testing.T) {
 		t.Fatalf("conns = %+v", conns)
 	}
 	a := readBailianPayg(context.Background(), l, conns[0])
-	if a.Status != StatusOK || a.Balances[0].Amount != "1234.50" || a.Groups[0].Balances[1].Amount != "2.10" {
+	// exact: 1.5 + 0.004321, no rounding to cents
+	if a.Status != StatusOK || a.Balances[0].Amount != "1234.50" || a.Groups[0].Balances[1].Amount != "1.504321" || !strings.Contains(a.Groups[0].Note, "last month ¥12.304321") {
 		t.Fatalf("account = %+v", a)
 	}
 	conns[0].Values["accessKeyId"] = "other"
