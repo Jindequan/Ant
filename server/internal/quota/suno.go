@@ -82,7 +82,7 @@ func readSuno(ctx context.Context, l Local, c Connection) Account {
 		return a
 	}
 	cookie := clientCookie(c.Values["cookie"])
-	if s, ok := signedInSession(ctx, l, *sunoSignIn, c.Values["session"]); ok {
+	if s, ok := signedInSession(ctx, l, *sunoSignIn, c.Values["session"], c.Values["profile"]); ok {
 		cookie = cookieValue(s.cookies, "__client")
 	}
 	authBase := l.url("suno.auth", "https://auth.suno.com")

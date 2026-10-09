@@ -69,7 +69,7 @@ func mimoGet(ctx context.Context, l Local, c Connection, path string, dst any) (
 	if ck := c.Values["cookie"]; ck != "" {
 		sess, ok = browserSession{cookies: parseCookieHeader(ck, "xiaomimimo.com"), source: "Pasted cookie"}, true
 	} else if c.Values["session"] != "" {
-		sess, ok = signedInSession(ctx, l, *mimoSignIn, c.Values["session"])
+		sess, ok = signedInSession(ctx, l, *mimoSignIn, c.Values["session"], c.Values["profile"])
 	}
 	if !ok && c.Way == "cookie" {
 		return "", errMiMoSignedOut

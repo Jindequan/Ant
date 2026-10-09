@@ -75,7 +75,7 @@ func (w *webSite) session(ctx context.Context, l Local, c Connection) (browserSe
 		return browserSession{}, errWebSignedOut
 	}
 	if c.Values["session"] != "" {
-		if s, ok := signedInSession(ctx, l, *w.signIn, c.Values["session"]); ok {
+		if s, ok := signedInSession(ctx, l, *w.signIn, c.Values["session"], c.Values["profile"]); ok {
 			return s, nil
 		}
 		return browserSession{}, errWebSignedOut

@@ -27,7 +27,7 @@ var testNow = time.Date(2026, 10, 7, 15, 30, 0, 0, time.UTC)
 // browser or a Chrome window unless it replaces these itself.
 func TestMain(m *testing.M) {
 	openURL = func(string) error { return errors.New("tests don't open browsers") }
-	signInRunner = func(context.Context, Local, SignIn) ([]siteCookie, error) {
+	signInRunner = func(context.Context, Local, SignIn, string) ([]siteCookie, error) {
 		return nil, errors.New("tests don't open sign-in windows")
 	}
 	claudeLookPath = func() string { return "" }

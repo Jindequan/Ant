@@ -25,7 +25,7 @@ func TestRealChromeSignIn(t *testing.T) {
 	go func() { time.Sleep(4 * time.Second); FinishSignIn() }()
 	cs, err := runSignIn(context.Background(), l, SignIn{URL: srv.URL, Domain: "127.0.0.1", Done: func(cs []siteCookie) bool {
 		return cookieValue(cs, "ant_test") == "signed-in"
-	}})
+	}}, "test")
 	if err != nil {
 		t.Fatal(err)
 	}

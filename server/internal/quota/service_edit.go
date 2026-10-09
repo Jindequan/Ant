@@ -191,6 +191,8 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way, again string)
 			tail = c.ID[i:] // "-signin" for a sign-in kept before accounts could be many
 		}
 	}
+	// a window sign-in keeps its session in a Chrome profile of its own
+	profile := strings.TrimPrefix(strings.TrimPrefix(tail, "-signin"), "-")
 	var values map[string]string
 	if m.SignIn.Login != nil {
 		v, err := m.SignIn.Login(ctx, s.local)
@@ -199,11 +201,14 @@ func (s *Service) signIn(ctx context.Context, provider, mode, way, again string)
 		}
 		values = v
 	} else {
-		cookies, err := signInRunner(ctx, s.local, *m.SignIn)
+		cookies, err := signInRunner(ctx, s.local, *m.SignIn, profile)
 		if err != nil {
 			return Connection{}, inputError("%s", err.Error())
 		}
 		values = map[string]string{"session": encodeSession(cookies)}
+		if profile != "" {
+			values["profile"] = profile
+		}
 	}
 	// one sign-in connects every instance of the provider that reads with it
 	var first Connection

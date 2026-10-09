@@ -16,8 +16,9 @@ import (
 )
 
 // Signing in to a website that has no API key: Ant opens the site's own
-// sign-in page in a plain Chrome window with a profile of Ant's own
-// (~/.config/ant/browser). Nothing controls that window — to the site, and
+// sign-in page in a plain Chrome window with a profile of Ant's own, one
+// per sign-in (~/.config/ant/browsers/<key>), so two accounts of one site
+// keep two sessions. Nothing controls that window — to the site, and
 // to Google's sign-in, it is ordinary Chrome — and Ant never sees what is
 // typed. Ant only reads the cookies the profile saves to disk, and closes
 // the window once the site's session is there.
@@ -79,16 +80,23 @@ func fileExists(p string) bool {
 	return err == nil && !info.IsDir()
 }
 
-func antProfile(l Local) string { return l.path(".config", "ant", "browser") }
+// antProfile is the Chrome profile of one sign-in. key "" is the profile
+// every sign-in shared before accounts could be many; it stays theirs.
+func antProfile(l Local, key string) string {
+	if key == "" {
+		return l.path(".config", "ant", "browser")
+	}
+	return l.path(".config", "ant", "browsers", key)
+}
 
-// profileCookies reads the cookies Ant's own profile holds for domain.
-func profileCookies(ctx context.Context, l Local, domain string) ([]siteCookie, error) {
+// profileCookies reads the cookies a sign-in's profile holds for domain.
+func profileCookies(ctx context.Context, l Local, domain, key string) ([]siteCookie, error) {
 	_, keychain, err := findChrome(l)
 	if err != nil {
 		return nil, errNoCookie
 	}
 	for _, f := range []string{"Default/Cookies", "Default/Network/Cookies"} {
-		p := filepath.Join(antProfile(l), filepath.FromSlash(f))
+		p := filepath.Join(antProfile(l, key), filepath.FromSlash(f))
 		if fileExists(p) {
 			return readSiteCookies(ctx, p, domain, func() ([]byte, error) { return chromiumKey(keychain) })
 		}
@@ -97,10 +105,10 @@ func profileCookies(ctx context.Context, l Local, domain string) ([]siteCookie, 
 }
 
 // signedInSession is the session of a signed-in connection: the cookies
-// Ant's profile holds now (Chrome keeps them fresh), else those kept when
+// its profile holds now (Chrome keeps them fresh), else those kept when
 // signing in.
-func signedInSession(ctx context.Context, l Local, s SignIn, stored string) (browserSession, bool) {
-	if cs, err := profileCookies(ctx, l, s.Domain); err == nil && s.Done(cs) {
+func signedInSession(ctx context.Context, l Local, s SignIn, stored, key string) (browserSession, bool) {
+	if cs, err := profileCookies(ctx, l, s.Domain, key); err == nil && s.Done(cs) {
 		return browserSession{cookies: cs, source: "Signed in with Ant"}, true
 	}
 	return decodeSession(stored)
@@ -182,9 +190,10 @@ func beginSignIn() (*signInWindow, func(), error) {
 	}, nil
 }
 
-// runSignIn opens the window and waits until the session is in the profile,
-// the user says they're done or cancels, Chrome quits, or ctx ends.
-func runSignIn(ctx context.Context, l Local, s SignIn) ([]siteCookie, error) {
+// runSignIn opens the window on profile key and waits until the session is
+// in the profile, the user says they're done or cancels, Chrome quits, or
+// ctx ends.
+func runSignIn(ctx context.Context, l Local, s SignIn, key string) ([]siteCookie, error) {
 	w, release, err := beginSignIn()
 	if err != nil {
 		return nil, err
@@ -195,7 +204,7 @@ func runSignIn(ctx context.Context, l Local, s SignIn) ([]siteCookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	profile := antProfile(l)
+	profile := antProfile(l, key)
 	if err := os.MkdirAll(profile, 0o700); err != nil {
 		return nil, err
 	}
@@ -219,7 +228,7 @@ func runSignIn(ctx context.Context, l Local, s SignIn) ([]siteCookie, error) {
 		}
 	}
 	signedIn := func() ([]siteCookie, bool) {
-		cs, err := profileCookies(ctx, l, s.Domain)
+		cs, err := profileCookies(ctx, l, s.Domain, key)
 		return cs, err == nil && s.Done(cs)
 	}
 

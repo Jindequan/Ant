@@ -25,12 +25,12 @@ func TestSunoSignInIsDoneOnlyWhenClerkSaysSo(t *testing.T) {
 
 // antProfileCookies writes Ant's own window profile, encrypted as Chrome
 // encrypts it with its Keychain key.
-func antProfileCookies(t *testing.T, l Local, cookies [][3]string) {
+func antProfileCookies(t *testing.T, l Local, profileKey string, cookies [][3]string) {
 	t.Helper()
 	if _, _, err := findChrome(l); err != nil {
 		t.Skip("no Chromium browser installed")
 	}
-	file := filepath.Join(antProfile(l), "Default", "Cookies")
+	file := filepath.Join(antProfile(l, profileKey), "Default", "Cookies")
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -64,14 +64,14 @@ func TestSignedInSessionPrefersAntsProfile(t *testing.T) {
 	l := testLocal(t, nil)
 	s := *sunoSignIn
 	stored := encodeSession([]siteCookie{{"auth.suno.com", "__client", "old"}, {".suno.com", "__client_uat", "1"}})
-	antProfileCookies(t, l, [][3]string{{"auth.suno.com", "__client", "fresh"}, {".suno.com", "__client_uat", "2"}, {"other.com", "__client", "x"}})
-	got, ok := signedInSession(context.Background(), l, s, stored)
+	antProfileCookies(t, l, "", [][3]string{{"auth.suno.com", "__client", "fresh"}, {".suno.com", "__client_uat", "2"}, {"other.com", "__client", "x"}})
+	got, ok := signedInSession(context.Background(), l, s, stored, "")
 	if !ok || cookieValue(got.cookies, "__client") != "fresh" || len(got.cookies) != 2 {
 		t.Fatalf("with the profile: %+v %v", got, ok)
 	}
 	// signed out in the profile: the session kept at sign-in is used
-	antProfileCookies(t, testLocal(t, nil), nil)
-	if got, ok := signedInSession(context.Background(), testLocal(t, nil), s, stored); !ok || cookieValue(got.cookies, "__client") != "old" {
+	antProfileCookies(t, testLocal(t, nil), "", nil)
+	if got, ok := signedInSession(context.Background(), testLocal(t, nil), s, stored, ""); !ok || cookieValue(got.cookies, "__client") != "old" {
 		t.Fatalf("without the profile: %+v %v", got, ok)
 	}
 }
@@ -81,7 +81,7 @@ func TestSigningInKeepsTheSessionAndReadsWithIt(t *testing.T) {
 	defer srv.Close()
 	l := sunoLocal(t, srv)
 	old := signInRunner
-	signInRunner = func(_ context.Context, _ Local, s SignIn) ([]siteCookie, error) {
+	signInRunner = func(_ context.Context, _ Local, s SignIn, _ string) ([]siteCookie, error) {
 		if s.Domain != "suno.com" {
 			t.Fatalf("signed in to %q", s.Domain)
 		}
@@ -209,3 +209,48 @@ func modesOf(out map[string]any) []string {
 }
 
 func jsonString(v any) string { b, _ := json.Marshal(v); return string(b) }
+
+// Two accounts of one site keep two sessions: each sign-in gets a Chrome
+// profile of its own, and signing in again uses that account's profile.
+func TestEachSignInHasItsOwnProfile(t *testing.T) {
+	srv := sunoServer(t, `{"total_credits_left":30,"period":"day"}`)
+	defer srv.Close()
+	l := sunoLocal(t, srv)
+	var keys []string
+	old := signInRunner
+	signInRunner = func(_ context.Context, _ Local, _ SignIn, key string) ([]siteCookie, error) {
+		keys = append(keys, key)
+		return []siteCookie{{"auth.suno.com", "__client", "client-" + key}, {".suno.com", "__client_uat", "1791"}}, nil
+	}
+	t.Cleanup(func() { signInRunner = old })
+	store := NewStore(l.AccountsFile())
+	s := newTestService(l, store)
+	for range 2 {
+		if code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"suno","mode":"account"}`, nil); code != 200 {
+			t.Fatalf("%d %v", code, out)
+		}
+	}
+	d, _ := store.Data()
+	var ids []string
+	for _, c := range d.Accounts {
+		if c.Provider == "suno" {
+			ids = append(ids, c.ID)
+			if c.Values["profile"] == "" || !strings.HasSuffix(c.ID, "-signin-"+c.Values["profile"]) {
+				t.Fatalf("connection %s keeps profile %q", c.ID, c.Values["profile"])
+			}
+		}
+	}
+	if len(keys) != 2 || keys[0] == "" || keys[0] == keys[1] || len(ids) != 2 {
+		t.Fatalf("profiles %v, accounts %v", keys, ids)
+	}
+	if antProfile(l, keys[0]) == antProfile(l, keys[1]) || antProfile(l, "") == antProfile(l, keys[0]) {
+		t.Fatal("two sign-ins share a profile")
+	}
+	// signing in again opens the account's own profile
+	if code, out := call(t, s.Handler(), "POST", "/api/signin", `{"provider":"suno","mode":"account","id":"`+ids[1]+`"}`, nil); code != 200 {
+		t.Fatalf("%d %v", code, out)
+	}
+	if keys[2] != strings.TrimPrefix(ids[1][strings.LastIndex(ids[1], "-signin-"):], "-signin-") {
+		t.Fatalf("signed in again with profile %q for %s", keys[2], ids[1])
+	}
+}

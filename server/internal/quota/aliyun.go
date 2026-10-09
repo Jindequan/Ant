@@ -142,7 +142,7 @@ var secTokenRE = regexp.MustCompile(`SEC_TOKEN:\s*"([^"]+)"`)
 func openBailian(ctx context.Context, l Local, c Connection) (*bailianSession, error) {
 	cookies, ok := browserSession{}, false
 	if c.Values["session"] != "" {
-		cookies, ok = signedInSession(ctx, l, *aliyunSignIn, c.Values["session"])
+		cookies, ok = signedInSession(ctx, l, *aliyunSignIn, c.Values["session"], c.Values["profile"])
 	}
 	if !ok {
 		var err error
