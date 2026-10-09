@@ -132,3 +132,29 @@ Found while redesigning, fixed:
 - A row would have headlined a plan's tool benefit ("20 of 20 images") over the plan's own used-up
   month; rows speak for the account's own allowances first.
 - The route preview's empty note still said it covers only Z.ai and DeepSeek.
+
+## Keeping sign-ins, and Ant.app (2026-10-09)
+
+User direction: fix the shared sign-in profile, warn before sign-ins end, keep Ant's own
+sign-ins alive, then Ant.app with the menu bar ant — "elegant, more colors and icons".
+
+| Step | Commit | What |
+|---|---|---|
+| Profiles | `69ba974` | One Chrome profile per sign-in (`~/.config/ant/browsers/<key>`); two accounts of one site keep two sessions |
+| Warnings | `9665927` | A sign-in's end = its session cookie's expiry (Ant's profile, or Chrome/Firefox); a key on the page (amber within 7 days); a notification 3 days before |
+| Keep-alive | `c7f3e90` | Once a day, the provider's page opened in the sign-in's own profile with windowless Chrome; on by default, a green key to turn it off. Real-Chrome check: the visit saved the site's renewed 30-day session in 1.2 s |
+| Ant.app | this commit | Menu bar ant with a count; "Use first" with logos; Open Ant (⌘O), read again (⌘R), Open at login, Quit; the server inside, or the one already running |
+
+**Ant.app checks** (demo mode, port 8791, `ANT_DEBUG=1`, so no real account was read): the app
+started its own server (`~/.config/ant/demo.db`), retried until it answered, and its menu held
+the same 14 "use first" allowances as the page, in the same order (MiniMax 5 hours 88% · 1h
+29m, Z.ai, Claude, OpenCode Go, Volcengine). Found and fixed: a kill left the server running
+(AppKit's quit hook doesn't run on a signal) — SIGTERM/SIGINT now quit properly, checked: app
+and server both gone; the first read came a minute late — the app now retries every 1.5 s while
+Ant starts.
+
+**One home:** Ant's database moves next to its key and accounts, `~/.config/ant/ant.db`.
+`make run`, `make install-app` and the app use it; the first of them copies `data/ant.db` once
+(kept as a backup) and makes it private (600). Checked: integrity ok, 31 sealed secrets,
+byte-identical to the original. Installed to `~/Applications/Ant.app`; not opened (opening it
+reads the real accounts — the user's to do).

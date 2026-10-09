@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 SERVER := server
 
-.PHONY: check build run demo test-contract test-integration test-fault bench clean verify-manifest
+.PHONY: check build run demo app install-app ant-home test-contract test-integration test-fault bench clean verify-manifest
 
 check:
 	python3 scripts/render_stage_runbooks.py --check
@@ -18,8 +18,29 @@ check:
 build:
 	cd $(SERVER) && go build -o ../bin/ant-server ./cmd/ant-server
 
-run: build
-	mkdir -p data && ./bin/ant-server -db ./data/ant.db
+# Ant keeps one database, next to its key and accounts: ~/.config/ant. A
+# database kept in data/ by earlier versions is copied there once; the
+# original stays as a backup.
+ANT_HOME := $(HOME)/.config/ant
+ANT_DB := $(ANT_HOME)/ant.db
+
+ant-home:
+	@mkdir -p $(ANT_HOME) && chmod 700 $(ANT_HOME)
+	@if [ ! -f $(ANT_DB) ] && [ -f data/ant.db ]; then \
+		for f in data/ant.db data/ant.db-wal data/ant.db-shm; do [ -f $$f ] && cp -p $$f $(ANT_HOME)/ && chmod 600 $(ANT_HOME)/$$(basename $$f); done; \
+		echo "Ant's database is now $(ANT_DB) (data/ant.db kept as a backup)"; fi
+
+run: build ant-home
+	./bin/ant-server -db $(ANT_DB)
+
+# Ant.app: the menu bar ant, with the server inside (bin/Ant.app);
+# install-app puts it in ~/Applications.
+app:
+	sh scripts/build-app.sh
+
+install-app: app ant-home
+	mkdir -p $(HOME)/Applications && rm -rf $(HOME)/Applications/Ant.app && cp -R bin/Ant.app $(HOME)/Applications/
+	@echo "Ant.app is in ~/Applications. Open it; its menu has Open at login."
 
 demo: build
 	mkdir -p data && ./bin/ant-server -db ./data/demo.db -demo
