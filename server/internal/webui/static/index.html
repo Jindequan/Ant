@@ -13,61 +13,44 @@
   <header class="top">
     <div class="brand">
       <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
-      <div>
-        <h1>Ant</h1>
-        <p class="tagline">Everything you pay for, and everything you get free</p>
-      </div>
+      <h1>Ant</h1>
     </div>
     <div class="actions">
       <span id="updated" class="muted" aria-live="polite"></span>
-      <button id="notify" type="button" class="btn" aria-pressed="true" title="Notifications on this Mac" hidden>
+      <button id="notify" type="button" class="icon-btn" aria-pressed="true" title="Notifications on this Mac" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/><path class="slash" d="M4 4l16 16"/></svg>
       </button>
-      <button id="refresh" type="button" class="btn" aria-label="Refresh">
+      <button id="refresh" type="button" class="icon-btn" aria-label="Read every account again" title="Read every account again">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
       </button>
       <button id="add" type="button" class="btn primary">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        <span>Add account</span>
+        <span>Add</span>
       </button>
     </div>
   </header>
 
   <div id="demo" class="demo" hidden>Sample data. Start Ant without <code>-demo</code> to read your own accounts.</div>
 
-  <section id="summary" class="summary" aria-label="Summary"></section>
+  <section id="summary" class="glance" aria-label="What to use first"></section>
 
   <div class="toolbar">
-    <nav class="filters" role="tablist" aria-label="Filter accounts">
-      <button role="tab" data-filter="all">All</button>
-      <button role="tab" data-filter="subscription">Subscriptions</button>
-      <button role="tab" data-filter="api">API balances</button>
-      <button role="tab" data-filter="free">Free allowances</button>
-    </nav>
-    <label class="search">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input id="search" type="search" placeholder="Provider, model, image…" aria-label="Search accounts, models and what they make" autocomplete="off" spellcheck="false">
-    </label>
     <div class="views" role="tablist" aria-label="View">
-      <button role="tab" data-view="cards">Cards</button>
+      <button role="tab" data-view="cards">Accounts</button>
       <button role="tab" data-view="models">Models</button>
       <button role="tab" data-view="timeline">Timeline</button>
     </div>
-    <label class="pick-select" id="sort-wrap">Sort
-      <select id="sort">
-        <option value="soon">Lost soonest</option>
-        <option value="least">Least left</option>
-        <option value="most">Most left</option>
-        <option value="renewal">Renewal date</option>
-        <option value="name">Provider A–Z</option>
-      </select>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="search" type="search" placeholder="Search" aria-label="Search accounts, models and what they make" autocomplete="off" spellcheck="false">
+      <kbd aria-hidden="true">/</kbd>
     </label>
   </div>
 
-  <main id="cards" class="cards" aria-live="polite"></main>
+  <main id="cards" aria-live="polite"></main>
 
   <footer class="foot-note">
-    Ant finds accounts in the apps on this computer, and you can add any by hand. It only asks each provider what you have left; it never spends it.
+    Ant finds the accounts of apps on this Mac and asks each provider only what you have left. It never spends it.
   </footer>
 </div>
 

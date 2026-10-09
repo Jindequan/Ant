@@ -107,3 +107,28 @@ Still open for a later pass: the final form step still restates the rule; card m
 only as edit. **Both closed 2026-10-08 in design 12 step 6** (rule shown once; the menu is Edit ·
 Pause/Resume routing · Remove, survives refreshes) — see
 [provider-modules evidence](../PROVIDER-MODULES/README.md).
+
+## Page redesign: simple and calm (2026-10-09)
+
+User direction: "redesign page, make it simple and beautiful". One idea: **one line per account,
+details when you open it**; the top of the page says only what to act on.
+
+| Before | After |
+|---|---|
+| 3 summary tiles (use-before-gone, subscriptions, API balances) | "Use first": the allowances to use before they reset or end (up to 4, each opens its account), and one line of totals |
+| Kind filter + search + view switch + sort control | View switch (Accounts · Models · Timeline) and search; kinds are the section headings; order is "lost soonest" |
+| 23 large cards, every window with two lines of reset detail | 23 rows: name and plan, the one value that matters (the allowance to use first, else the tightest, or the balance), and what happens next; open a row for every allowance, balance, group and note |
+| "…" popup menu per card, re-anchored on every redraw | Plain buttons in the open row: Open, Edit, Pause/Resume routing, Remove/Hide |
+| Page height in demo: 5,040 px | 2,288 px (1024 px wide) |
+
+Checked in demo (desktop, 375 px phone, dark): no console errors, no sideways scroll; a "Use
+first" item opens and focuses its account; open rows stay open through the page's 30-second
+redraw; search opens accounts it narrows; pause and resume from the row; Models route preview and
+Timeline unchanged in behaviour, restyled to the same list.
+
+Found while redesigning, fixed:
+- The prepaid total counted Bailian's "charged last month" as money held (¥113.79 shown; the
+  balances held are ¥112.29). Labelled group amounts are spending, not balances.
+- A row would have headlined a plan's tool benefit ("20 of 20 images") over the plan's own used-up
+  month; rows speak for the account's own allowances first.
+- The route preview's empty note still said it covers only Z.ai and DeepSeek.

@@ -12,8 +12,8 @@ const URGENT_HOURS = 24; // a window renewing this soon with this much left is "
 const URGENT_LEFT = 30;
 const EXPIRING_DAYS = 14; // a grant ending this soon is "use it"
 
-const state = { snap: null, providers: [], insights: {}, filter: "all", view: "cards", sort: "soon", q: "", busy: false };
-const PREFS = ["filter", "view", "sort"];
+const state = { snap: null, providers: [], insights: {}, view: "cards", sort: "soon", q: "", busy: false, open: new Set() };
+const PREFS = ["view"];
 try { for (const k of PREFS) state[k] = localStorage.getItem(`ant.${k}`) || state[k]; } catch { /* storage off */ }
 function savePref(k) { try { localStorage.setItem(`ant.${k}`, state[k]); } catch { /* storage off */ } }
 
@@ -86,38 +86,59 @@ function order(a) {
   return 1e15 + (resets.length ? Math.min(...resets) : 9e14);
 }
 
-// ---------- cards ----------
+// ---------- the glance ----------
 
+// leftText is what's left of a window, in a few words.
+function leftText(w) {
+  const p = percentLeft(w);
+  if (w.left != null) return `<b>${short(w.left)}</b>${w.limit ? ` of ${short(w.limit)}` : ""} ${esc(w.unit || "")} left`;
+  if (p === 0) return "<b>Used up</b>";
+  if (p != null) return `<b>${Math.round(p)}%</b> left`;
+  if (w.limit != null) return `<b>${short(w.limit)}</b> ${esc(w.unit || "")}`;
+  return "Unknown";
+}
+
+// renderSummary is the top of the page: what to use before it's lost, and
+// one line of totals.
 function renderSummary(accounts) {
   const ok = accounts.filter((a) => a.status === "ok");
   const urgent = ok.flatMap((a) => allWindows(a).filter((w) => urgency(w, a)).map((w) => ({ a, w })));
   urgent.sort((x, y) => time(x.w.resetsAt) - time(y.w.resetsAt));
   const subs = ok.filter((a) => a.kind === "subscription");
+  const free = ok.filter((a) => a.kind === "free");
   const next = subs.map((a) => ({ t: time(a.renewsAt) || time(a.endsAt), ends: !a.renewsAt && !!a.endsAt })).filter((x) => x.t).sort((x, y) => x.t - y.t)[0];
   const totals = {};
   for (const a of ok) {
-    const bs = a.kind === "api" ? allBalances(a) : (a.groups || []).flatMap((g) => g.balances || []);
+    // money held: an API account's balances and unlabelled group balances;
+    // a labelled group amount ("Last month") is what was spent, not held
+    const held = (a.groups || []).flatMap((g) => g.balances || []).filter((b) => !b.label);
+    const bs = a.kind === "api" ? [...(a.balances || []), ...held] : held;
     for (const b of bs) if (b.currency !== "credits") totals[b.currency] = (totals[b.currency] || 0) + Number(b.amount);
   }
   const balance = Object.entries(totals).map(([c, n]) => money(c, n.toFixed(2)));
-  const first = urgent[0];
-  const firstText = first && `${esc(first.a.name)} · ${esc(first.w.name)} ${first.w.expires ? "expires" : "resets"} in ${until(time(first.w.resetsAt))}`;
+  const problems = accounts.filter((a) => a.status === "signed_out" || a.status === "error").length;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const facts = [
+    subs.length ? plural(subs.length, "subscription", "subscriptions") + (next ? `, next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : "") : "",
+    monthly(subs),
+    balance.length ? `${balance.join(" + ")} prepaid` : "",
+    free.length ? plural(free.length, "free allowance", "free allowances") : "",
+    problems ? `<span class="bad">${plural(problems, "account needs", "accounts need")} you</span>` : "",
+  ].filter(Boolean);
+  const shown = urgent.slice(0, 4);
   $("summary").innerHTML = `
-    <div class="tile ${urgent.length ? "urgent" : ""}">
-      <div class="label">Use before it's gone</div>
-      <div class="value">${urgent.length ? `${urgent.length}<span class="unit">${urgent.length === 1 ? "allowance" : "allowances"}</span>` : "Nothing"}</div>
-      <div class="hint">${firstText || "Nothing unused resets or expires soon"}</div>
+    <div class="g-head">
+      <h2>${urgent.length ? "Use first" : "Nothing is about to be lost"}</h2>
+      <p class="g-facts">${facts.join('<span class="sep">·</span>')}</p>
     </div>
-    <div class="tile">
-      <div class="label">Subscriptions</div>
-      <div class="value">${subs.length}</div>
-      <div class="hint">${[monthly(subs), next ? `next ${next.ends ? "ends" : "renews"} ${dayFmt.format(next.t)}` : subs.length ? "renewal dates not reported" : "none yet"].filter(Boolean).join(" · ").replace(/^./, (c) => c.toUpperCase())}</div>
-    </div>
-    <div class="tile">
-      <div class="label">API balances</div>
-      <div class="value">${balance.length ? balance.join(" · ") : "—"}</div>
-      <div class="hint">${balance.length ? "Prepaid, pay as you go" : "No API balances yet"}</div>
-    </div>`;
+    ${shown.length ? `<ol class="g-list">${shown.map(({ a, w }) => `
+      <li><button type="button" class="g-item" data-goto="${esc(a.id)}" style="--hue:${HUES[a.provider] ?? 30}">
+        <span class="mark sm" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
+        <span class="g-what"><b>${esc(a.label || a.name)}</b> ${esc(w.name)}</span>
+        <span class="g-left">${leftText(w)}</span>
+        <span class="g-when">${w.expires ? "ends" : "resets"} in ${until(time(w.resetsAt))}</span>
+      </button></li>`).join("")}</ol>` : ""}
+    ${urgent.length > shown.length ? `<p class="g-more">${urgent.length - shown.length} more marked below</p>` : ""}`;
 }
 
 // insightsOf is what the history says about an account's rows: its own
@@ -219,9 +240,9 @@ function renderGroup(g, a) {
   return `<section class="group"><h4>${esc(g.title)}</h4>${balances}${windows}${empty}${together}${g.note || link ? `<p class="note">${esc(g.note || "")}${link}</p>` : ""}${action}</section>`;
 }
 
-function renderCard(a) {
-  const kind = KIND_LABEL[a.kind];
-  const sub = [a.plan, a.modeName && a.modeName !== a.plan ? a.modeName : "", !a.modeName && a.plan !== kind ? kind : "", a.user].filter(Boolean).map(esc).join(" · ");
+// cardBody is an account's detail: every allowance, balance and group, or
+// why it couldn't be read and what to do.
+function cardBody(a) {
   let body = "";
   if (a.status === "ok") {
     const main = (a.windows || []).filter((w) => !w.aside);
@@ -233,19 +254,65 @@ function renderCard(a) {
     body = renderBalance(a) + list + aside.map((w) => renderWindow(w, false, a)).join("") + (a.groups || []).map((g) => renderGroup(g, a)).join("");
     if (a.message) body += `<p class="note">${esc(a.message)}</p>`;
     if (!body) body = `<p class="note">Connected. The provider reported no allowance or balance.</p>`;
-  } else {
-    body = `<p class="note ${a.status === "not_connected" ? "" : "problem"}">${esc(a.message || "Couldn't read this account.")}</p>`;
-    const mode = modeOf(a);
-    const buttons = [];
-    if (a.status === "signed_out" && mode?.signIn) {
-      buttons.push(`<button type="button" class="btn" data-signin-card="${esc(a.provider)}" data-mode="${esc(a.mode)}" data-way="${esc(a.way || "")}">Sign in${a.message?.includes("again") ? " again" : ""}</button>`);
-    }
-    if (a.status === "not_connected" && mode?.fields?.length) {
-      const what = mode.fields.find((f) => !f.optional || f.type === "secret" || f.id.toLowerCase().includes("key"));
-      buttons.push(`<button type="button" class="btn" data-edit="${esc(a.id)}">Add ${esc(what?.label?.replace(/ ID$/, "") || "details")}</button>`);
-    }
-    if (buttons.length) body += `<div class="buttons">${buttons.join("")}</div>`;
+    return body;
   }
+  body = `<p class="note ${a.status === "not_connected" ? "" : "problem"}">${esc(a.message || "Couldn't read this account.")}</p>`;
+  const mode = modeOf(a);
+  const buttons = [];
+  if (a.status === "signed_out" && mode?.signIn) {
+    buttons.push(`<button type="button" class="btn primary" data-signin-card="${esc(a.provider)}" data-mode="${esc(a.mode)}" data-way="${esc(a.way || "")}">Sign in${a.message?.includes("again") ? " again" : ""}</button>`);
+  }
+  if (a.status === "not_connected" && mode?.fields?.length) {
+    const what = mode.fields.find((f) => !f.optional || f.type === "secret" || f.id.toLowerCase().includes("key"));
+    buttons.push(`<button type="button" class="btn primary" data-edit="${esc(a.id)}">Add ${esc(what?.label?.replace(/ ID$/, "") || "details")}</button>`);
+  }
+  if (buttons.length) body += `<div class="buttons">${buttons.join("")}</div>`;
+  return body;
+}
+
+// ownWindows are what a row speaks for: the account's own allowances, else
+// its groups' (a plan's tool benefits don't stand for the plan).
+function ownWindows(a) {
+  const own = (a.windows || []).filter((w) => !w.aside);
+  return own.length ? own : allWindows(a).filter((w) => !w.aside);
+}
+
+// headline is the one value a row shows: a balance, the allowance to use
+// first, else the tightest one; or why there is none.
+function headline(a) {
+  if (a.status !== "ok") {
+    return `<span class="a-state ${a.status === "not_connected" ? "" : "bad"}">${{ signed_out: "Signed out", error: "Couldn't read", not_connected: "Not set up" }[a.status] || "—"}</span>`;
+  }
+  const ws = ownWindows(a);
+  const b = (a.balances || [])[0];
+  if (b && (a.kind === "api" || !ws.length)) return `<span class="a-amt">${money(b.currency, b.amount)}</span>`;
+  if (a.kind === "free" && ws.length > 2) return `<span class="a-count"><b>${ws.length}</b> allowances</span>`;
+  const first = ws.filter((w) => urgency(w, a)).sort((x, y) => time(x.resetsAt) - time(y.resetsAt))[0];
+  const known = ws.filter((w) => percentLeft(w) != null).sort((x, y) => percentLeft(x) - percentLeft(y));
+  const w = first || known[0] || ws[0];
+  if (!w) return '<span class="a-state">Connected</span>';
+  const p = percentLeft(w);
+  const level = p == null ? "" : p < 20 ? "low" : p < 50 ? "warn" : "";
+  return `<span class="a-meter"><span class="meter small ${p == null ? "unknown" : ""}">${p == null ? "" : `<i class="${level}" style="width:${p.toFixed(1)}%"></i>`}</span><span class="a-left">${leftText(w)}${ws.length > 1 ? ` <span class="a-of">${esc(w.name)}</span>` : ""}</span></span>`;
+}
+
+// nextOf is what happens next to an account, in a few words.
+function nextOf(a) {
+  if (a.status !== "ok") return "";
+  const ws = ownWindows(a);
+  const first = ws.filter((w) => urgency(w, a)).sort((x, y) => time(x.resetsAt) - time(y.resetsAt))[0];
+  if (first) return `<span class="tag">${first.expires ? "Ends" : "Resets"} in ${until(time(first.resetsAt))}</span>`;
+  const soon = ws.map((w) => ({ w, t: time(w.resetsAt) })).filter((x) => x.t).sort((x, y) => x.t - y.t)[0];
+  if (soon) return `${soon.w.expires ? "Ends" : "Resets"} in ${until(soon.t)}`;
+  const renews = time(a.renewsAt), ends = time(a.endsAt);
+  if (renews) return `Renews ${dayFmt.format(renews)}`;
+  if (ends) return `Ends ${dayFmt.format(ends)}`;
+  return "";
+}
+
+function renderAccount(a) {
+  const kind = KIND_LABEL[a.kind];
+  const sub = [a.plan, a.modeName && a.modeName !== a.plan ? a.modeName : "", !a.modeName && a.plan !== kind ? kind : "", a.user].filter(Boolean).map(esc).join(" · ");
   const read = time(a.readAt);
   const renews = time(a.renewsAt);
   const ends = !renews && time(a.endsAt);
@@ -253,31 +320,37 @@ function renderCard(a) {
   const price = state.snap?.prices?.[a.id];
   const cost = price ? `<button type="button" class="link" data-price="${esc(a.id)}">${money(price.currency, price.amount)}/${price.period === "year" ? "yr" : "mo"}</button>`
     : a.kind === "subscription" && a.status === "ok" ? `<button type="button" class="link quiet" data-price="${esc(a.id)}">Add price</button>` : "";
-  const status = { signed_out: "Signed out", error: "Couldn't read" }[a.status] || "";
   const where = a.source?.startsWith("Signed in") ? a.source
     : a.origin === "added" ? (a.source ? `Yours · from ${a.source}` : "Added by you")
     : a.source ? `Found in ${a.source}` : "";
-  const how = a.live ? (read ? `read ${ago(read)}` : "") : "";
   const via = a.wayName && !where.includes(a.wayName) ? `via ${a.wayName}` : "";
-  const foot = [status, via || where, how].filter(Boolean).map(esc).join(" · ");
+  const how = a.live ? (read ? `read ${ago(read)}` : "") : "shown from its rule, not read";
+  const facts = [via || where, how].filter(Boolean).map(esc).join(" · ");
+  const paused = isPaused(a);
+  const open = state.open.has(a.id) || (state.q && a.narrowed);
   return `
-    <article class="card" style="--hue:${HUES[a.provider] ?? 30}">
-      <div class="head">
+    <details class="acct ${a.status === "ok" ? "" : "attn"}" data-id="${esc(a.id)}" style="--hue:${HUES[a.provider] ?? 30}" ${open ? "open" : ""}>
+      <summary class="a-row">
         <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
-        <div class="who"><h3>${esc(a.label || a.name)}${isPaused(a) ? ' <span class="tag off">Paused</span>' : ""}</h3><p>${a.label ? `${esc(a.name)} · ` : ""}${sub}</p></div>
-        <div class="tools">
-          <a class="open" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Open ↗</a>
-          <button type="button" class="icon-btn" data-menu="${esc(a.id)}" aria-haspopup="menu" aria-expanded="false" aria-label="More for ${esc(a.label || a.name)}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
-          </button>
+        <span class="a-who"><b>${esc(a.label || a.name)}</b>${paused ? ' <span class="tag off">Paused</span>' : ""}<span class="a-sub">${a.label ? `${esc(a.name)} · ` : ""}${sub}</span></span>
+        <span class="a-val">${headline(a)}</span>
+        <span class="a-next">${nextOf(a)}</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </summary>
+      <div class="a-detail">
+        <div class="body">${cardBody(a)}</div>
+        <div class="a-foot">
+          <span class="src"><i class="dot ${esc(a.status)}"></i><span>${facts}</span></span>
+          ${life || cost ? `<span class="${ends && a.autoRenew === false ? "ending" : ""}">${[life, cost].filter(Boolean).join(" · ")}</span>` : ""}
+        </div>
+        <div class="a-actions">
+          ${a.link ? `<a class="btn sm" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Open ${esc(a.name)} ↗</a>` : ""}
+          <button type="button" class="btn sm" data-edit="${esc(a.id)}">Edit</button>
+          ${routable(a) ? `<button type="button" class="btn sm" data-pause="${esc(a.id)}" data-paused="${paused ? "0" : "1"}">${paused ? "Resume routing" : "Pause routing"}</button>` : ""}
+          <button type="button" class="btn sm quiet" data-remove-card="${esc(a.id)}">${a.origin === "found" ? "Hide" : "Remove"}</button>
         </div>
       </div>
-      <div class="body">${body}</div>
-      <div class="foot">
-        <span class="src"><i class="dot ${esc(a.status)}"></i><span>${foot}</span></span>
-        ${life || cost ? `<span class="${ends && a.autoRenew === false ? "ending" : ""}">${[life, cost].filter(Boolean).join(" · ")}</span>` : ""}
-      </div>
-    </article>`;
+    </details>`;
 }
 
 // ---------- finding, grouping, sorting ----------
@@ -495,25 +568,12 @@ function renderTimeline(accounts) {
 
 // ---------- the page ----------
 
-// render draws the page, then keeps an open card menu on its card: re-anchored
-// when the card is still shown, closed when a filter, search or view hid it.
+// render draws the page; open rows stay open across the page's own refreshes.
 function render() {
-  draw();
-  if (!menuFor) return;
-  const id = menuFor;
-  const button = [...document.querySelectorAll("[data-menu]")].find((x) => x.dataset.menu === id);
-  if (button) openMenu(button, true);
-  else closeMenu();
-}
-
-function draw() {
   const snap = state.snap;
-  document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.filter === state.filter)));
   document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
-  $("sort").value = state.sort;
-  $("sort-wrap").hidden = state.view === "timeline";
   const refreshed = snap && time(snap.refreshedAt);
-  $("updated").textContent = state.busy || snap?.refreshing ? "Reading your accounts…" : refreshed ? `Updated ${ago(refreshed)}` : "";
+  $("updated").textContent = state.busy || snap?.refreshing ? "Reading…" : refreshed ? `Updated ${ago(refreshed)}` : "";
   $("refresh").classList.toggle("busy", state.busy || !!snap?.refreshing);
   const bell = $("notify");
   bell.hidden = !snap || snap.demo;
@@ -522,24 +582,16 @@ function draw() {
   bell.title = snap?.notify ? "Notifications on: Ant tells you before anything runs out or is lost" : "Notifications off";
   if (!snap || !refreshed) {
     $("summary").innerHTML = "";
-    $("cards").innerHTML = '<div class="cards"><div class="skeleton"></div><div class="skeleton"></div></div>';
+    $("cards").innerHTML = '<div class="list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
     return;
   }
   $("demo").hidden = !snap.demo;
   const all = [...(snap.accounts || [])];
   renderSummary(all);
   const q = norm(state.q).trim();
-  const found = all.map((a) => matches(a, q)).filter(Boolean);
-  const counts = { all: found.length };
-  for (const a of found) counts[a.kind] = (counts[a.kind] || 0) + 1;
-  document.querySelectorAll(".filters button").forEach((b) => {
-    const label = { all: "All", ...KIND_TITLE }[b.dataset.filter];
-    b.innerHTML = `${label}<span class="count">${counts[b.dataset.filter] || 0}</span>`;
-  });
-  const shown = found.filter((a) => state.filter === "all" || a.kind === state.filter).sort(SORTS[state.sort] || SORTS.soon);
+  const shown = all.map((a) => matches(a, q)).filter(Boolean).sort(SORTS[state.sort] || SORTS.soon);
   if (!shown.length) {
-    $("cards").innerHTML = `<p class="empty">${!all.length ? "No accounts found on this computer yet. Add one to start."
-      : q ? `Nothing matches “${esc(state.q)}”.` : "Nothing of this kind yet."}</p>`;
+    $("cards").innerHTML = `<p class="empty">${!all.length ? "No accounts found on this Mac yet. Add one to start." : `Nothing matches “${esc(state.q)}”.`}</p>`;
     return;
   }
   if (state.view === "models") {
@@ -551,8 +603,8 @@ function draw() {
     return;
   }
   $("cards").innerHTML = sections(shown).map((sec) => `
-    <section class="section">${sec.title ? `<h2>${esc(sec.title)} <span class="n">${sec.items.length}</span></h2>` : ""}
-      <div class="cards">${sec.items.map(renderCard).join("")}</div>
+    <section class="section"><h2>${esc(sec.title)} <span class="n">${sec.items.length}</span></h2>
+      <div class="list">${sec.items.map(renderAccount).join("")}</div>
     </section>`).join("");
 }
 
@@ -986,49 +1038,15 @@ const isPaused = (a) => (state.snap?.paused || []).includes(a.id);
 // a card can be paused when it serves models: pausing only changes Ant's choice of it
 const routable = (a) => (a.models || []).length > 0;
 
-// The menu sits above the page, anchored to its button, so a card's edges
-// don't clip it; a re-render (the page refreshes itself) reopens it.
-let menuFor = null;
-
-function closeMenu() {
-  menuFor = null;
-  document.querySelector(".card-menu")?.remove();
-  document.querySelectorAll("[data-menu][aria-expanded=true]").forEach((b) => b.setAttribute("aria-expanded", "false"));
-}
-
-function placeMenu(menu, button) {
-  const r = button.getBoundingClientRect();
-  menu.style.top = `${r.bottom + window.scrollY + 4}px`;
-  menu.style.left = `${Math.max(8, r.right + window.scrollX - menu.offsetWidth)}px`;
-}
-
-function openMenu(button, keepFocus) {
-  closeMenu();
-  const a = (state.snap?.accounts || []).find((x) => x.id === button.dataset.menu);
-  if (!a) return;
-  const menu = document.createElement("div");
-  menu.className = "card-menu";
-  menu.setAttribute("role", "menu");
-  menu.innerHTML = `
-    <button type="button" role="menuitem" data-menu-edit="${esc(a.id)}">Edit</button>
-    ${routable(a) ? `<button type="button" role="menuitem" data-menu-pause="${esc(a.id)}" data-paused="${isPaused(a) ? "0" : "1"}">${isPaused(a) ? "Resume routing" : "Pause routing"}</button>` : ""}
-    <button type="button" role="menuitem" class="danger" data-menu-remove="${esc(a.id)}">${a.origin === "found" ? "Hide" : "Remove"}</button>`;
-  document.body.append(menu);
-  placeMenu(menu, button);
-  button.setAttribute("aria-expanded", "true");
-  menuFor = a.id;
-  if (!keepFocus) menu.querySelector("button").focus();
-}
-
-async function menuAction(t) {
-  closeMenu();
+// accountAction runs a row's action: pause or resume routing, remove.
+async function accountAction(t) {
   try {
-    if (t.dataset.menuEdit) return openEdit(t.dataset.menuEdit);
-    if (t.dataset.menuPause) state.snap = await api("POST", "/api/pause", { id: t.dataset.menuPause, paused: t.dataset.paused === "1" });
-    if (t.dataset.menuRemove) {
-      const a = (state.snap?.accounts || []).find((x) => x.id === t.dataset.menuRemove);
+    if (t.dataset.pause) state.snap = await api("POST", "/api/pause", { id: t.dataset.pause, paused: t.dataset.paused === "1" });
+    if (t.dataset.removeCard) {
+      const a = (state.snap?.accounts || []).find((x) => x.id === t.dataset.removeCard);
       if (!confirm(`${a?.origin === "found" ? "Hide" : "Remove"} ${a?.label || a?.name || "this account"}?`)) return;
-      state.snap = await api("DELETE", `/api/accounts/${encodeURIComponent(t.dataset.menuRemove)}`);
+      state.snap = await api("DELETE", `/api/accounts/${encodeURIComponent(t.dataset.removeCard)}`);
+      state.open.delete(t.dataset.removeCard);
     }
     render();
   } catch (e) {
@@ -1052,7 +1070,7 @@ async function routePreview(details) {
   const covered = new Set([...p.use, ...p.notUsed].map((c) => c.provider));
   const others = JSON.parse(details.dataset.providers || "[]").filter((x) => !covered.has(x.provider));
   if (!p.use.length && !p.notUsed.length) {
-    box.innerHTML = '<p class="muted route-note">Ant\'s route preview doesn\'t cover these accounts yet (it covers Z.ai and DeepSeek so far). Below: what the accounts themselves show.</p>';
+    box.innerHTML = '<p class="muted route-note">Ant\'s route preview doesn\'t cover these accounts yet. Below: what the accounts themselves show.</p>';
     return;
   }
   details.classList.add("previewed");
@@ -1077,21 +1095,14 @@ async function routePreview(details) {
 // ---------- wiring ----------
 
 $("cards").addEventListener("click", (e) => {
-  const menu = e.target.closest("[data-menu]");
-  if (menu) return menu.getAttribute("aria-expanded") === "true" ? closeMenu() : openMenu(menu);
+  const act = e.target.closest("[data-pause], [data-remove-card]");
+  if (act) return accountAction(act);
   const b = e.target.closest("[data-edit]");
   if (b) openEdit(b.dataset.edit);
   const price = e.target.closest("[data-price]");
   if (price) stepPrice(price.dataset.price);
   const again = e.target.closest("[data-signin-card]");
   if (again) signIn(again.dataset.signinCard, again.dataset.mode, again.dataset.way);
-});
-document.querySelector(".filters").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-filter]");
-  if (!b) return;
-  state.filter = b.dataset.filter;
-  savePref("filter");
-  render();
 });
 document.querySelector(".views").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-view]");
@@ -1100,7 +1111,6 @@ document.querySelector(".views").addEventListener("click", (e) => {
   savePref("view");
   render();
 });
-$("sort").addEventListener("change", () => { state.sort = $("sort").value; savePref("sort"); render(); });
 $("search").addEventListener("input", () => { state.q = $("search").value; render(); });
 document.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && !sheet.open) { e.preventDefault(); $("search").focus(); }
@@ -1123,11 +1133,20 @@ setInterval(load, 60_000);
 setInterval(render, 30_000);
 load();
 
-document.addEventListener("click", (e) => {
-  const item = e.target.closest(".card-menu button");
-  if (item) return menuAction(item);
-  if (!e.target.closest(".card-menu, [data-menu]")) closeMenu();
+$("cards").addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (d.matches?.("details.m-item") && d.open) routePreview(d);
+  if (d.matches?.("details.acct")) d.open ? state.open.add(d.dataset.id) : state.open.delete(d.dataset.id);
+}, true);
+// a "use first" item opens its account
+$("summary").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-goto]");
+  if (!b) return;
+  state.view = "cards";
+  state.q = $("search").value = "";
+  state.open.add(b.dataset.goto);
+  render();
+  const row = [...document.querySelectorAll("details.acct")].find((d) => d.dataset.id === b.dataset.goto);
+  row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  row?.querySelector("summary")?.focus({ preventScroll: true });
 });
-window.addEventListener("resize", closeMenu);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
-$("cards").addEventListener("toggle", (e) => { if (e.target.matches?.("details.m-item") && e.target.open) routePreview(e.target); }, true);
