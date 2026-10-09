@@ -108,6 +108,10 @@ type Account struct {
 	// SessionEndsAt: when the website sign-in this account is read with
 	// ends (its session cookie expires), when Ant can tell.
 	SessionEndsAt *time.Time `json:"sessionEndsAt,omitempty"`
+	// KeepAlive: Ant visits this account's site once a day to keep its
+	// sign-in (made in Ant's window) alive; nil when it isn't such a sign-in.
+	KeepAlive *bool      `json:"keepAlive,omitempty"`
+	KeptAt    *time.Time `json:"keptAt,omitempty"`
 	// Renewed: values a reader renewed while reading (a rotated refresh
 	// token, fresh short-lived credentials) for the service to keep.
 	Renewed map[string]string `json:"-"`

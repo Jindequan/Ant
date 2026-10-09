@@ -80,6 +80,7 @@ h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
 .btn.primary:hover { opacity: .88; }
 .btn.sm { height: 30px; padding: 0 11px; font-size: 13px; border-radius: 8px; }
+.btn.on { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
 .btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
 .btn.quiet:hover { color: var(--low); border-color: transparent; }
 .btn.danger { color: var(--low); }

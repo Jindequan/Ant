@@ -380,6 +380,8 @@ function renderAccount(a) {
           ${a.link ? `<a class="btn sm" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">${ICON.open}Open</a>` : ""}
           <button type="button" class="btn sm" data-edit="${esc(a.id)}">${ICON.edit}Edit</button>
           ${routable(a) ? `<button type="button" class="btn sm" data-pause="${esc(a.id)}" data-paused="${paused ? "0" : "1"}" title="${paused ? "Use it for routes again" : "Leave it out of routes"}">${paused ? ICON.play + "Resume" : ICON.pause + "Pause"}</button>` : ""}
+          ${a.keepAlive != null ? `<button type="button" class="btn sm ${a.keepAlive ? "on" : ""}" data-keepalive="${esc(a.id)}" data-on="${a.keepAlive ? "0" : "1"}"
+            title="${a.keepAlive ? `Ant opens the site once a day to keep this sign-in${time(a.keptAt) ? ` · last ${ago(time(a.keptAt))}` : ""}` : "Let Ant open the site once a day to keep this sign-in"}">${ICON.key}${a.keepAlive ? "Kept signed in" : "Keep signed in"}</button>` : ""}
           <button type="button" class="btn sm quiet" data-remove-card="${esc(a.id)}" title="${a.origin === "found" ? "Hide" : "Remove"}" aria-label="${a.origin === "found" ? "Hide" : "Remove"}">${ICON.trash}</button>
         </div>
       </div>
@@ -1079,6 +1081,7 @@ const routable = (a) => (a.models || []).length > 0;
 async function accountAction(t) {
   try {
     if (t.dataset.pause) state.snap = await api("POST", "/api/pause", { id: t.dataset.pause, paused: t.dataset.paused === "1" });
+    if (t.dataset.keepalive) state.snap = await api("POST", "/api/keepalive", { id: t.dataset.keepalive, on: t.dataset.on === "1" });
     if (t.dataset.removeCard) {
       const a = (state.snap?.accounts || []).find((x) => x.id === t.dataset.removeCard);
       if (!confirm(`${a?.origin === "found" ? "Hide" : "Remove"} ${a?.label || a?.name || "this account"}?`)) return;
@@ -1132,7 +1135,7 @@ async function routePreview(details) {
 // ---------- wiring ----------
 
 $("cards").addEventListener("click", (e) => {
-  const act = e.target.closest("[data-pause], [data-remove-card]");
+  const act = e.target.closest("[data-pause], [data-remove-card], [data-keepalive]");
   if (act) return accountAction(act);
   const b = e.target.closest("[data-edit]");
   if (b) openEdit(b.dataset.edit);

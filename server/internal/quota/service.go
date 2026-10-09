@@ -90,6 +90,20 @@ func NewService(local Local, store *Store, opt Options) *Service {
 // blocks until the loop has returned.
 func (s *Service) Start(ctx context.Context) {
 	if !s.demo {
+		s.wg.Add(1)
+		go func() { // keep Ant's own sign-ins alive
+			defer s.wg.Done()
+			t := time.NewTicker(keepAliveCheck)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					s.keepAliveOnce(ctx)
+				}
+			}
+		}()
 		if s.notifier != nil {
 			s.wg.Add(1)
 			go func() {
@@ -321,6 +335,13 @@ func Read(ctx context.Context, providers []Provider, local Local, c Connection) 
 	if a.SessionEndsAt == nil && (a.Status == StatusOK || a.Status == StatusSignedOut) {
 		full, _ := p.mode(c.Mode)
 		a.SessionEndsAt = sessionEnds(ctx, local, full, c)
+	}
+	if _, kept := keptAlive(providers, c); kept {
+		on := c.Values["keepAlive"] != "off"
+		a.KeepAlive = &on
+		if t, err := time.Parse(time.RFC3339, c.Values["keptAt"]); err == nil {
+			a.KeptAt = &t
+		}
 	}
 	return a
 }

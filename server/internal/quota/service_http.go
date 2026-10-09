@@ -108,6 +108,16 @@ func (s *Service) Handler() http.Handler {
 		}
 		writeJSON(w, http.StatusOK, p)
 	})
+	mux.HandleFunc("POST /api/keepalive", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			ID string `json:"id"`
+			On bool   `json:"on"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		s.respond(w, r, in.ID, s.setKeepAlive(in.ID, in.On))
+	}))
 	mux.HandleFunc("POST /api/pause", s.change(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			ID     string `json:"id"`

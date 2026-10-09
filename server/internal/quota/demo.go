@@ -138,6 +138,8 @@ func demoAccounts(conns []Connection, now time.Time) []Account {
 			return a
 		},
 		"demo-suno": func(a Account) Account {
+			on := true
+			a.KeepAlive, a.KeptAt, a.SessionEndsAt = &on, at(-3*time.Hour), at(29*24*time.Hour)
 			a.Plan, a.Windows = "Free", []Window{{Name: "Today", Left: ptr(40.0), Limit: ptr(50.0), Unit: "credits", ResetsAt: midnight, ResetEstimated: true}}
 			return a
 		},
