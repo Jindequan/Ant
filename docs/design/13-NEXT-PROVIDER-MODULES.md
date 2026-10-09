@@ -140,6 +140,44 @@ moves it later).
 Origins are taken from the reader as it is today and listed in the module; nothing new is
 contacted. What the console guards with its anti-bot layer stays unread, as today.
 
+### 5.1 Revision after reading the readers (C0, 2026-10-09)
+
+Reading quota's Bailian code (`aliyun*.go`, ~1,100 lines) before porting it showed four things the
+table above doesn't settle. Each is settled here, in the module layer; the core stays as phase B
+left it.
+
+1. **A module reads some sessions of a product, not all.** Bailian is reached four ways: the
+   Bailian CLI's token (`bl login`), Ant's own console sign-in (the same token), an AccessKey, and
+   a browser's cookies. Sign-in and browser sessions stay in quota (§5 above), so routing by
+   provider is too coarse. `catalog.Supply.Requires` (product → value keys a session must hold)
+   says which sessions the module reads: Token Plan and free quota need `token`; pay-as-you-go
+   needs `accessKeyId` and `accessKeySecret`. Any other session is read by quota's reader, as
+   today. Z.ai, DeepSeek and Kimi declare none: the module reads all their sessions.
+2. **Some values are read at read time.** A `bl` connection holds only the path of bl's config;
+   the token is read again at each read because `bl login` replaces it. A quota `Way` gains
+   `Resolve(Local, Connection) (values, error)`; the adapter resolves before building the
+   `Session` (and `withBLConfig` uses the same function). bl signed out → signed out.
+3. **Cards have groups.** Token Plan shows its tool benefits as a group, pay-as-you-go its charged
+   months. The adapter already turns each card group into a further package titled by the group;
+   the module path does the inverse: **a module's packages after the first are shown as groups,
+   titled by their plan.** Charged months are kept as today (a group of amounts), marked aside so
+   no route ever draws on them.
+4. **Endpoints by site.** Token Plan: `https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`
+   (China site; the international site lists Token Plan for teams only). Free quota (China site,
+   Beijing): `https://dashscope.aliyuncs.com/compatible-mode/v1`, drawing `scope:model`. Endpoint
+   selection generalises from one `Region` to **`When`, session values that must match**
+   (`{"region":"cn"}` for Kimi; `{"site":""}` for Bailian's China endpoints, so an
+   international-site session is offered nothing rather than the wrong host). Pay-as-you-go has no
+   model list (an AccessKey lists no models), so it has a card and no offers.
+
+Models: the free quota account serves exactly the models it holds grants for (as today); Token
+Plan lists models only through a bl profile's model key whose base is the Token Plan origin.
+
+**Steps, revised:** C1 contract (`Session.Now`, `Requires`, `When`, `Way.Resolve`, groups from
+packages) — module layer only; C2 Token Plan; C3 pay-as-you-go over an AccessKey (signing vector
+test); C4 free quota with `scope:model`; C5 wiring, live check, walkthrough (demo then shows the
+`free` class).
+
 ## 6. Risks and how they're handled
 
 - **Undocumented endpoints** (Kimi `/usages`, Bailian console gateway): labelled "observed" in the

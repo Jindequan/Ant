@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 13 C0: phase C revised after reading quota's Bailian readers ([design 13 §5.1](../design/13-NEXT-PROVIDER-MODULES.md)) — a module reads only sessions holding the values it needs (`Requires`; browser sessions stay on quota), values read at read time (`Way.Resolve` for bl's config), packages after the first shown as card groups (tool benefits, charged months), endpoint selection by session values (`When`). Token Plan endpoint verified in Alibaba Cloud's docs. Note only; committed by path because uncommitted debug traces from another session (`application/config_service.go`, `store/sqlite/writer.go`) are in the working tree and fail `gofmt` — gates last green at `50c4a28`, and this commit changes no code.
+
 2026-10-09 design 13 step B3 (core, deliberate): free grants in the route preview — class `free` after use-before-lost and before plan; a grant with room is used first (soonest-ending first), a used-up grant is skipped when the route has another way to pay and excludes it otherwise; counts written as "820,000 tokens"; the page labels it "Free". Mutation-checked (three mutations). Phase B closed; phase C (Bailian) next. Gates pass.
 
 2026-10-09 design 13 step B2 (core, deliberate): the route preview resolves `scope:model` — a model's own meters, matched canonically — and never draws a meter scoped to another model. The canonical model rule moved to `observed.ModelID` (catalog's copy removed). Mutation-checked. Gates pass.
