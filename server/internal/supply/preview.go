@@ -10,6 +10,7 @@ import (
 
 	"ant/server/internal/domain"
 	"ant/server/internal/domain/observed"
+	"ant/server/internal/domain/usefirst"
 	"ant/server/internal/store"
 )
 
@@ -29,9 +30,7 @@ const (
 var classRank = map[string]int{ClassUseBeforeLost: 0, ClassFree: 1, ClassPlan: 2, ClassPrepaid: 3, ClassPayg: 4}
 
 const (
-	staleAfter     = 30 * time.Minute
-	loseWithin     = 24 * time.Hour
-	loseAtLeastPct = 30.0
+	staleAfter = 30 * time.Minute
 )
 
 // Route is one way to the model: an account's credential at an endpoint.
@@ -303,8 +302,7 @@ func planCandidate(cand Candidate, windows []meter, now domain.Millis) Candidate
 		}
 		tightest = math.Min(tightest, p)
 		parts = append(parts, name(m)+" "+pct(p)+" left")
-		end := m.latest.WindowEnd
-		if lose == nil && end != nil && *end > now && *end-now <= ms(loseWithin) && p >= loseAtLeastPct && m.outlook.Kind != OutlookRunsOut {
+		if lose == nil && usefirst.Today(allowance(m, p), time.UnixMilli(int64(now))) {
 			lose = &windows[i]
 		}
 	}
@@ -342,12 +340,21 @@ func freeCandidate(cand Candidate, grants []meter, now domain.Millis) Candidate 
 	cand.Reason = "Free: " + name(g) + " " + amount + " left"
 	if end := ends(g); end != math.MaxInt64 {
 		cand.Reason += ", ends in " + span(time.Duration(end-now)*time.Millisecond)
-		if p, ok := percentLeft(g); ok && end-now <= ms(loseWithin) && p >= loseAtLeastPct {
+		if p, ok := percentLeft(g); ok && usefirst.Today(allowance(g, p), time.UnixMilli(int64(now))) {
 			cand.Class = ClassUseBeforeLost
 			cand.Reason = "Use before it's lost: " + cand.Reason[len("Free: "):]
 		}
 	}
 	return cand
+}
+
+// allowance is what the use-first rule needs to know about a meter.
+func allowance(m meter, pctLeft float64) usefirst.Allowance {
+	a := usefirst.Allowance{PercentLeft: &pctLeft, RunsOut: m.outlook.Kind == OutlookRunsOut}
+	if m.latest != nil && m.latest.WindowEnd != nil {
+		a.At = time.UnixMilli(int64(*m.latest.WindowEnd))
+	}
+	return a
 }
 
 // ends is when a meter's allowance ends, or never.

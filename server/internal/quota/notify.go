@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"ant/server/internal/domain/usefirst"
 )
 
 // Alert is one thing worth telling the user now. Key identifies the event,
@@ -18,9 +20,10 @@ type Alert struct {
 }
 
 const (
-	loseWithin     = 2 * time.Hour  // an allowance resetting this soon with this much left
-	loseLeft       = 30.0           // percent
-	expireWithin   = 24 * time.Hour // a grant ending this soon with anything left
+	// alerts come at the last useful moment of what the use-first rule
+	// (usefirst.Of) says would be lost
+	loseWithin     = 2 * time.Hour  // a window resetting this soon
+	expireWithin   = 24 * time.Hour // a grant ending this soon
 	runOutWithin   = 6 * time.Hour  // a window running dry this soon, before it resets
 	balanceWithin  = 72 * time.Hour // a balance lasting less than this
 	renewWithin    = 24 * time.Hour
@@ -57,6 +60,7 @@ func alerts(accounts []Account, insights map[string][]Insight, prices map[string
 			left := percentLeft(w)
 			in := findWindowInsight(ins, w)
 			runsOut := in != nil && in.Outlook == "runs_out" && in.At != nil
+			why := usefirst.Of(allowanceOf(w, in), now)
 			period := w.ResetsAt.UTC().Format(time.RFC3339)
 			switch {
 			case runsOut && in.At.Sub(now) <= runOutWithin:
@@ -64,10 +68,11 @@ func alerts(accounts []Account, insights map[string][]Insight, prices map[string
 					Body: fmt.Sprintf("At this pace it runs out in %s, %s before it %s.", span(in.At.Sub(now)), span(w.ResetsAt.Sub(*in.At)), verb(w))})
 			case runsOut:
 				// used up before it resets: nothing will be lost
-			case w.Expires && until <= expireWithin && left != nil && *left > 0:
+			case left == nil:
+			case why == usefirst.BeforeEnd && until <= expireWithin:
 				out = append(out, Alert{Key: a.ID + "|" + w.Name + "|" + w.Model + "|expires|" + period, Title: name + " · " + w.Name + " expires soon",
 					Body: fmt.Sprintf("%s left, and it ends in %s. Use it before then.", leftText(w, *left), span(until))})
-			case !w.Expires && until <= loseWithin && left != nil && *left >= loseLeft:
+			case why == usefirst.BeforeReset && until <= loseWithin:
 				out = append(out, Alert{Key: a.ID + "|" + w.Name + "|" + w.Model + "|resets|" + period, Title: name + " · " + w.Name + " resets soon",
 					Body: fmt.Sprintf("%s left, and it resets in %s. Use it or lose it.", leftText(w, *left), span(until))})
 			}
@@ -124,19 +129,16 @@ func findWindowInsight(ins []Insight, w Window) *Insight {
 
 // percentLeft is how much of a window is left, 0–100, or nil when unknown.
 func percentLeft(w Window) *float64 {
-	var p float64
-	switch {
-	case w.UsedPercent != nil:
-		p = 100 - *w.UsedPercent
-	case w.Left != nil && w.Limit != nil && *w.Limit > 0:
-		p = *w.Left / *w.Limit * 100
-	case w.Used != nil && w.Limit != nil && *w.Limit > 0:
-		p = (*w.Limit - *w.Used) / *w.Limit * 100
-	default:
-		return nil
+	return usefirst.PercentLeft(w.UsedPercent, w.Left, w.Used, w.Limit)
+}
+
+// allowanceOf is what the use-first rule needs to know about a window.
+func allowanceOf(w Window, in *Insight) usefirst.Allowance {
+	a := usefirst.Allowance{PercentLeft: percentLeft(w), Ends: w.Expires, Aside: w.Aside, RunsOut: in != nil && in.Outlook == "runs_out"}
+	if w.ResetsAt != nil {
+		a.At = *w.ResetsAt
 	}
-	p = math.Max(0, math.Min(100, p))
-	return &p
+	return a
 }
 
 func leftText(w Window, pct float64) string {
