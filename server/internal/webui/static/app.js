@@ -5,6 +5,16 @@ const HUES = {
   deepseek: 214, openrouter: 240, siliconflow: 280, stepfun: 190, suno: 8,
   manus: 30, perplexity: 186, poe: 262, kling: 150, leonardo: 290, seaart: 205, sdweb: 312, elevenlabs: 0, figma: 12, stitch: 120,
 };
+// LOGOS are the providers whose own icon is bundled with the page
+// (webui/static/logos, fetched once from each provider's site); the others
+// show their initial.
+const LOGOS = new Set(["aliyun", "bigmodel", "chatgpt", "claude", "copilot", "deepseek", "elevenlabs", "figma", "gemini", "kimi", "kling", "manus", "minimax", "opencode", "openrouter", "perplexity", "poe", "sdweb", "seaart", "siliconflow", "stepfun", "stitch", "suno", "volcengine", "xiaomi", "zai"]);
+
+// mark is a provider's logo on a small tile, or its initial in its colour.
+function mark(provider, name, cls = "") {
+  if (LOGOS.has(provider)) return `<span class="mark logo-mark ${cls}" aria-hidden="true"><img src="/logos/${provider}.png" alt="" decoding="async"></span>`;
+  return `<span class="mark ${cls}" aria-hidden="true">${esc(String(name || "").slice(0, 1))}</span>`;
+}
 const MEDIA_LABEL = { text: "Text", image: "Image", video: "Video", music: "Music", speech: "Speech", audio: "Audio", design: "Design", agent: "Agent", search: "Search" };
 const MEDIA_ORDER = Object.keys(MEDIA_LABEL);
 const KIND_LABEL = { subscription: "Subscription", api: "API balance", free: "Free" };
@@ -133,7 +143,7 @@ function renderSummary(accounts) {
     </div>
     ${shown.length ? `<ol class="g-list">${shown.map(({ a, w }) => `
       <li><button type="button" class="g-item" data-goto="${esc(a.id)}" style="--hue:${HUES[a.provider] ?? 30}">
-        <span class="mark sm" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
+        ${mark(a.provider, a.name, "sm")}
         <span class="g-what"><b>${esc(a.label || a.name)}</b> ${esc(w.name)}</span>
         <span class="g-left">${leftText(w)}</span>
         <span class="g-when">${w.expires ? "ends" : "resets"} in ${until(time(w.resetsAt))}</span>
@@ -331,7 +341,7 @@ function renderAccount(a) {
   return `
     <details class="acct ${a.status === "ok" ? "" : "attn"}" data-id="${esc(a.id)}" style="--hue:${HUES[a.provider] ?? 30}" ${open ? "open" : ""}>
       <summary class="a-row">
-        <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
+        ${mark(a.provider, a.name)}
         <span class="a-who"><b>${esc(a.label || a.name)}</b>${paused ? ' <span class="tag off">Paused</span>' : ""}<span class="a-sub">${a.label ? `${esc(a.name)} · ` : ""}${sub}</span></span>
         <span class="a-val">${headline(a)}</span>
         <span class="a-next">${nextOf(a)}</span>
@@ -472,7 +482,7 @@ function routeLeft(r) {
 function routeRow(r) {
   const level = r.p == null ? "" : r.p < 20 ? "low" : r.p < 50 ? "warn" : "";
   const why = r.cls === 9 ? "Used up" : r.pays ? "Pay as you go" : r.w && urgency(r.w, r.a) ? urgency(r.w, r.a) : "";
-  return `<span class="r-acct" style="--hue:${HUES[r.a.provider] ?? 30}"><span class="mark" aria-hidden="true">${esc(r.a.name.slice(0, 1))}</span>${esc(r.a.label || r.a.name)}${r.a.modeName ? ` · ${esc(r.a.modeName)}` : ""}</span>
+  return `<span class="r-acct" style="--hue:${HUES[r.a.provider] ?? 30}">${mark(r.a.provider, r.a.name)}${esc(r.a.label || r.a.name)}${r.a.modeName ? ` · ${esc(r.a.modeName)}` : ""}</span>
     <span class="m-left"><span class="meter small ${r.p == null ? "unknown" : ""}">${r.p == null ? "" : `<i class="${level}" style="width:${r.p.toFixed(1)}%"></i>`}</span>${routeLeft(r)}</span>
     <span class="m-when">${why ? `<span class="tag ${r.cls === 9 ? "off" : ""}">${esc(why)}</span>` : r.t ? `${r.w?.expires ? "Expires" : "Resets"} ${until(r.t)}` : ""}</span>`;
 }
@@ -560,7 +570,7 @@ function renderTimeline(accounts) {
       const tag = w && !ev.forecast && urgency(w, a) ? ` <span class="tag">${urgency(w, a)}</span>` : "";
       return `<div class="tl-row ${ev.forecast ? "forecast" : ""}" style="--hue:${HUES[a.provider] ?? 30}">
         <span class="t">${when}</span>
-        <span class="mark" aria-hidden="true">${esc(a.name.slice(0, 1))}</span>
+        ${mark(a.provider, a.name)}
         <span class="what">${what}${tag}<span class="sub">${name}${a.modeName ? " · " + esc(a.modeName) : ""}</span></span>
         <span class="val">${val}</span></div>`;
     }).join("")}</div></section>`).join("")}</div>`;
@@ -687,7 +697,7 @@ function stepProviders() {
     </label>
     <div class="pick">${state.providers.map((p) => `
       <button type="button" data-provider="${esc(p.id)}" data-hay="${esc(norm([p.name, p.id, ...(p.media || ["text"]).map((m) => MEDIA_LABEL[m] || m)].join(" ")))}" style="--hue:${HUES[p.id] ?? 30}">
-        <span class="mark" aria-hidden="true">${esc(p.name.slice(0, 1))}</span><span class="n">${esc(p.name)}</span>
+        ${mark(p.id, p.name)}<span class="n">${esc(p.name)}</span>
         ${have.has(p.id) ? '<span class="kind">Connected</span>' : ""}
       </button>`).join("")}</div>
     <p class="empty" id="provider-none" hidden>No provider matches. Ant reads only the providers listed here.</p>`, false);
@@ -1079,7 +1089,7 @@ async function routePreview(details) {
   if (best && p.use[0]) {
     const a = (state.snap?.accounts || []).find((x) => x.id === p.use[0].id || (x.keys || []).includes(p.use[0].id));
     best.style.setProperty("--hue", HUES[p.use[0].provider] ?? 30);
-    best.innerHTML = `<span class="mark" aria-hidden="true">${esc(p.use[0].name.slice(0, 1))}</span>${esc(p.use[0].name)}${a?.modeName ? ` · ${esc(a.modeName)}` : ""}`;
+    best.innerHTML = `${mark(p.use[0].provider, p.use[0].name)}${esc(p.use[0].name)}${a?.modeName ? ` · ${esc(a.modeName)}` : ""}`;
   }
   const row = (c, i) => `<li class="r-choice">${i != null ? `<span class="r-rank">${i + 1}</span>` : ""}
     <span class="r-who"><b>${esc(c.name)}</b>${c.class ? ` <span class="tag ${c.class === "use_before_lost" || c.class === "free" ? "" : "off"}">${esc(ROUTE_CLASS[c.class] || c.class)}</span>` : ""}</span>

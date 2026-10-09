@@ -3,10 +3,15 @@ package api
 import (
 	"io/fs"
 	"net/http"
+	"regexp"
 )
 
+// logoPath is a provider's logo, bundled with the page (webui/static/logos).
+var logoPath = regexp.MustCompile(`^/logos/[a-z0-9-]{1,40}\.png$`)
+
 // PageHandler serves Ant's embedded page (webui.Files): "/" and its own
-// files only, GET or HEAD, under a CSP that loads nothing from elsewhere.
+// files only (the page, its script and style, and the providers' logos),
+// GET or HEAD, under a CSP that loads nothing from elsewhere.
 func PageHandler(files fs.FS) http.Handler {
 	fileServer := http.FileServerFS(files)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -15,8 +20,9 @@ func PageHandler(files fs.FS) http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		switch r.URL.Path {
-		case "/", "/index.html", "/app.css", "/app.js":
+		switch p := r.URL.Path; {
+		case p == "/" || p == "/index.html" || p == "/app.css" || p == "/app.js":
+		case logoPath.MatchString(p):
 		default:
 			http.NotFound(w, r)
 			return

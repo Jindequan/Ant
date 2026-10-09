@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 provider logos: each provider's own icon (26 of 27; fetched once from its site with the user's approval, converted to 64 px PNGs, ~120 KB) replaces the coloured initial everywhere on the page, on a small white tile that reads in light and dark. Served only as `/logos/<id>.png` (tested: nothing else under /logos); the page still contacts no provider. Leonardo.Ai keeps its initial (its site blocks the fetch). Sources in `webui/static/logos/SOURCES.md`. Gates pass.
+
 2026-10-09 Ant's logo is the drawing the user chose ("C2 · walking ant, line 2"): one line drawing, no background, everywhere — page header, favicon (light/dark), app icon (the ant alone, with a soft outline for dark Docks), menu bar template. Gates pass.
 
 2026-10-09 Ant's logo: an ant in simple lines (walking, one antenna, one eye), with a small-size drawing for 12–24 px. App icon (macOS grid, every size, `Ant.icns`), menu bar template image (18 pt, @2x), page header and favicon; sources and `scripts/brand.sh` in `assets/brand/`. No menu bar app exists yet: the template icon is ready for one. Gates pass.
