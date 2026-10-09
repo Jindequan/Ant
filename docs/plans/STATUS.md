@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 diagnosis fixes 8–9: an account with many per-model grants (Bailian's 82) shows one folded line per kind of model with a line icon, the count and the first end; network failures read in words ("Couldn't reach api.github.com: the connection timed out. Check your network or proxy.") on both reading paths. Tests. All 9 findings addressed. Gates pass.
+
 2026-10-09 diagnosis fixes 5–7: Ant's port is 17890, moving to the next free one when taken, and the server records where it listens (~/.config/ant/server.json) for the app and make run; Ant.app gives the server the login shell's environment (the user's proxy — Copilot's timeout — and PATH); the menu is now a designed panel (chips, Use first, Needs you, accounts by kind with bars, Open at login switch), checked in light and dark. Gates pass.
 
 2026-10-09 diagnosis fixes 2–3: a Bailian sign-in no longer adds a Pay-as-you-go account that can't read (the console token doesn't open bills; the browser's own session and an AccessKey still do); a new sign-in that works retires the provider's earlier Ant sign-ins that have ended, with their profiles. Tests. Gates pass.

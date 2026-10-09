@@ -337,6 +337,9 @@ func Read(ctx context.Context, providers []Provider, local Local, c Connection) 
 			Message: "Ant no longer knows this kind of account. Remove it.", ReadAt: local.Now()}
 	}
 	a := m.Read(ctx, local, c)
+	if a.Status == StatusError {
+		a.Message = FriendlyNetError(a.Message)
+	}
 	if a.SessionEndsAt == nil && (a.Status == StatusOK || a.Status == StatusSignedOut) {
 		full, _ := p.mode(c.Mode)
 		a.SessionEndsAt = sessionEnds(ctx, local, full, c)

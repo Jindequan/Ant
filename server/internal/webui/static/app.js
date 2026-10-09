@@ -281,9 +281,11 @@ function cardBody(a) {
     const main = (a.windows || []).filter((w) => !w.aside);
     const aside = (a.windows || []).filter((w) => w.aside);
     const rows = main.map((w) => renderWindow(w, false, a));
-    const list = rows.length > 6
+    let list = rows.length > 6
       ? rows.slice(0, 5).join("") + `<details class="more"><summary>Show all ${rows.length}</summary>${rows.slice(5).join("")}</details>`
       : rows.join("");
+    // many per-model grants: one folded line per kind of model, soonest-ending first
+    if (main.length > 6 && main.every((w) => w.model)) list = renderByMedia(main, a);
     body = renderBalance(a) + list + aside.map((w) => renderWindow(w, false, a)).join("") + (a.groups || []).map((g) => renderGroup(g, a)).join("");
     if (a.message) body += `<p class="note">${esc(a.message)}</p>`;
     if (!body) body = `<p class="note">Connected. The provider reported no allowance or balance.</p>`;
@@ -308,6 +310,35 @@ function cardBody(a) {
 function ownWindows(a) {
   const own = (a.windows || []).filter((w) => !w.aside);
   return own.length ? own : allWindows(a).filter((w) => !w.aside);
+}
+
+// MEDIA_ICON marks what a group of models makes.
+const MEDIA_ICON = {
+  text: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  image: '<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>',
+  video: '<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="6" width="12" height="12" rx="2"/><path d="M15.5 10l5-3v10l-5-3"/></svg>',
+  speech: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>',
+  audio: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 15v-3a7 7 0 0 1 14 0v3"/><rect x="4" y="14" width="4" height="6" rx="1"/><rect x="16" y="14" width="4" height="6" rx="1"/></svg>',
+  music: '<svg class="ic" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>',
+};
+
+// renderByMedia folds many per-model allowances into one line per kind of
+// model: how many, and when the first of them ends.
+function renderByMedia(ws, a) {
+  const by = new Map();
+  for (const w of ws) {
+    const m = mediaOf(w, a);
+    if (!by.has(m)) by.set(m, []);
+    by.get(m).push(w);
+  }
+  return [...by].sort((x, y) => MEDIA_ORDER.indexOf(x[0]) - MEDIA_ORDER.indexOf(y[0])).map(([m, list]) => {
+    list.sort((x, y) => (time(x.resetsAt) || 9e15) - (time(y.resetsAt) || 9e15));
+    const first = time(list[0].resetsAt);
+    const soon = list.some((w) => urgency(w, a));
+    return `<details class="more media"><summary><span class="m-ic" aria-hidden="true">${MEDIA_ICON[m] || MEDIA_ICON.text}</span><b>${esc(MEDIA_LABEL[m] || m)}</b>
+      <span class="muted">${list.length} ${list.length === 1 ? "model" : "models"}${first ? ` · first ends in ${until(first)}` : ""}</span>${soon ? ' <span class="tag">Use before it expires</span>' : ""}</summary>
+      ${list.map((w) => renderWindow(w, true, a)).join("")}</details>`;
+  }).join("");
 }
 
 // headline is the one value a row shows: a balance, the allowance to use

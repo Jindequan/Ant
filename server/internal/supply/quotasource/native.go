@@ -64,8 +64,8 @@ func (n *natives) collect(ctx context.Context, providers []quota.Provider, c quo
 	s := catalog.Session{Product: c.Mode, Values: c.Values, Now: now}
 	inv, err := nat.Module.Supply.Collector.Inventory(ctx, s, nat.Fetch)
 	if err != nil {
-		a.Status, a.Message = quota.StatusError, err.Error()
-		r := supply.Result{Outcome: supply.OutcomeError, Detail: err.Error()}
+		a.Status, a.Message = quota.StatusError, quota.FriendlyNetError(err.Error())
+		r := supply.Result{Outcome: supply.OutcomeError, Detail: a.Message}
 		if errors.Is(err, catalog.ErrSignedOut) {
 			a.Status, a.Message = quota.StatusSignedOut, strings.TrimPrefix(err.Error(), catalog.ErrSignedOut.Error()+": ")
 			r = supply.Result{Outcome: supply.OutcomeSignedOut, Detail: a.Message}
