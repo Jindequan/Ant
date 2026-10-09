@@ -227,7 +227,7 @@ func (c collector) bss(ctx context.Context, s catalog.Session, fetch observed.Fe
 	}
 	err = ParseBSSReply(res.Body, dst)
 	if errors.Is(err, ErrKeyRefused) {
-		return fmt.Errorf("%w: %s. Check the AccessKey (a RAM user with AliyunBSSReadOnlyAccess is enough).", catalog.ErrSignedOut, err.Error())
+		return fmt.Errorf("%w: %s. Check the AccessKey (a RAM user with AliyunBSSReadOnlyAccess is enough).", catalog.ErrSignedOut, strings.TrimRight(err.Error(), "."))
 	}
 	if err == nil && (res.Status < 200 || res.Status > 299) {
 		return fmt.Errorf("Alibaba Cloud's billing answered %d", res.Status)

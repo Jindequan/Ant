@@ -78,7 +78,7 @@ func (c collector) gateway(s catalog.Session, fetch observed.Fetch) gateway {
 	if region == "" {
 		region = "cn-beijing"
 	}
-	return gateway{host: host, token: s.Values["token"], region: region, fetch: fetch}
+	return gateway{host: host, token: s.Values["token"], region: region, fetch: fetch, viaBL: s.Values["via"] == "bl"}
 }
 
 func (c collector) Inventory(ctx context.Context, s catalog.Session, fetch observed.Fetch) (observed.Inventory, error) {

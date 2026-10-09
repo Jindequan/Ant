@@ -85,6 +85,7 @@ func resolveBL(_ Local, c Connection) (map[string]string, error) {
 	if v == nil || (v["token"] == "" && v["accessKeyId"] == "") {
 		return nil, fmt.Errorf("%w: The Bailian CLI is signed out. Run bl login.", ErrSignedOut)
 	}
+	v["via"] = "bl" // a refused token is renewed with bl login
 	return v, nil
 }
 

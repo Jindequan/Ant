@@ -30,6 +30,15 @@ const signedOut = "Your Alibaba Cloud sign-in has ended. Sign in again."
 type gateway struct {
 	host, token, region string
 	fetch               observed.Fetch
+	viaBL               bool // the token is bl's: renewed with bl login
+}
+
+// refused is a refused token, with what renews it.
+func (g gateway) refused(err error) error {
+	if g.viaBL && errors.Is(err, catalog.ErrSignedOut) {
+		return fmt.Errorf("%w: The Bailian CLI's sign-in has ended. Run bl login.", catalog.ErrSignedOut)
+	}
+	return err
 }
 
 func (g gateway) call(ctx context.Context, api string, data map[string]any, dst any) error {
@@ -49,14 +58,14 @@ func (g gateway) call(ctx context.Context, api string, data map[string]any, dst 
 		return fmt.Errorf("Couldn't reach Bailian: %v", err)
 	}
 	if res.Status == 401 || res.Status == 403 {
-		return fmt.Errorf("%w: %s", catalog.ErrSignedOut, signedOut)
+		return g.refused(fmt.Errorf("%w: %s", catalog.ErrSignedOut, signedOut))
 	}
 	if res.Status < 200 || res.Status > 299 {
 		return fmt.Errorf("Bailian answered %d", res.Status)
 	}
 	inner, err := ParseCLIReply(res.Body)
 	if err != nil || dst == nil || len(inner) == 0 || string(inner) == "null" {
-		return err
+		return g.refused(err)
 	}
 	return decode(inner, dst)
 }

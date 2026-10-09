@@ -116,7 +116,7 @@ func TestPaygRefusedKey(t *testing.T) {
 		{"accessKeyId": "LTAIx", "accessKeySecret": "wrong"}, // a signature that doesn't match
 	} {
 		_, err := m.Supply.Collector.Inventory(context.Background(), catalog.Session{Product: ProductPayg, Values: v, Now: at}, fetch)
-		if !errors.Is(err, catalog.ErrSignedOut) || !strings.Contains(err.Error(), "InvalidAccessKeyId.NotFound") {
+		if !errors.Is(err, catalog.ErrSignedOut) || !strings.Contains(err.Error(), "InvalidAccessKeyId.NotFound") || strings.Contains(err.Error(), "..") {
 			t.Fatalf("%v: %v", v, err)
 		}
 	}

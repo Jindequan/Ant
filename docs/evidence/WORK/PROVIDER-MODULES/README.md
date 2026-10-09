@@ -371,3 +371,36 @@ environment →
   without a request to Bailian.
 
 `TestDemoSourceFreeQuotaIsPerModel`: every meter of the sample free quota is scoped to its model.
+
+**C5 — live check** (real binary built from `a2433dc`, `env -i` with HOME and an empty PATH in a
+scratch directory; a fake token in the scratch home's `~/.bailian/config.json`, a fake AccessKey
+in `ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET`). Requests with fake credentials (R4), one each:
+`bailian-cs.console.aliyun.com/cli/api.json` for the Token Plan subscription and for the model
+list (free quota), `business.aliyuncs.com` `QueryAccountBalance`. Results:
+
+| Credential | Card | Stored | `collector_runs` |
+|---|---|---|---|
+| Token Plan (`bl`) | signed out | `signed_out` | 1 inventory run, `signed_out` |
+| Free quota (`bl`) | signed out | `signed_out` | 1 run, `signed_out` |
+| Pay-as-you-go (`$ALIBABA_CLOUD_ACCESS_KEY_ID`) | signed out: "Alibaba Cloud refused the AccessKey: InvalidAccessKeyId.NotFound: …" | `signed_out` | 1 run, `signed_out` |
+
+No accounts or offers recorded. **Found by the live check and fixed:** (1) the AccessKey message
+read "not found.. Check" — Alibaba Cloud's message ends with a period; trimmed (tested). (2) A
+refused `bl` token said "Sign in again" though `bl login` is what renews it: bl's resolved values
+now say where they came from (`via: bl`) and the card says "The Bailian CLI's sign-in has ended.
+Run bl login." (tested). Not re-run live: three more requests with fake credentials for wording
+the tests show.
+
+**C5 — demo walkthrough** (binary with those fixes, `-demo`): `GET /api/route` →
+
+- `glm-5.3`: 1. Z.ai, use-before-lost, "5 hours 82% left, resets in 2h 14m"; 2. Alibaba Cloud
+  Bailian, **free**, "Free: glm-5.3 812,345 tokens left, ends in 52 days";
+- `kimi-k3`: 1. Kimi, use-before-lost; 2. Bailian, free, "Free: kimi-k3 1,000,000 tokens left,
+  ends in 41 days";
+- `qwen-image-2.1-pro`: Bailian, free, "10 images left, ends in 86 days".
+
+Models view, `glm-5.3` opened: "Z.ai · Use first", then "Alibaba Cloud Bailian · Free" with the
+sentence above; "Also listed by OpenCode Go, OpenRouter, SiliconFlow, not in the preview yet."
+
+Phase C closed: Bailian is the fourth module; with phase B, a call to a model draws on that
+model's own free grant and on no other.

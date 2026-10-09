@@ -165,6 +165,11 @@ func TestTokenPlanSignedOutAndNoPlan(t *testing.T) {
 	if !errors.Is(err, catalog.ErrSignedOut) || !strings.Contains(err.Error(), "Sign in again") {
 		t.Fatalf("expired token: %v", err)
 	}
+	// bl's token is renewed with bl login, and the card says so
+	_, err = m.Supply.Collector.Inventory(context.Background(), plan(map[string]string{"token": "expired", "via": "bl"}), fetch)
+	if !errors.Is(err, catalog.ErrSignedOut) || !strings.Contains(err.Error(), "Run bl login") {
+		t.Fatalf("expired bl token: %v", err)
+	}
 	n := len(f.calls)
 	if _, err := m.Supply.Collector.Inventory(context.Background(), plan(map[string]string{"token": " "}), fetch); !errors.Is(err, catalog.ErrSignedOut) || len(f.calls) != n {
 		t.Fatalf("no token: %v, %d calls sent", err, len(f.calls)-n)

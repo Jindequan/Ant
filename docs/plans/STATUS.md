@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 13 step C5, part 2 (branch design13-phase-c): live check of Bailian with a fake bl token and a fake AccessKey (isolated home and PATH, one read-only request per credential, R4) → all three signed out, nothing recorded. Found and fixed: a doubled period in the AccessKey message, and a refused bl token now says "Run bl login". Demo walkthrough: `glm-5.3` → Z.ai use-before-lost, then Bailian **free** grant; `kimi-k3` → Kimi, then Bailian free. **Design 13 done** (phases A, B, C). Gates pass.
+
 2026-10-09 design 13 step C5, part 1 (branch design13-phase-c): the server reads Bailian through its module (token and AccessKey sessions; browser sign-ins stay on quota) and demo samples its Token Plan and free quota. End-to-end on TLS fakes: three cards with their groups, stored facts with reported identities, free grants offered per model at DashScope, route preview `kimi-k3` → free grant, `qwen3-max` → plan; bl logout → signed out without a request. Gates pass.
 
 2026-10-09 design 13 step C4 (branch design13-phase-c): Bailian new-user free quota in the module — one `free_grant` package, a meter per model scoped to that model (exact, ending at the grant's validity, expiry judged on the session's clock), offers at DashScope drawing `scope:model`. Quota's free quota reader uses the module's listing and grants over the same fixtures (mutation-checked). Gates pass.
