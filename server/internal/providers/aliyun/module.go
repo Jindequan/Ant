@@ -26,6 +26,7 @@ type Bases struct {
 	Gateway      string // CLI gateway, China site (aliyun.com)
 	GatewayIntl  string // CLI gateway, international site (alibabacloud.com)
 	TokenPlan    string // Token Plan's model endpoint origin (China)
+	DashScope    string // pay-as-you-go model endpoint origin (China, Beijing), where free quota is spent
 	Business     string // billing API (BssOpenApi), China site
 	BusinessIntl string // billing API, international site
 }
@@ -36,6 +37,7 @@ func DefaultBases() Bases {
 		Gateway:      "https://bailian-cs.console.aliyun.com",
 		GatewayIntl:  "https://bailian-cs.console.alibabacloud.com",
 		TokenPlan:    "https://token-plan.cn-beijing.maas.aliyuncs.com",
+		DashScope:    "https://dashscope.aliyuncs.com",
 		Business:     "https://business.aliyuncs.com",
 		BusinessIntl: "https://business.ap-southeast-1.aliyuncs.com",
 	}
@@ -48,12 +50,14 @@ var tokenPlanDraws = []string{"window/5hour", "window/1day", "window/1week", "wi
 // Module is Alibaba Cloud Bailian.
 func Module(b Bases) catalog.Module {
 	trim := func(s string) string { return strings.TrimRight(s, "/") }
-	b = Bases{Gateway: trim(b.Gateway), GatewayIntl: trim(b.GatewayIntl), TokenPlan: trim(b.TokenPlan), Business: trim(b.Business), BusinessIntl: trim(b.BusinessIntl)}
+	b = Bases{Gateway: trim(b.Gateway), GatewayIntl: trim(b.GatewayIntl), TokenPlan: trim(b.TokenPlan), DashScope: trim(b.DashScope), Business: trim(b.Business), BusinessIntl: trim(b.BusinessIntl)}
 	china := map[string]string{"site": ""} // the international site lists Token Plan for teams only
 	return catalog.Module{ID: "aliyun", Name: "Alibaba Cloud Bailian", Supply: &catalog.Supply{
 		Origins: []string{b.Gateway, b.GatewayIntl, b.TokenPlan, b.Business, b.BusinessIntl},
 		Endpoints: []catalog.Endpoint{
 			{Base: b.TokenPlan + "/compatible-mode/v1", Protocol: "openai-chat", Draws: tokenPlanDraws, Product: ProductTokenPlan, When: china},
+			// free quota is spent through the account's own keys at DashScope: a call draws on its model's grant
+			{Base: b.DashScope + "/compatible-mode/v1", Protocol: "openai-chat", Draws: []string{observed.DrawModelScope}, Product: ProductFreeQuota, When: china},
 		},
 		Requires: map[string][]string{
 			ProductTokenPlan: {"token"},
@@ -86,6 +90,12 @@ func (c collector) Inventory(ctx context.Context, s catalog.Session, fetch obser
 		return tokenPlan(ctx, c.gateway(s, fetch))
 	case ProductPayg:
 		return c.payg(ctx, s, fetch)
+	case ProductFreeQuota:
+		if strings.TrimSpace(s.Values["token"]) == "" {
+			return observed.Inventory{}, fmt.Errorf("%w: Sign in with Alibaba Cloud to list each model's free quota.", catalog.ErrSignedOut)
+		}
+		inv, _, err := freeQuota(ctx, c.gateway(s, fetch), s.Now)
+		return inv, err
 	}
 	return observed.Inventory{}, fmt.Errorf("Bailian's module doesn't read %q yet", s.Product)
 }
@@ -177,6 +187,11 @@ func tokenPlan(ctx context.Context, g gateway) (observed.Inventory, error) {
 // Models: the Token Plan lists models only through a bl profile's model
 // key whose base is the Token Plan's own origin; otherwise none.
 func (c collector) Models(ctx context.Context, s catalog.Session, fetch observed.Fetch) ([]observed.UpstreamModel, error) {
+	if s.Product == ProductFreeQuota && strings.TrimSpace(s.Values["token"]) != "" {
+		// the free quota account serves exactly the models it holds grants for
+		_, grants, err := freeQuota(ctx, c.gateway(s, fetch), s.Now)
+		return freeQuotaModels(grants), err
+	}
 	if s.Product != ProductTokenPlan {
 		return nil, nil
 	}

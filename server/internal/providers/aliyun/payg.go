@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -118,6 +119,16 @@ func (a Amount) Units() (domain.Units, bool) {
 		return 0, true
 	}
 	return catalog.ParseDecimal(string(a))
+}
+
+// Int is the amount as a whole number (a timestamp in ms, a count); ok is
+// false for anything else. "" is 0.
+func (a Amount) Int() (int64, bool) {
+	if a == "" {
+		return 0, true
+	}
+	v, err := strconv.ParseInt(string(a), 10, 64)
+	return v, err == nil
 }
 
 // BillItem is one line of QueryBillOverview.

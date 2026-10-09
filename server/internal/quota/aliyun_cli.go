@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"time"
 
@@ -93,133 +91,21 @@ func bailianClient(ctx context.Context, l Local, c Connection, a *Account) baili
 
 // --- the new-user free quota ---
 
-// bailianModel is one model of the model list, as far as free quota needs it.
-type bailianModel struct {
-	Model        string         `json:"model"`
-	Capabilities []string       `json:"capabilities"`
-	Items        []bailianModel `json:"items"`
-}
-
-// listBailianModels is every model name, with its capabilities, page by page
-// as the CLI lists them.
-func listBailianModels(ctx context.Context, g bailianAPI) ([]bailianModel, error) {
-	var out []bailianModel
-	seen := map[string]bool{}
-	for page, pages := 1, 1; page <= pages && page <= 40; page++ {
-		var r struct {
-			Total int            `json:"total"`
-			List  []bailianModel `json:"list"`
-		}
-		err := g.gateway(ctx, "zeldaHttp.dashscopeModel./zelda/api/v1/modelCenter/listFoundationModels", map[string]any{"input": map[string]any{
-			"pageNo": page, "pageSize": 50, "name": "", "providers": []string{}, "inferenceProviders": []string{},
-			"features": []string{}, "group": true, "capabilities": []string{}, "contextWindows": []string{},
-		}}, &r)
-		if err != nil {
-			return nil, err
-		}
-		pages = (r.Total + 49) / 50
-		for _, m := range r.List {
-			for _, it := range append([]bailianModel{m}, m.Items...) {
-				if it.Model != "" && !seen[it.Model] {
-					seen[it.Model] = true
-					out = append(out, it)
-				}
-			}
-		}
-	}
-	return out, nil
-}
-
-// freeTierQuota is one row of queryFreeTierQuota: quotaTotal is what is
-// left, quotaInitTotal what was granted, quotaValidityPeriod the due time.
-type freeTierQuota struct {
-	Model               string     `json:"model"`
-	QuotaTotal          flexNumber `json:"quotaTotal"`
-	QuotaInitTotal      flexNumber `json:"quotaInitTotal"`
-	QuotaValidityPeriod flexNumber `json:"quotaValidityPeriod"`
-	QuotaStatus         string     `json:"quotaStatus"`
-}
-
-// freeQuotaUnit is the unit a model's grant is counted in, by what the
-// model does: text in tokens; the rest as Bailian counts them.
-func freeQuotaUnit(caps []string) string {
-	for _, c := range caps {
-		switch c {
-		case "TG", "VU", "Reasoning", "ME", "TR", "Multimodal-Omni", "Realtime-Omni":
-			return "tokens"
-		case "IG":
-			return "images"
-		}
-	}
-	return ""
-}
-
-// capsMedia is what a Bailian model makes, from its capabilities: IG
-// image, VG video, TTS speech, ASR audio, else text.
-func capsMedia(caps []string) string {
-	for _, c := range caps {
-		switch c {
-		case "IG", "IE":
-			return "image"
-		case "VG", "VE":
-			return "video"
-		case "TTS", "SS":
-			return "speech"
-		case "ASR", "SR":
-			return "audio"
-		}
-	}
-	return "text"
-}
-
+// readFreeQuotaList is the grants with room left, as windows, and how many
+// more are used up or expired (the module's listing and parsing).
 func readFreeQuotaList(ctx context.Context, g bailianAPI, now time.Time) ([]Window, int, error) {
-	models, err := listBailianModels(ctx, g)
+	grants, gone, err := aliyun.FreeQuota(ctx, g.gateway, now)
 	if err != nil {
 		return nil, 0, err
 	}
-	names := make([]string, len(models))
-	caps := map[string][]string{}
-	for i, m := range models {
-		names[i], caps[m.Model] = m.Model, m.Capabilities
+	ws := make([]Window, len(grants))
+	for i, gr := range grants {
+		left, limit := float64(gr.Left)/1e6, float64(gr.Limit)/1e6
+		ws[i] = Window{Name: gr.Model, Model: gr.Model, Media: gr.Media, Left: &left, Limit: &limit, Unit: gr.Unit, Expires: true}
+		if gr.Ends > 0 {
+			ws[i].ResetsAt = ptr(time.UnixMilli(gr.Ends).UTC())
+		}
 	}
-	var r struct {
-		Quotas []freeTierQuota `json:"freeTierQuotas"`
-	}
-	if err := g.gateway(ctx, "zeldaEasy.bailian-commerce.freeTrial.queryFreeTierQuota",
-		map[string]any{"queryFreeTierQuotaRequest": map[string]any{"models": names}}, &r); err != nil {
-		return nil, 0, err
-	}
-	var ws []Window
-	gone := 0
-	for _, q := range r.Quotas {
-		if q.Model == "" || q.QuotaInitTotal <= 0 {
-			continue
-		}
-		ends := time.UnixMilli(int64(q.QuotaValidityPeriod)).UTC()
-		if q.QuotaStatus != "VALID" || q.QuotaTotal <= 0 || (q.QuotaValidityPeriod > 0 && !ends.After(now)) {
-			gone++
-			continue
-		}
-		media := capsMedia(caps[q.Model])
-		if media == "text" { // capabilities that don't say: the name may
-			media = catalog.ModelMedia(q.Model, "")
-		}
-		w := Window{Name: q.Model, Model: q.Model, Media: media, Left: ptr(float64(q.QuotaTotal)), Limit: ptr(float64(q.QuotaInitTotal)), Unit: freeQuotaUnit(caps[q.Model]), Expires: true}
-		if q.QuotaValidityPeriod > 0 {
-			w.ResetsAt = &ends
-		}
-		ws = append(ws, w)
-	}
-	sort.SliceStable(ws, func(i, j int) bool {
-		a, b := ws[i].ResetsAt, ws[j].ResetsAt
-		if a == nil || b == nil {
-			return a != nil
-		}
-		if !a.Equal(*b) {
-			return a.Before(*b)
-		}
-		return ws[i].Name < ws[j].Name
-	})
 	return ws, gone, nil
 }
 
@@ -242,13 +128,6 @@ func readBailianFreeQuota(ctx context.Context, l Local, c Connection) Account {
 	for _, w := range ws { // each grant is one model's, callable with the account's keys
 		a.Models = append(a.Models, Model{ID: w.Model, Media: w.Media})
 	}
-	switch {
-	case len(ws) == 0:
-		a.Message = "No model has free quota left."
-	case gone > 0:
-		a.Message = fmt.Sprintf("%d models with free quota · %d more used up or expired.", len(ws), gone)
-	default:
-		a.Message = fmt.Sprintf("%d models with free quota.", len(ws))
-	}
+	a.Message = aliyun.FreeQuotaNote(len(ws), gone)
 	return a
 }

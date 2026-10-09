@@ -8,3 +8,7 @@ code as "no Token Plan".
 `bss-*.json` are BssOpenApi replies (`QueryAccountBalance`, `QueryBillOverview`, a refused
 AccessKey) in the shape of Alibaba Cloud's API reference, with made-up amounts; amounts arrive as
 numbers or strings, sometimes with thousands separators, and the module keeps every digit.
+
+`models-page1.json`, `models-page2.json` and `free-quota.json` are the CLI gateway's model list
+(51 models, so two pages) and `queryFreeTierQuota` reply, shaped as observed on 2026-10-07, with
+a live text grant, a live image grant, an expired grant and a model without one.

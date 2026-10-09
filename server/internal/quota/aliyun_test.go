@@ -232,20 +232,16 @@ func bailianCLIServer(t *testing.T) *httptest.Server {
 		case "zeldaHttp.dashscopeModel./zelda/api/v1/modelCenter/listFoundationModels":
 			page := p.Data["input"].(map[string]any)["pageNo"].(float64)
 			if page == 1 {
-				_, _ = w.Write([]byte(ok(`{"total":51,"list":[{"model":"kimi-k3","capabilities":["TG"]},{"model":"qwen-image","capabilities":["IG"],"items":[{"model":"qwen-image-2.1-pro","capabilities":["IG"]}]}]}`)))
+				_, _ = w.Write(aliyunFixture(t, "models-page1.json"))
 			} else {
-				_, _ = w.Write([]byte(ok(`{"total":51,"list":[{"model":"old-model","capabilities":["TG"]}]}`)))
+				_, _ = w.Write(aliyunFixture(t, "models-page2.json"))
 			}
 		case "zeldaEasy.bailian-commerce.freeTrial.queryFreeTierQuota":
 			models := p.Data["queryFreeTierQuotaRequest"].(map[string]any)["models"].([]any)
 			if len(models) != 4 {
 				t.Errorf("asked for %v", models)
 			}
-			_, _ = w.Write([]byte(ok(`{"freeTierQuotas":[
-				{"model":"kimi-k3","quotaTotal":1000000,"quotaInitTotal":1000000,"quotaValidityPeriod":1794873600000,"quotaStatus":"VALID"},
-				{"model":"qwen-image-2.1-pro","quotaTotal":"10","quotaInitTotal":"10","quotaValidityPeriod":1798732800000,"quotaStatus":"VALID"},
-				{"model":"old-model","quotaTotal":0,"quotaInitTotal":1000000,"quotaValidityPeriod":1780000000000,"quotaStatus":"EXPIRED"},
-				{"model":"qwen-image","quotaTotal":0,"quotaInitTotal":0,"quotaStatus":"VALID"}]}`)))
+			_, _ = w.Write(aliyunFixture(t, "free-quota.json"))
 		// the Token Plan's replies are the module's canonical fixtures
 		case "zeldaHttp.apikeyMgr./tokenplan/personal/api/v2/subscription":
 			_, _ = w.Write(aliyunFixture(t, "subscription.json"))
@@ -271,7 +267,7 @@ func TestFreeQuotaIsListedThroughTheCLISignIn(t *testing.T) {
 		t.Fatalf("free quota = %+v", a)
 	}
 	k, img := a.Windows[0], a.Windows[1]
-	if k.Name != "kimi-k3" || *k.Left != 1e6 || *k.Limit != 1e6 || k.Unit != "tokens" || !k.Expires || k.ResetsAt == nil ||
+	if k.Name != "kimi-k3" || *k.Left != 820000 || *k.Limit != 1e6 || k.Unit != "tokens" || !k.Expires || k.ResetsAt == nil ||
 		img.Name != "qwen-image-2.1-pro" || *img.Left != 10 || img.Unit != "images" {
 		t.Fatalf("windows = %+v", a.Windows)
 	}

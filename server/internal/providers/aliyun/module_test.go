@@ -78,6 +78,18 @@ func newFake(t *testing.T) (*fakeBailian, catalog.Module, observed.Fetch) {
 					t.Error("equity call without its request")
 				}
 				_, _ = w.Write(fixture(t, "equity.json"))
+			case APIListModels:
+				if p.Data["input"].(map[string]any)["pageNo"].(float64) == 1 {
+					_, _ = w.Write(fixture(t, "models-page1.json"))
+				} else {
+					_, _ = w.Write(fixture(t, "models-page2.json"))
+				}
+			case APIFreeQuota:
+				models, _ := p.Data["queryFreeTierQuotaRequest"].(map[string]any)["models"].([]any)
+				if len(models) != 4 {
+					t.Errorf("asked for %v", models)
+				}
+				_, _ = w.Write(fixture(t, "free-quota.json"))
 			default:
 				t.Errorf("unexpected call %s", p.Api)
 			}
@@ -223,5 +235,68 @@ func TestParseUsageKeepsSpans(t *testing.T) {
 	}
 	if strings.Join(got, " ") != "window/5hour=5 hours@0.5 window/7day=7 days@0.1 window/1month=Month@0.25" || ws[2].ResetsAt != 1792252800000 || ws[0].ResetsAt != 0 {
 		t.Fatalf("windows = %v", got)
+	}
+}
+
+func free(values map[string]string, now time.Time) catalog.Session {
+	return catalog.Session{Product: ProductFreeQuota, Values: values, Now: now}
+}
+
+// Each model's grant is a meter scoped to that model, ending with the grant.
+func TestFreeQuotaInventory(t *testing.T) {
+	_, m, fetch := newFake(t)
+	at := time.Date(2026, 10, 9, 0, 0, 0, 0, time.UTC)
+	inv, err := m.Supply.Collector.Inventory(context.Background(), free(map[string]string{"token": "tok"}, at), fetch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inv.Packages) != 1 || inv.Note != "2 models with free quota · 1 more used up or expired." || inv.DisplayGroup != "aliyun:free-quota" || inv.Identity != "" {
+		t.Fatalf("inventory = %+v", inv)
+	}
+	p := inv.Packages[0]
+	if p.Kind != "free_grant" || p.Plan != "New-user free quota" || len(p.Resources) != 2 {
+		t.Fatalf("package = %+v", p)
+	}
+	k, img := p.Resources[0], p.Resources[1]
+	if k.TemplateRef != "grant/kimi-k3" || string(k.ScopeJSON) != `{"kind":"model","model":"kimi-k3"}` || k.Unit != "tokens" ||
+		*k.Remaining != 820_000_000_000 || *k.Limit != 1_000_000_000_000 || *k.WindowEnd != 1794873600000 || k.ResetBasis != "reported" {
+		t.Fatalf("kimi-k3 grant = %+v", k)
+	}
+	if img.Label != "qwen-image-2.1-pro" || img.Unit != "images" || *img.Remaining != 10_000_000 || string(img.Evidence) != `{"media":"image"}` {
+		t.Fatalf("image grant = %+v", img)
+	}
+	// past kimi-k3's end, its grant is gone: the session's clock decides, not the machine's
+	later, err := m.Supply.Collector.Inventory(context.Background(), free(map[string]string{"token": "tok"}, time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)), fetch)
+	if err != nil || len(later.Packages[0].Resources) != 1 || later.Note != "1 model with free quota · 2 more used up or expired." {
+		t.Fatalf("later = %+v %v", later, err)
+	}
+	models, err := m.Supply.Collector.Models(context.Background(), free(map[string]string{"token": "tok"}, at), fetch)
+	if err != nil || len(models) != 2 || models[0].ID != "kimi-k3" || models[0].Media != "text" || models[1].Media != "image" {
+		t.Fatalf("models = %+v %v", models, err)
+	}
+}
+
+func TestFreeQuotaNeedsAToken(t *testing.T) {
+	f, m, fetch := newFake(t)
+	_, err := m.Supply.Collector.Inventory(context.Background(), free(nil, time.Now()), fetch)
+	if !errors.Is(err, catalog.ErrSignedOut) || len(f.calls) != 0 {
+		t.Fatalf("no token: %v, %d calls", err, len(f.calls))
+	}
+	if got, err := m.Supply.Collector.Models(context.Background(), free(nil, time.Now()), fetch); got != nil || err != nil || len(f.calls) != 0 {
+		t.Fatalf("models without a token: %v %v", got, err)
+	}
+}
+
+// Free quota is offered at DashScope, each call drawing on its own model's
+// grant; an international-site session is offered nothing.
+func TestFreeQuotaOffers(t *testing.T) {
+	m := Module(DefaultBases())
+	models := []observed.UpstreamModel{{ID: "kimi-k3"}}
+	o := catalog.Offers(m.Supply, free(map[string]string{"token": "t"}, time.Now()), models)
+	if len(o) != 1 || o[0].Endpoint != "https://dashscope.aliyuncs.com/compatible-mode/v1" || strings.Join(o[0].Draws, " ") != observed.DrawModelScope {
+		t.Fatalf("offers = %+v", o)
+	}
+	if o := catalog.Offers(m.Supply, free(map[string]string{"token": "t", "site": "international"}, time.Now()), models); len(o) != 0 {
+		t.Fatalf("international offers = %+v", o)
 	}
 }

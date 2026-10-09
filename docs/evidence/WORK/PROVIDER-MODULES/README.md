@@ -329,3 +329,22 @@ AccessKey lists no models.
   `TestPaygInventory` (module) and `TestPayAsYouGoWithTheCLIsAccessKeyReadsTheOfficialBill`
   (quota).
 - Cycles follow Beijing time: 17:30 UTC on Sep 30 is already October there (tested).
+
+**C4 — new-user free quota.** Read with a console token through the CLI gateway, as Bailian's
+CLI does: the model list (paged), then `queryFreeTierQuota` for those models. One `free_grant`
+package, a meter per model **scoped to that model** (`{"kind":"model","model":M}`), exact at
+10^-6, ending at the grant's validity (reported). Grants used up, expired (by the session's
+clock) or not VALID are counted, not stored. The account serves exactly the models it has
+grants for; offers at DashScope (`dashscope.aliyuncs.com/compatible-mode/v1`) draw
+`scope:model`, so a call to a model draws on that model's grant and no other (phase B). One card
+for every way into the account (display group), no identity merge (none is reported).
+
+- Moved from quota and shared: `aliyun.ListModels`, `FreeQuota` (over a `Call`, so quota's CLI
+  and browser clients pass their own gateway), the unit and media rules, `FreeQuotaNote` (now "1
+  model", not "1 models"). Expiry timestamps are parsed as integers (`Amount.Int`): the exact
+  decimal parser rightly refuses 13 whole digits.
+- Fixtures `models-page1.json`, `models-page2.json`, `free-quota.json`, read by the module's
+  tests and quota's CLI test. **Mutation check:** `820000→820001` fails `TestFreeQuotaInventory`
+  (module) and `TestFreeQuotaIsListedThroughTheCLISignIn` (quota).
+- The route preview over a real store (grant used first, another model not) is C5's end-to-end
+  test.
