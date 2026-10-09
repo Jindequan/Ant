@@ -35,7 +35,8 @@ const localOwner domain.ID = "local"
 // newQuotaPage wires the page's accounts. In demo mode the page shows sample
 // accounts and nothing is read. Otherwise the supply engine discovers and
 // reads every account through the quota source (design 11 phase 2) and
-// records them in namespace ns, and keys added on the page are kept
+// records them in namespace ns (each read's card too, shown at the next
+// start until read again), and keys added on the page are kept
 // encrypted in Ant's database. The returned engine must be started and
 // waited for alongside the server.
 func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, logger *slog.Logger) (*quota.Service, *supply.Engine, error) {
@@ -67,6 +68,12 @@ func newQuotaPage(demo bool, st store.Store, clock supply.Clock, ns domain.ID, l
 	}
 	src := quotasource.New(local, accounts, quota.Providers(), natives...)
 	engine := supply.NewEngine(ns, st, src, clock, supply.DefaultPolicy(), logger.With("component", "supply"))
+	// what Ant knew when it last ran, shown until each account is read again
+	if cards, err := engine.Cards(context.Background()); err != nil {
+		logger.Warn("kept cards unavailable", "err", err)
+	} else {
+		src.Restore(cards)
+	}
 	reader := quotasource.Reader{Source: src, Engine: engine}
 	return quota.NewService(local, accounts, quota.Options{Reader: reader, Insights: reader, Notifier: quota.MacNotifier{}, Router: reader.Routes()}), engine, nil
 }

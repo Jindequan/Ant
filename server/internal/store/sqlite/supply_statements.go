@@ -344,6 +344,37 @@ VALUES(?,?,?,?,?,?,?,CAST(? AS TEXT),?)`, string(o.Namespace), string(o.OfferID)
 	return nil
 }
 
+func (r *readerTx) ListSupplyCards(ns domain.ID) ([]store.SupplyCardRecord, error) {
+	rows, err := r.tx.QueryContext(r.ctx, `SELECT namespace,credential_id,card_json,read_at FROM supply_cards WHERE namespace=? ORDER BY credential_id`, string(ns))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []store.SupplyCardRecord
+	for rows.Next() {
+		var c store.SupplyCardRecord
+		var card string
+		if err := rows.Scan(&c.Namespace, &c.CredentialID, &card, &c.ReadAt); err != nil {
+			return nil, err
+		}
+		c.CardJSON = []byte(card)
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (w *writerTx) PutSupplyCard(c store.SupplyCardRecord) error {
+	_, err := w.tx.ExecContext(w.ctx, `INSERT INTO supply_cards(namespace,credential_id,card_json,read_at) VALUES(?,?,CAST(? AS TEXT),?)
+ON CONFLICT(namespace,credential_id) DO UPDATE SET card_json=excluded.card_json, read_at=excluded.read_at`,
+		string(c.Namespace), string(c.CredentialID), jsonParam(c.CardJSON), int64(c.ReadAt))
+	return supplyError(err)
+}
+
+func (w *writerTx) DeleteSupplyCard(ns, credentialID domain.ID) error {
+	_, err := w.tx.ExecContext(w.ctx, `DELETE FROM supply_cards WHERE namespace=? AND credential_id=?`, string(ns), string(credentialID))
+	return err
+}
+
 func (w *writerTx) SetSupplyPaused(ns domain.ID, credentialIDs []domain.ID, paused bool) (int, error) {
 	n := 0
 	for _, id := range credentialIDs {

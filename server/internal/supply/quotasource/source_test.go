@@ -213,3 +213,64 @@ func fixture(t *testing.T, path string) []byte {
 	}
 	return b
 }
+
+// TestKeptCardsShowAtStart: a read's card is kept with it, so the next start
+// shows the account at once, before reading again; an account gone from
+// the machine takes its card with it (design 15).
+func TestKeptCardsShowAtStart(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(fixture(t, "../../providers/deepseek/testdata/balance.json"))
+	}))
+	defer srv.Close()
+	m := deepseek.SupplyModule(srv.URL)
+	fetch, _ := transport.NewObservationFetch(m.Supply.Origins, srv.Client().Transport)
+	env := map[string]string{"DEEPSEEK_API_KEY": "sk-found"}
+	local := quota.Local{Home: t.TempDir(), Getenv: func(k string) string { return env[k] },
+		HTTP: &http.Client{Timeout: 5 * time.Second, Transport: loopbackOnly{}}, Now: time.Now, URLs: map[string]string{}}
+	var providers []quota.Provider
+	for _, p := range quota.Providers() {
+		if p.ID == "deepseek" {
+			providers = append(providers, p)
+		}
+	}
+	accounts := quota.NewStore(filepath.Join(t.TempDir(), "accounts.json"))
+	st, err := sqlite.Open(filepath.Join(t.TempDir(), "ant.db"), sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close(context.Background()) }()
+	if err := sqlite.Migrate(context.Background(), st); err != nil {
+		t.Fatal(err)
+	}
+	start := func() (*quota.Service, *supply.Engine) {
+		src := New(local, accounts, providers, Native{Module: m, Fetch: fetch})
+		engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+		cards, err := engine.Cards(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		src.Restore(cards)
+		return quota.NewService(local, accounts, quota.Options{Reader: Reader{Source: src, Engine: engine}}), engine
+	}
+
+	first, _ := start()
+	read := first.Refresh(context.Background())
+	if len(read.Accounts) != 1 || read.Accounts[0].Status != quota.StatusOK || len(read.Accounts[0].Balances) == 0 {
+		t.Fatalf("first read = %+v", read.Accounts)
+	}
+
+	again, engine := start() // nothing read yet
+	kept := again.Snapshot()
+	if len(kept.Accounts) != 1 || kept.Accounts[0].ID != read.Accounts[0].ID || kept.RefreshedAt.IsZero() ||
+		kept.Accounts[0].Balances[0] != read.Accounts[0].Balances[0] {
+		t.Fatalf("at start = %+v at %v; want the last read", kept.Accounts, kept.RefreshedAt)
+	}
+
+	delete(env, "DEEPSEEK_API_KEY") // the key leaves this Mac
+	if gone := again.Refresh(context.Background()); len(gone.Accounts) != 0 {
+		t.Fatalf("after the key left: %+v", gone.Accounts)
+	}
+	if cards, err := engine.Cards(context.Background()); err != nil || len(cards) != 0 {
+		t.Fatalf("kept cards after the key left = %d %v", len(cards), err)
+	}
+}

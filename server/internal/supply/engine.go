@@ -56,6 +56,9 @@ type Result struct {
 	BalanceOnly bool                // the account holds balances and no windows
 	Inventory   *observed.Inventory // what the account holds; recorded when the read is ok
 	Offers      []observed.Offer    // what it serves; nil leaves the recorded offers as they are
+	// Card is the read as the page shows it (design 15), kept with the
+	// reading so it can be shown at start; nil keeps the last one.
+	Card []byte
 }
 
 // Source finds credentials and reads them. The engine never sees secrets
@@ -223,12 +226,43 @@ func (e *Engine) retireGone(ctx context.Context, creds []Credential) {
 			if err := tx.ReplaceSupplyOffers(e.ns, r.CredentialID, nil); err != nil {
 				return err
 			}
+			if err := tx.DeleteSupplyCard(e.ns, r.CredentialID); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		e.log.Warn("supply: retiring credentials no longer found failed", "err", err)
 	}
+}
+
+// Cards are the kept cards of the credentials still current (design 15), by
+// credential id: what the page showed when Ant last read them.
+func (e *Engine) Cards(ctx context.Context) ([]store.SupplyCardRecord, error) {
+	var out []store.SupplyCardRecord
+	err := e.st.Read(ctx, func(rx store.ReaderTx) error {
+		sx, ok := rx.(store.SupplyReaderTx)
+		if !ok {
+			return errNoSupplyStore
+		}
+		creds, err := sx.ListSupplyCredentials(e.ns)
+		if err != nil {
+			return err
+		}
+		hidden := map[domain.ID]bool{}
+		for _, c := range creds {
+			hidden[c.CredentialID] = c.Status == "hidden"
+		}
+		cards, err := sx.ListSupplyCards(e.ns)
+		for _, c := range cards {
+			if !hidden[c.CredentialID] {
+				out = append(out, c)
+			}
+		}
+		return err
+	})
+	return out, err
 }
 
 // credentialRecord is s as a supply_credentials row; call with e.mu held or
@@ -375,7 +409,13 @@ func (e *Engine) finish(ctx context.Context, s *slot, cred Credential, r Result,
 		if err := tx.FinishCollectorRun(e.ns, runID, end, r.Outcome, clip(detail)); err != nil {
 			return err
 		}
-		return tx.UpsertSupplyCredential(rec)
+		if err := tx.UpsertSupplyCredential(rec); err != nil {
+			return err
+		}
+		if r.Card == nil {
+			return nil
+		}
+		return tx.PutSupplyCard(store.SupplyCardRecord{Namespace: e.ns, CredentialID: cred.ID, CardJSON: r.Card, ReadAt: end})
 	})
 	if err == nil {
 		if accountID != "" {

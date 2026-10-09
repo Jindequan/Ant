@@ -7,6 +7,7 @@ package quotasource
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"slices"
 	"sync"
 	"time"
@@ -20,8 +21,9 @@ import (
 )
 
 // Source is a supply.Source over the quota providers. It keeps the latest
-// Account of each connection for the page; accounts are presentation and
-// are not persisted.
+// Account of each connection for the page, and hands each read to the
+// engine as a card to keep (design 15); the cards kept by the last run are
+// shown until each connection is read again.
 type Source struct {
 	local     quota.Local
 	store     *quota.Store
@@ -34,6 +36,44 @@ type Source struct {
 	byID   map[domain.ID]quota.Connection
 	latest map[string]quota.Account
 	at     time.Time
+	found  bool // discovered at least once
+
+	kept   map[string]quota.Account // the last run's cards, until read again
+	keptAt time.Time
+}
+
+// card is an Account as kept: the page's fields and what merging accounts
+// needs. A reader's renewed values are never in it (Account.Renewed isn't
+// encoded).
+type card struct {
+	Account  quota.Account `json:"account"`
+	Identity string        `json:"identity,omitempty"`
+	Quiet    bool          `json:"quiet,omitempty"`
+}
+
+func cardOf(a quota.Account) []byte {
+	b, err := json.Marshal(card{Account: a, Identity: a.Identity, Quiet: a.Quiet})
+	if err != nil {
+		return nil // not kept; the reading still is
+	}
+	return b
+}
+
+// Restore shows the cards the engine kept until each is read again.
+func (s *Source) Restore(cards []store.SupplyCardRecord) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, r := range cards {
+		var c card
+		if json.Unmarshal(r.CardJSON, &c) != nil || c.Account.ID != string(r.CredentialID) {
+			continue
+		}
+		c.Account.Identity, c.Account.Quiet = c.Identity, c.Quiet
+		s.kept[c.Account.ID] = c.Account
+		if at := time.UnixMilli(int64(r.ReadAt)).UTC(); at.After(s.keptAt) {
+			s.keptAt = at
+		}
+	}
 }
 
 // New reads with providers (quota.Providers() in production); a provider
@@ -44,7 +84,7 @@ func New(local quota.Local, store *quota.Store, providers []quota.Provider, nati
 		n.byProvider[x.Module.ID] = x
 	}
 	return &Source{local: local, store: store, providers: providers, natives: n,
-		byID: map[domain.ID]quota.Connection{}, latest: map[string]quota.Account{}}
+		byID: map[domain.ID]quota.Connection{}, latest: map[string]quota.Account{}, kept: map[string]quota.Account{}}
 }
 
 // Discover lists every connection quota finds on the machine or in
@@ -61,10 +101,12 @@ func (s *Source) Discover(context.Context) ([]supply.Credential, error) {
 		creds = append(creds, credential(c))
 	}
 	s.mu.Lock()
-	s.conns, s.byID = conns, byID
-	for id := range s.latest { // a vanished connection's card goes with it
-		if _, ok := byID[domain.ID(id)]; !ok {
-			delete(s.latest, id)
+	s.conns, s.byID, s.found = conns, byID, true
+	for _, cards := range []map[string]quota.Account{s.latest, s.kept} { // a vanished connection's card goes with it
+		for id := range cards {
+			if _, ok := byID[domain.ID(id)]; !ok {
+				delete(cards, id)
+			}
 		}
 	}
 	s.mu.Unlock()
@@ -86,6 +128,7 @@ func (s *Source) Collect(ctx context.Context, cred supply.Credential) supply.Res
 		if err != nil || nat.Module.Supply.Reads(catalog.Session{Product: rc.Mode, Values: rc.Values}) {
 			a, r := s.natives.collect(ctx, s.providers, rc, s.local.Now(), nat, err)
 			s.keep(c, a)
+			r.Card = cardOf(a)
 			return r
 		}
 	}
@@ -94,7 +137,9 @@ func (s *Source) Collect(ctx context.Context, cred supply.Credential) supply.Res
 		a.Status, a.Message = quota.StatusError, "Couldn't save the renewed sign-in: "+err.Error()
 	}
 	s.keep(c, a)
-	return result(a)
+	r := result(a)
+	r.Card = cardOf(a)
+	return r
 }
 
 func (s *Source) keep(c quota.Connection, a quota.Account) {
@@ -205,8 +250,19 @@ func (r Reader) Latest() quota.Reading {
 	s := r.Source
 	s.mu.Lock()
 	out := quota.Reading{Conns: slices.Clone(s.conns), RefreshedAt: s.at}
+	if out.RefreshedAt.IsZero() {
+		out.RefreshedAt = s.keptAt
+	}
+	if !s.found { // before the first discovery: every kept card
+		ids := slices.Sorted(maps.Keys(s.kept))
+		for _, id := range ids {
+			out.Accounts = append(out.Accounts, s.kept[id])
+		}
+	}
 	for _, c := range s.conns {
 		if a, ok := s.latest[c.ID]; ok {
+			out.Accounts = append(out.Accounts, a)
+		} else if a, ok := s.kept[c.ID]; ok {
 			out.Accounts = append(out.Accounts, a)
 		}
 	}

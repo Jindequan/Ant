@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 15 step 3: the dataset is kept — each read's card is saved with its reading (supply_cards, migration 008, same transaction), restored at start and shown until read again, removed with its credential; the panel keeps Ant's last answer on disk (~/Library/Caches/local.ant.app, 0600), draws it at launch, and fetches behind it (one fetch at a time; header 'Updated 2 h ago · reading…'); provider logos ship inside Ant.app. Demo: relaunch drew 23 kept accounts before the server answered. Gates pass.
+
 2026-10-09 design 15 step 2: the server says what the accounts mean — /api/quota is a View: every window carries percentLeft and useFirst (the one rule), and a glance (use first, needs you, money held by currency, counts, next renewal), computed once; history outlooks are read once per read, not per request (notifications use the same cache). The page and the panel draw it and drop their own rules: the panel's prepaid total now counts group balances as the page does; a used-up grant is no longer 'use first'. Checked on the demo server: 14 use-first, ¥112.29 + $16.50 held, no console errors. Gates pass.
 
 2026-10-09 [design 15](../design/15-ONE-VIEW-KEPT.md) step 1: one use-first rule (internal/domain/usefirst) — the router preview and notifications ask it instead of their own copies; percent left is computed once. Behavior: the router no longer calls a free grant 'use before lost' when the recent pace uses it up first (as it already did for windows). Gates pass.

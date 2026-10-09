@@ -365,3 +365,43 @@ func TestSupplyOffersAndPause(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A credential's card is kept, replaced by its next read, and removed; a
+// card needs its credential.
+func TestSupplyCardsKeepTheLastRead(t *testing.T) {
+	st := newSupplyStore(t)
+	seedSupply(t, st)
+	put := func(c store.SupplyCardRecord) error {
+		return supplyWrite(t, st, func(tx store.SupplyWriterTx) error { return tx.PutSupplyCard(c) })
+	}
+	list := func() []store.SupplyCardRecord {
+		var out []store.SupplyCardRecord
+		if err := st.Read(context.Background(), func(rx store.ReaderTx) (err error) {
+			out, err = rx.(store.SupplyReaderTx).ListSupplyCards("ns")
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	for _, c := range []store.SupplyCardRecord{
+		{Namespace: "ns", CredentialID: "cred-1", CardJSON: []byte(`{"status":"error"}`), ReadAt: 1},
+		{Namespace: "ns", CredentialID: "cred-1", CardJSON: []byte(`{"status":"ok"}`), ReadAt: 2},
+	} {
+		if err := put(c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := list(); len(got) != 1 || string(got[0].CardJSON) != `{"status":"ok"}` || got[0].ReadAt != 2 {
+		t.Fatalf("cards = %+v", got)
+	}
+	if err := put(store.SupplyCardRecord{Namespace: "ns", CredentialID: "nobody", CardJSON: []byte(`{}`), ReadAt: 3}); !errors.Is(err, store.ErrSupplyMissingReference) {
+		t.Fatalf("a card without its credential: %v", err)
+	}
+	if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) error { return tx.DeleteSupplyCard("ns", "cred-1") }); err != nil {
+		t.Fatal(err)
+	}
+	if got := list(); len(got) != 0 {
+		t.Fatalf("a deleted card stayed: %+v", got)
+	}
+}

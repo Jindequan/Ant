@@ -137,6 +137,16 @@ type CollectorRunRecord struct {
 	Detail       string
 }
 
+// SupplyCardRecord is a credential's last read as the page shows it
+// (design 15): opaque JSON the source wrote, kept so Ant can show it at
+// start. Nothing routes on it.
+type SupplyCardRecord struct {
+	Namespace    domain.ID
+	CredentialID domain.ID
+	CardJSON     []byte
+	ReadAt       domain.Millis
+}
+
 // SupplyReaderTx reads the supply store of one namespace.
 type SupplyReaderTx interface {
 	ReaderTx
@@ -150,6 +160,8 @@ type SupplyReaderTx interface {
 	ListSupplyReadings(namespace, resourceID domain.ID, since domain.Millis) ([]SupplyReadingRecord, error)
 	// ListSupplyOffers returns the offers of a canonical model.
 	ListSupplyOffers(namespace domain.ID, modelID string) ([]SupplyOfferRecord, error)
+	// ListSupplyCards returns every kept card, by credential id.
+	ListSupplyCards(namespace domain.ID) ([]SupplyCardRecord, error)
 }
 
 // SupplyWriterTx is the supply engine's write surface.
@@ -176,4 +188,8 @@ type SupplyWriterTx interface {
 	// SetSupplyPaused pauses or resumes credentials' part in routing; it
 	// reports how many credentials it changed.
 	SetSupplyPaused(namespace domain.ID, credentialIDs []domain.ID, paused bool) (int, error)
+	// PutSupplyCard keeps a credential's card, replacing the last one;
+	// DeleteSupplyCard removes it.
+	PutSupplyCard(SupplyCardRecord) error
+	DeleteSupplyCard(namespace, credentialID domain.ID) error
 }

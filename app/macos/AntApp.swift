@@ -10,6 +10,8 @@ let antDir = home.appendingPathComponent(".config/ant")
 let demo = ProcessInfo.processInfo.environment["ANT_DEMO"] == "1"
 let stateFile = antDir.appendingPathComponent(demo ? "server-demo.json" : "server.json")
 let launchAgent = home.appendingPathComponent("Library/LaunchAgents/local.ant.app.plist")
+// the last answer, drawn at launch before Ant answers again (design 15)
+let cacheFile = home.appendingPathComponent("Library/Caches/local.ant.app/\(demo ? "view-demo" : "view").json")
 // drawing the panel as a picture: controls and scrolling can't be drawn
 // offscreen, so their content is drawn without them
 let picture = ProcessInfo.processInfo.environment["ANT_SNAPSHOT"] != nil
@@ -227,9 +229,37 @@ final class Model: ObservableObject {
     }
     var needsYou: [Account] { let by = byID; return (glance?.needsYou ?? []).compactMap { by[$0] } }
     var ok: [Account] { accounts.filter { $0.status == "ok" } }
+    // status says how old what's shown is, and whether Ant is reading again
+    var status: String {
+        switch (reading, refreshedAt) {
+        case (true, let at?): return "Updated \(ago(at)) · reading…"
+        case (true, nil): return "Reading your accounts…"
+        case (false, let at?): return "Updated \(ago(at))"
+        default: return " "
+        }
+    }
     var prepaid: String { (glance?.held ?? []).map(money).joined(separator: " · ") }
 
+    // show draws an answer of Ant's: from the server, or the one kept on disk.
+    func show(_ snap: Snapshot) {
+        accounts = snap.accounts ?? []
+        glance = snap.glance
+        refreshedAt = date(snap.refreshedAt)
+        reading = snap.refreshing ?? false
+    }
+
+    func keep(_ data: Data) {
+        let dir = cacheFile.deletingLastPathComponent()
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        _ = fm.createFile(atPath: cacheFile.path, contents: data, attributes: [.posixPermissions: 0o600])
+    }
+
     func boot() {
+        if let data = try? Data(contentsOf: cacheFile), let snap = try? JSONDecoder().decode(Snapshot.self, from: data) {
+            show(snap)
+            reading = true // until Ant answers
+            if ProcessInfo.processInfo.environment["ANT_DEBUG"] == "1" { print("kept: accounts=\(accounts.count) use-first=\(urgentNow.count)"); fflush(stdout) }
+        }
         let server = self.server
         Task.detached {
             let url = server.start()
@@ -249,20 +279,24 @@ final class Model: ObservableObject {
         return r
     }
 
+    // load fetches Ant's answer behind what the panel shows; one at a time.
     func load() {
-        guard let r = request("api/quota") else { return }
+        guard !fetching, let r = request("api/quota") else { return }
+        fetching = true
         Task {
+            defer { fetching = false }
             guard let (data, _) = try? await URLSession.shared.data(for: r),
                   let snap = try? JSONDecoder().decode(Snapshot.self, from: data) else { return }
-            accounts = snap.accounts ?? []
-            glance = snap.glance
-            refreshedAt = date(snap.refreshedAt)
-            reading = snap.refreshing ?? false
-            // the first read is still under way: look again soon, not in a minute
-            if (reading || refreshedAt == nil || accounts.isEmpty) && soon < 90 {
-                soon += 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.load() }
-            } else if !reading && !accounts.isEmpty {
+            show(snap)
+            if refreshedAt != nil { keep(data) }
+            // Ant is still reading: look again soon, not in a minute
+            if (reading || refreshedAt == nil) && soon < 90 {
+                if !again {
+                    soon += 1
+                    again = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.again = false; self.load() }
+                }
+            } else if !reading {
                 soon = 0
             }
             if let path = ProcessInfo.processInfo.environment["ANT_SNAPSHOT"], !snapshotted {
@@ -279,6 +313,8 @@ final class Model: ObservableObject {
 
     var snapshotted = false
     var soon = 0
+    var fetching = false
+    var again = false // a look-again is scheduled
     func snapshot(to path: String) {
         let r = ImageRenderer(content: Panel(model: self).background(Color(nsColor: .windowBackgroundColor)).environment(\.colorScheme, ProcessInfo.processInfo.environment["ANT_SNAPSHOT_DARK"] == "1" ? .dark : .light))
         r.scale = 2
@@ -319,8 +355,17 @@ extension Color {
 
 func level(_ p: Double?) -> Color { guard let p else { return .secondary }; return p < 20 ? .antLow : p < 50 ? .antWarn : .antGood }
 
+// logos are the page's own (server/internal/webui/static/logos), copied
+// into the app, so they draw at once, server or not
+var logoCache: [String: NSImage] = [:]
+func logo(_ provider: String) -> NSImage? {
+    if let img = logoCache[provider] { return img }
+    guard let url = Bundle.main.url(forResource: provider, withExtension: "png", subdirectory: "logos"), let img = NSImage(contentsOf: url) else { return nil }
+    logoCache[provider] = img
+    return img
+}
+
 struct Logo: View {
-    var base: URL?
     var provider: String
     var name: String
     var size: CGFloat = 24
@@ -328,9 +373,9 @@ struct Logo: View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.28).fill(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(Color.black.opacity(0.08), lineWidth: 0.5))
-            AsyncImage(url: base?.appendingPathComponent("logos/\(provider).png")) { img in
-                img.resizable().scaledToFit().padding(size * 0.1)
-            } placeholder: {
+            if let img = logo(provider) {
+                Image(nsImage: img).resizable().scaledToFit().padding(size * 0.1)
+            } else {
                 Text(String(name.prefix(1))).font(.system(size: size * 0.48, weight: .semibold)).foregroundStyle(Color.gray)
             }
         }
@@ -402,7 +447,7 @@ struct Row<Trailing: View>: View {
 
     var content: some View {
             HStack(spacing: 10) {
-                Logo(base: model.base, provider: account.provider, name: account.name)
+                Logo(provider: account.provider, name: account.name)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(account.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
                     if !detail.isEmpty { Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1) }
@@ -427,7 +472,7 @@ struct Panel: View {
             Divider().opacity(0.6)
             scroll {
                 VStack(spacing: 0) {
-                    if model.base == nil {
+                    if model.base == nil && model.accounts.isEmpty {
                         VStack(spacing: 8) {
                             ProgressView().controlSize(.small)
                             Text("Ant is starting…").font(.system(size: 12)).foregroundStyle(.secondary)
@@ -473,14 +518,14 @@ struct Panel: View {
                 }
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Ant").font(.system(size: 15, weight: .semibold))
-                    Text(model.reading ? "Reading your accounts…" : model.refreshedAt.map { "Updated \(ago($0))" } ?? " ")
+                    Text(model.status)
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 control("arrow.clockwise", "Read every account again") { model.refresh() }
                 control("arrow.up.forward.app", "Open Ant") { model.open() }
             }
-            if model.base != nil {
+            if model.base != nil || !model.accounts.isEmpty {
                 HStack(spacing: 6) {
                     if !model.urgentNow.isEmpty { Chip(icon: "hourglass", text: "\(model.urgentNow.count) use first", color: .antWarn) }
                     if !model.needsYou.isEmpty { Chip(icon: "exclamationmark.triangle.fill", text: "\(model.needsYou.count) need you", color: .antLow) }
