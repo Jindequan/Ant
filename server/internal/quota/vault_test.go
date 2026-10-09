@@ -1,6 +1,8 @@
 package quota
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"maps"
 	"os"
@@ -114,5 +116,46 @@ func TestVaultFailureIsAnErrorNotAnEmptyKey(t *testing.T) {
 	}
 	if _, err := st.Data(); err == nil || !strings.Contains(err.Error(), "couldn't open the saved keys") {
 		t.Fatalf("reading after a failed UseVault: %v; want the reason, not accounts without keys", err)
+	}
+}
+
+// One key that won't open marks its own account; the others read, and
+// saving leaves the unreadable record exactly as it was.
+func TestOneUnreadableKeyMarksOnlyItsAccount(t *testing.T) {
+	l := testLocal(t, nil)
+	v := newFakeVault()
+	goodRef, goodRev, _ := v.Seal(map[string]string{"apiKey": "sk-good"})
+	writeFile(t, l.AccountsFile(), `{"version":1,"accounts":[
+		{"id":"deepseek-good","provider":"deepseek","mode":"api","origin":"added","secretRef":"`+goodRef+`","secretRevision":"`+goodRev+`"},
+		{"id":"deepseek-stale","provider":"deepseek","mode":"api","origin":"added","secretRef":"ref-gone","secretRevision":"rev-gone"}]}`)
+	st := NewStore(l.AccountsFile())
+	if err := st.UseVault(v); err != nil {
+		t.Fatal(err)
+	}
+	d, err := st.Data()
+	if err != nil {
+		t.Fatalf("one bad key failed every account: %v", err)
+	}
+	if d.Accounts[0].Values["apiKey"] != "sk-good" || d.Accounts[1].KeyError == "" {
+		t.Fatalf("accounts = %+v", d.Accounts)
+	}
+	if err := st.Put(Connection{ID: "zai-new", Provider: "zai", Mode: "coding-plan", Origin: OriginAdded, Values: map[string]string{"apiKey": "z"}}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(l.AccountsFile())
+	var saved storeData
+	_ = json.Unmarshal(raw, &saved)
+	kept := false
+	for _, c := range saved.Accounts {
+		kept = kept || (c.ID == "deepseek-stale" && c.SecretRef == "ref-gone" && c.SecretRevision == "rev-gone")
+	}
+	if !kept {
+		t.Fatalf("the unreadable record was changed:\n%s", raw)
+	}
+	s := newTestService(l, st)
+	for _, a := range s.Refresh(context.Background()).Accounts {
+		if a.ID == "deepseek-stale" && (a.Status != StatusError || !strings.Contains(a.Message, "saved key")) {
+			t.Fatalf("stale account = %s %q", a.Status, a.Message)
+		}
 	}
 }

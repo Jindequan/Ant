@@ -63,6 +63,10 @@ var errVaultReadback = errors.New("a saved key read back differently")
 func (s *Store) seal(d storeData) (storeData, error) {
 	out := cloneData(d)
 	for i, c := range out.Accounts {
+		if c.KeyError != "" { // left as it was: its key, untouched
+			out.Accounts[i].Values = nil
+			continue
+		}
 		if len(c.Values) == 0 {
 			out.Accounts[i].SecretRef, out.Accounts[i].SecretRevision = "", ""
 			continue

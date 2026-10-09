@@ -181,6 +181,9 @@ type Connection struct {
 	// the Store has a Vault; accounts.json then holds no Values at all.
 	SecretRef      string `json:"secretRef,omitempty"`
 	SecretRevision string `json:"secretRevision,omitempty"`
+	// KeyError: the saved key couldn't be opened this time. The account
+	// shows why and its record is left as it is, never resealed over.
+	KeyError string `json:"-"`
 }
 
 // fingerprint identifies a connection by its provider, mode and secret, so

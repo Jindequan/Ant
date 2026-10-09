@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 regression fix, found on the user's Mac right after fix 1: the persisted migration gave the three new Bailian records the old record's key reference; resealing it for the first left the old record pointing at a revision gone by, and one unopenable key made every account fail to load ("revision conflict", no accounts shown). Now migrated records get keys of their own, and one key that won't open marks only its account (its record left untouched, never resealed; migration waits); none opening at all is still an error. Tests with a vault (the earlier test had none). Gates pass.
+
 2026-10-09 diagnosis fixes 8–9: an account with many per-model grants (Bailian's 82) shows one folded line per kind of model with a line icon, the count and the first end; network failures read in words ("Couldn't reach api.github.com: the connection timed out. Check your network or proxy.") on both reading paths. Tests. All 9 findings addressed. Gates pass.
 
 2026-10-09 diagnosis fixes 5–7: Ant's port is 17890, moving to the next free one when taken, and the server records where it listens (~/.config/ant/server.json) for the app and make run; Ant.app gives the server the login shell's environment (the user's proxy — Copilot's timeout — and PATH); the menu is now a designed panel (chips, Use first, Needs you, accounts by kind with bars, Open at login switch), checked in light and dark. Gates pass.

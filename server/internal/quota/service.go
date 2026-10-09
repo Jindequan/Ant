@@ -267,6 +267,7 @@ func migrate(in []Connection) []Connection {
 			}
 			n := c
 			n.ID, n.Mode, n.Way, n.Values = id, mode, "sign-in", map[string]string{"session": c.Values["session"]}
+			n.SecretRef, n.SecretRevision = "", "" // a key of its own: three records never reseal one key
 			out = append(out, n)
 			have[id] = true // a second old record doesn't make it twice
 		}
@@ -335,6 +336,11 @@ func Read(ctx context.Context, providers []Provider, local Local, c Connection) 
 	if !ok || !okMode || m.Read == nil {
 		return Account{ID: c.ID, Provider: c.Provider, Name: c.Provider, Status: StatusError, Origin: c.Origin,
 			Message: "Ant no longer knows this kind of account. Remove it.", ReadAt: local.Now()}
+	}
+	if c.KeyError != "" {
+		a := base(p, m, c, local.Now())
+		a.Status, a.Message = StatusError, "Ant couldn't open this account's saved key. Remove it and add it again."
+		return a
 	}
 	a := m.Read(ctx, local, c)
 	if a.Status == StatusError {

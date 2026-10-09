@@ -664,6 +664,38 @@ func TestMigratedAccountsCanBeRemoved(t *testing.T) {
 	}
 }
 
+// Migrating with saved keys: each new record gets a key of its own. They
+// used to share the old record's, and resealing it for the first made the
+// rest point at a revision gone by: no saved key opened after that.
+func TestMigratingSealedAccountsKeepsEveryKeyOpen(t *testing.T) {
+	l := testLocal(t, nil)
+	v := newFakeVault()
+	ref, rev, _ := v.Seal(map[string]string{"session": "[]", "dashscopeKey": "k"})
+	writeFile(t, l.AccountsFile(), `{"version":1,"accounts":[
+		{"id":"aliyun-console-signin","provider":"aliyun","mode":"console","origin":"added","secretRef":"`+ref+`","secretRevision":"`+rev+`"}]}`)
+	store := NewStore(l.AccountsFile())
+	if err := store.UseVault(v); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Migrate(migrate); err != nil {
+		t.Fatal(err)
+	}
+	d, err := store.Data() // every key opens
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs := map[string]bool{}
+	for _, c := range d.Accounts {
+		if c.Values["session"] != "[]" || refs[c.SecretRef] {
+			t.Fatalf("%s: values %v, key %s shared: %v", c.ID, c.Values, c.SecretRef, refs)
+		}
+		refs[c.SecretRef] = true
+	}
+	if len(d.Accounts) != 3 {
+		t.Fatalf("accounts = %+v", d.Accounts)
+	}
+}
+
 // fixture reads a canonical provider reply, shared with the provider
 // modules' own tests (one file, not copies).
 func fixture(t *testing.T, path string) []byte {

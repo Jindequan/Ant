@@ -54,15 +54,25 @@ func (s *Store) load() (storeData, error) {
 		return storeData{}, errors.New("Ant's accounts file is damaged: " + s.path)
 	}
 	if s.vault != nil {
+		// one key that won't open marks its own account; none opening at
+		// all (another key file) is an error for every account
+		sealed, opened := 0, 0
+		var last error
 		for i, c := range d.Accounts {
 			if c.SecretRef == "" {
 				continue
 			}
+			sealed++
 			v, err := s.open(c.SecretRef, c.SecretRevision)
 			if err != nil {
-				return storeData{}, errors.New("Ant couldn't open the saved keys: " + err.Error())
+				d.Accounts[i].KeyError, last = err.Error(), err
+				continue
 			}
+			opened++
 			d.Accounts[i].Values = v
+		}
+		if sealed > 0 && opened == 0 {
+			return storeData{}, errors.New("Ant couldn't open the saved keys: " + last.Error())
 		}
 	}
 	return d, nil
@@ -141,6 +151,11 @@ func (s *Store) Migrate(fn func([]Connection) []Connection) error {
 	d, err := s.load()
 	if err != nil {
 		return err
+	}
+	for _, c := range d.Accounts {
+		if c.KeyError != "" {
+			return nil // never rewrite records while a key won't open
+		}
 	}
 	out := fn(cloneData(d).Accounts)
 	if reflect.DeepEqual(out, d.Accounts) {
