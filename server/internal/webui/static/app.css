@@ -62,11 +62,8 @@ code { font: 13px var(--mono); }
 /* ---------- header ---------- */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 10px; }
-.logo { width: 30px; height: 30px; border-radius: 9px; background: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 2px; }
-.logo i { display: block; border-radius: 50%; background: var(--bg); }
-.logo i:nth-child(1) { width: 7px; height: 7px; }
-.logo i:nth-child(2) { width: 5px; height: 5px; }
-.logo i:nth-child(3) { width: 6.5px; height: 6.5px; }
+.logo { width: 30px; height: 30px; border-radius: 9px; background: var(--text); color: var(--bg); display: inline-flex; align-items: center; justify-content: center; }
+.logo svg { width: 24px; height: 24px; }
 h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .actions { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .actions #updated { margin-right: 6px; }
