@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 design 13 step B3 (core, deliberate): free grants in the route preview — class `free` after use-before-lost and before plan; a grant with room is used first (soonest-ending first), a used-up grant is skipped when the route has another way to pay and excludes it otherwise; counts written as "820,000 tokens"; the page labels it "Free". Mutation-checked (three mutations). Phase B closed; phase C (Bailian) next. Gates pass.
+
 2026-10-09 design 13 step B2 (core, deliberate): the route preview resolves `scope:model` — a model's own meters, matched canonically — and never draws a meter scoped to another model. The canonical model rule moved to `observed.ModelID` (catalog's copy removed). Mutation-checked. Gates pass.
 
 2026-10-09 design 13 step B1: the rule for model-scoped meters ([design 13 §4.1](../design/13-NEXT-PROVIDER-MODULES.md)) — offers may draw `scope:model` (the account's meters scoped to the offer's model, compared canonically); a plain ref never draws another model's meter; free grants are used first while they have room and skipped when used up if the route draws on anything else; new class `free` between use-before-lost and plan. The canonical model rule moves to `domain/observed` (one rule the core can use); stored scopes stay as they are so no meter loses its history. Note only. Gates pass.

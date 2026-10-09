@@ -268,3 +268,91 @@ func TestRoutePreviewModelScopedMeters(t *testing.T) {
 		}
 	}
 }
+
+// grantPkg is a new-user free grant: one meter per model, in tokens, ending
+// at its expiry (Bailian-style).
+func grantPkg(now domain.Millis, grants ...observed.ResourceReading) observed.PackageReading {
+	return observed.PackageReading{TemplateRef: "free/new-user", Kind: "free_grant", Basis: "observed", Resources: grants}
+}
+
+func grant(model string, left, limit int64, endsIn, now domain.Millis) observed.ResourceReading {
+	end := now + endsIn
+	return observed.ResourceReading{TemplateRef: "grant/" + model, Label: model, MetricID: "tokens", Unit: "tokens", QuantumExp: 0,
+		SemanticsRef: "sem.entitlement-pool", SemanticsRevision: "semrev-1", WindowJSON: []byte(`{"kind":"lifetime"}`),
+		ScopeJSON: []byte(`{"kind":"model","model":"` + model + `"}`), ResetBasis: "none", WindowEnd: &end, Limit: u(limit), Remaining: u(left)}
+}
+
+func cnyBalance(cents int64) observed.ResourceReading {
+	return observed.ResourceReading{TemplateRef: "balance/cny", Label: "Balance", MetricID: "balance", Unit: "CNY", Currency: "CNY", QuantumExp: -2,
+		SemanticsRef: "sem.entitlement-pool", SemanticsRevision: "semrev-1", WindowJSON: []byte(`{"kind":"lifetime"}`), ScopeJSON: []byte(`{"kind":"all"}`),
+		ResetBasis: "none", Remaining: u(cents)}
+}
+
+// Design 13 §4.1: a free grant with room is used first (class free, the
+// soonest-ending first, behind use-before-lost); used up, it is skipped when
+// the route draws on anything else, and excludes the route when it doesn't.
+func TestRoutePreviewFreeGrants(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	const day = 24 * hour
+	usable := true
+	add := func(id string, draws []string, pkgs ...observed.PackageReading) {
+		src.creds = append(src.creds, found(id))
+		src.results[domain.ID(id)] = Result{Outcome: OutcomeOK, Inventory: &observed.Inventory{Packages: pkgs},
+			Offers: []observed.Offer{{Endpoint: "https://dashscope.example/v1", Protocol: "openai-chat", UpstreamModel: "qwen3-max", ModelID: "qwen3-max", Draws: draws}}}
+	}
+	scoped := []string{observed.DrawModelScope}
+	withBalance := []string{observed.DrawModelScope, "balance/cny"}
+	withPlan := []string{observed.DrawModelScope, "window/short", "window/week"}
+	prepaid := observed.PackageReading{TemplateRef: "x/balance", Kind: "prepaid", Basis: "observed", Usable: &usable, Resources: []observed.ResourceReading{cnyBalance(2340)}}
+	plan := func(leftPct int64) observed.PackageReading {
+		return observed.PackageReading{TemplateRef: "x/plan", Kind: "subscription", Basis: "observed",
+			Resources: []observed.ResourceReading{planWindow("window/short", "5 hours", leftPct, 4*day, now), planWindow("window/week", "Week", 90, 6*day, now)}}
+	}
+
+	add("grant-late", scoped, grantPkg(now, grant("qwen3-max", 820000, 1000000, 41*day, now), grant("qwen-plus", 5, 10, 2*day, now)))
+	add("grant-soon", scoped, grantPkg(now, grant("Qwen/Qwen3-Max", 100, 1000, 10*day, now)))
+	promo := grantPkg(now, grant("qwen3-max", 700, 1000, 20*day, now))
+	promo.TemplateRef = "free/promotion"
+	add("two-grants", scoped, grantPkg(now, grant("qwen3-max", 500, 1000, 30*day, now)), promo) // described and ordered by the one ending first
+	add("lose", scoped, grantPkg(now, grant("qwen3-max", 500, 1000, 10*hour, now)))
+	add("spent+balance", withBalance, grantPkg(now, grant("qwen3-max", 0, 1000000, 41*day, now)), prepaid)
+	add("spent+plan", withPlan, grantPkg(now, grant("qwen3-max", 0, 1000000, 41*day, now)), plan(40))
+	add("plan", []string{"window/short", "window/week"}, plan(50))
+	add("spent", scoped, grantPkg(now, grant("qwen3-max", 0, 1000000, 41*day, now)))
+	add("grant+balance", withBalance, grantPkg(now, grant("qwen3-max", 3000, 1000000, 60*day, now)), prepaid)
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Preview(context.Background(), "qwen3-max")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var order []string
+	reasons := map[string]string{}
+	for _, c := range p.Eligible {
+		order = append(order, string(c.CredentialID)+":"+c.Class)
+		reasons[string(c.CredentialID)] = c.Reason
+	}
+	want := "lose:use_before_lost grant-soon:free two-grants:free grant-late:free grant+balance:free plan:plan spent+plan:plan spent+balance:prepaid"
+	if strings.Join(order, " ") != want {
+		t.Fatalf("order:\n got %s\nwant %s", strings.Join(order, " "), want)
+	}
+	for id, want := range map[string]string{
+		"lose":          "Use before it's lost: qwen3-max 500 tokens left, ends in 10h",
+		"grant-late":    "Free: qwen3-max 820,000 tokens left, ends in 41 days", // its own model's grant, not qwen-plus's (ending sooner)
+		"grant-soon":    "Free: Qwen/Qwen3-Max 100 tokens left, ends in 10 days",
+		"two-grants":    "Free: qwen3-max 700 tokens left, ends in 20 days",
+		"grant+balance": "Free: qwen3-max 3,000 tokens left, ends in 60 days", // the grant first, the balance not touched
+		"spent+balance": "Prepaid: 23.40 CNY left",
+		"spent+plan":    "Plan: 5 hours 40% left, Week 90% left",
+	} {
+		if reasons[id] != want {
+			t.Errorf("%s: %q, want %q", id, reasons[id], want)
+		}
+	}
+	if len(p.Excluded) != 1 || p.Excluded[0].CredentialID != "spent" || p.Excluded[0].Reason != "qwen3-max used up" {
+		t.Fatalf("excluded = %+v", p.Excluded)
+	}
+}

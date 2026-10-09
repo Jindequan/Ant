@@ -244,3 +244,20 @@ prefix); `speech-2.6` → excluded "Speech · Day used up · resets in 2h"; a mo
 its own → "Nothing it draws on was read"; an offer naming the text window by ref for another model
 → the same. **Mutation checks:** dropping the other-model guard makes the last case eligible;
 comparing scopes without the canonical rule makes `minimax-m3` lose its window. Both fail the test.
+
+**B3 — free grants first.** New class `free` between use-before-lost and plan. A grant with room
+serves the route (the soonest-ending grant of the account describes it and orders it); a used-up
+grant is skipped when the route draws on anything else and excludes it otherwise ("qwen3-max used
+up", without "resets in": a grant ends, it doesn't reset). A meter scoped to a model is called by
+that model when it has no window name. Counts are written without trailing zeros and in thousands
+("820,000 tokens"). The page labels the class "Free".
+
+`TestRoutePreviewFreeGrants` (nine accounts serving `qwen3-max`) — order:
+`lose:use_before_lost grant-soon:free two-grants:free grant-late:free grant+balance:free plan:plan
+spent+plan:plan spent+balance:prepaid`, excluded: `spent` "qwen3-max used up". Reasons include
+"Use before it's lost: qwen3-max 500 tokens left, ends in 10h", "Free: qwen3-max 820,000 tokens
+left, ends in 41 days" (not the account's `qwen-plus` grant ending sooner), and the spent grants
+judged on their balance ("Prepaid: 23.40 CNY left") or plan ("Plan: 5 hours 40% left, Week 90%
+left"). **Mutation checks:** not skipping used-up grants, ranking `free` with `plan`, and
+describing an account by its latest-ending grant each fail the test (the last needed a
+two-grant account, added after the first version of the test let it pass).

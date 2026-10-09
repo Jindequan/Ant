@@ -17,15 +17,16 @@ import (
 // it, in the order Ant would use them, and which it wouldn't, each with one
 // sentence of why. Read-only: nothing is sent to any provider.
 
-// Candidate classes, best first.
+// Candidate classes, best first (design 13 §4.1).
 const (
 	ClassUseBeforeLost = "use_before_lost"
+	ClassFree          = "free" // a free grant with room: costs nothing and ends
 	ClassPlan          = "plan"
 	ClassPrepaid       = "prepaid"
 	ClassPayg          = "payg"
 )
 
-var classRank = map[string]int{ClassUseBeforeLost: 0, ClassPlan: 1, ClassPrepaid: 2, ClassPayg: 3}
+var classRank = map[string]int{ClassUseBeforeLost: 0, ClassFree: 1, ClassPlan: 2, ClassPrepaid: 3, ClassPayg: 4}
 
 const (
 	staleAfter     = 30 * time.Minute
@@ -219,12 +220,38 @@ func judge(c store.SupplyCredentialRecord, meters []meter, accountPkgs []store.S
 	case c.Status != "ok" || c.AccountID == "":
 		return Candidate{}, "Not read yet"
 	}
+	cand := Candidate{fresh: verifiedAt(c)}
+	// Freshness is when Ant last read the account successfully: readings are
+	// stored only when a value changes, so a reading's own time says when it
+	// last changed, not how current it is (design 12 §5).
+	if age := now - verifiedAt(c); age > ms(staleAfter) {
+		cand.Stale = "last checked " + span(time.Duration(age)*time.Millisecond) + " ago"
+	}
+	// Free grants (design 13 §4.1) are used first while they have room, and
+	// skipped once used up when the route draws on anything else.
+	var grants, open, rest []meter
+	for _, m := range meters {
+		if m.pkg.Kind != "free_grant" {
+			rest = append(rest, m)
+			continue
+		}
+		grants = append(grants, m)
+		if left, ok := remaining(m); ok && left > 0 && m.pkg.Basis != "declared" {
+			open = append(open, m)
+		}
+	}
+	if len(open) > 0 {
+		return freeCandidate(cand, open, now), ""
+	}
+	if len(grants) > 0 && len(rest) > 0 {
+		meters = rest
+	}
 	// design 12 §5's order holds across all the route's meters: used up,
 	// then balance too low to call, then declared only
 	for _, m := range meters {
 		if left, ok := remaining(m); ok && left <= 0 {
 			why := name(m) + " used up"
-			if m.latest.WindowEnd != nil && *m.latest.WindowEnd > now {
+			if m.pkg.Kind != "free_grant" && m.latest.WindowEnd != nil && *m.latest.WindowEnd > now { // a grant ends, it doesn't reset
 				why += " · resets in " + span(time.Duration(*m.latest.WindowEnd-now)*time.Millisecond)
 			}
 			return Candidate{}, why
@@ -239,13 +266,6 @@ func judge(c store.SupplyCredentialRecord, meters []meter, accountPkgs []store.S
 		if m.pkg.Basis == "declared" {
 			return Candidate{}, "Only declared, never read"
 		}
-	}
-	cand := Candidate{fresh: verifiedAt(c)}
-	// Freshness is when Ant last read the account successfully: readings are
-	// stored only when a value changes, so a reading's own time says when it
-	// last changed, not how current it is (design 12 §5).
-	if age := now - verifiedAt(c); age > ms(staleAfter) {
-		cand.Stale = "last checked " + span(time.Duration(age)*time.Millisecond) + " ago"
 	}
 	var windows, balances []meter
 	for _, m := range meters {
@@ -303,6 +323,69 @@ func planCandidate(cand Candidate, windows []meter, now domain.Millis) Candidate
 	return cand
 }
 
+// freeCandidate describes the grant that ends soonest; among free
+// candidates, the one ending soonest comes first. A grant ending within a
+// day with at least 30% left is "use before it's lost", as plan windows are.
+func freeCandidate(cand Candidate, grants []meter, now domain.Millis) Candidate {
+	g := grants[0]
+	for _, m := range grants[1:] {
+		if ends(m) < ends(g) {
+			g = m
+		}
+	}
+	left, _ := remaining(g)
+	amount := grouped(count(left, g.res.QuantumExp)) + " " + g.res.Unit
+	if p, ok := percentLeft(g); ok && g.res.Unit == "percent" {
+		amount = pct(p)
+	}
+	cand.Class, cand.score = ClassFree, -float64(ends(g))
+	cand.Reason = "Free: " + name(g) + " " + amount + " left"
+	if end := ends(g); end != math.MaxInt64 {
+		cand.Reason += ", ends in " + span(time.Duration(end-now)*time.Millisecond)
+		if p, ok := percentLeft(g); ok && end-now <= ms(loseWithin) && p >= loseAtLeastPct {
+			cand.Class = ClassUseBeforeLost
+			cand.Reason = "Use before it's lost: " + cand.Reason[len("Free: "):]
+		}
+	}
+	return cand
+}
+
+// ends is when a meter's allowance ends, or never.
+func ends(m meter) domain.Millis {
+	if m.latest == nil || m.latest.WindowEnd == nil {
+		return math.MaxInt64
+	}
+	return *m.latest.WindowEnd
+}
+
+// count is an amount of something other than money: exact, no trailing
+// zeros ("820000.000000" is "820000", "2.50" is "2.5").
+func count(u domain.Units, exp int) string {
+	s := Decimal(u, exp)
+	if strings.Contains(s, ".") {
+		s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
+	}
+	return s
+}
+
+// grouped writes a decimal's whole part in thousands: "820000" is
+// "820,000".
+func grouped(s string) string {
+	whole, frac, hasFrac := strings.Cut(s, ".")
+	neg := strings.HasPrefix(whole, "-")
+	whole = strings.TrimPrefix(whole, "-")
+	for i := len(whole) - 3; i > 0; i -= 3 {
+		whole = whole[:i] + "," + whole[i:]
+	}
+	if neg {
+		whole = "-" + whole
+	}
+	if hasFrac {
+		return whole + "." + frac
+	}
+	return whole
+}
+
 func prepaidCandidate(cand Candidate, balances []meter, now domain.Millis) Candidate {
 	cand.Class, cand.score = ClassPrepaid, math.MaxFloat64
 	var parts []string
@@ -338,7 +421,8 @@ func percentLeft(m meter) (float64, bool) {
 
 func pct(p float64) string { return Decimal(domain.Units(math.Round(p)), 0) + "%" }
 
-// name is how a meter is called: its window's name, or "Balance".
+// name is how a meter is called: its window's name, its currency's
+// balance, or the model it's for.
 func name(m meter) string {
 	var w struct {
 		Name string `json:"name"`
@@ -348,6 +432,9 @@ func name(m meter) string {
 	}
 	if m.res.Currency != "" {
 		return m.res.Currency + " balance"
+	}
+	if model := scopeModel(m.res); model != "" {
+		return model
 	}
 	return m.res.TemplateRef
 }

@@ -1036,7 +1036,7 @@ async function menuAction(t) {
   }
 }
 
-const ROUTE_CLASS = { use_before_lost: "Use first", plan: "Plan", prepaid: "Prepaid", payg: "Pay as you go" };
+const ROUTE_CLASS = { use_before_lost: "Use first", free: "Free", plan: "Plan", prepaid: "Prepaid", payg: "Pay as you go" };
 
 // routePreview fills a model's row with what Ant would do, from the server.
 async function routePreview(details) {
@@ -1064,7 +1064,7 @@ async function routePreview(details) {
     best.innerHTML = `<span class="mark" aria-hidden="true">${esc(p.use[0].name.slice(0, 1))}</span>${esc(p.use[0].name)}${a?.modeName ? ` · ${esc(a.modeName)}` : ""}`;
   }
   const row = (c, i) => `<li class="r-choice">${i != null ? `<span class="r-rank">${i + 1}</span>` : ""}
-    <span class="r-who"><b>${esc(c.name)}</b>${c.class ? ` <span class="tag ${c.class === "use_before_lost" ? "" : "off"}">${esc(ROUTE_CLASS[c.class] || c.class)}</span>` : ""}</span>
+    <span class="r-who"><b>${esc(c.name)}</b>${c.class ? ` <span class="tag ${c.class === "use_before_lost" || c.class === "free" ? "" : "off"}">${esc(ROUTE_CLASS[c.class] || c.class)}</span>` : ""}</span>
     <span class="r-why">${esc(c.reason)}${c.stale ? ` <span class="muted">· ${esc(c.stale)}</span>` : ""}</span></li>`;
   box.innerHTML = `
     <div class="r-title">What Ant would do</div>
