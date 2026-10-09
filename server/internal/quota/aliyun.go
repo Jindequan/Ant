@@ -39,7 +39,7 @@ const (
 // It is Bailian's own console-login for programs, in the user's browser;
 // Domain and Done still recognise an everyday browser's aliyun.com session.
 var aliyunSignIn = &SignIn{URL: bailianLoginPage, Browser: true, Login: aliyunLogin,
-	Domain: "aliyun.com", Done: func(cs []siteCookie) bool { return cookieValue(cs, "login_aliyunid_ticket") != "" }}
+	Domain: "aliyun.com", Session: []string{"login_aliyunid_ticket"}, Done: func(cs []siteCookie) bool { return cookieValue(cs, "login_aliyunid_ticket") != "" }}
 
 const aliyunConnect = "Sign in with Alibaba Cloud in your browser, the way Bailian's own CLI signs in. One sign-in connects the Token Plan and the free quota; Ant never sees your password."
 

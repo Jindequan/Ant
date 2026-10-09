@@ -105,6 +105,9 @@ type Account struct {
 	// plan). Keys lists the sign-ins merged into this one.
 	Identity string   `json:"-"`
 	Keys     []string `json:"keys,omitempty"`
+	// SessionEndsAt: when the website sign-in this account is read with
+	// ends (its session cookie expires), when Ant can tell.
+	SessionEndsAt *time.Time `json:"sessionEndsAt,omitempty"`
 	// Renewed: values a reader renewed while reading (a rotated refresh
 	// token, fresh short-lived credentials) for the service to keep.
 	Renewed map[string]string `json:"-"`

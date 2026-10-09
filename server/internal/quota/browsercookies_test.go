@@ -21,10 +21,10 @@ func firefoxProfile(t *testing.T, l Local, host, name, value string, lastAccesse
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if _, err := db.Exec(`CREATE TABLE moz_cookies (host TEXT, name TEXT, value TEXT, lastAccessed INTEGER)`); err != nil {
+	if _, err := db.Exec(`CREATE TABLE moz_cookies (host TEXT, name TEXT, value TEXT, lastAccessed INTEGER, expiry INTEGER DEFAULT 0)`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`INSERT INTO moz_cookies VALUES (?, ?, ?, ?)`, host, name, value, lastAccessed); err != nil {
+	if _, err := db.Exec(`INSERT INTO moz_cookies (host, name, value, lastAccessed) VALUES (?, ?, ?, ?)`, host, name, value, lastAccessed); err != nil {
 		t.Fatal(err)
 	}
 }

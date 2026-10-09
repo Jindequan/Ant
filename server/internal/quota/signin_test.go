@@ -41,14 +41,14 @@ func antProfileCookies(t *testing.T, l Local, profileKey string, cookies [][3]st
 	defer db.Close()
 	for _, q := range []string{
 		`CREATE TABLE meta (key TEXT, value TEXT)`, `INSERT INTO meta VALUES ('version', '24')`,
-		`CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB, last_access_utc INTEGER)`,
+		`CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB, last_access_utc INTEGER, has_expires INTEGER DEFAULT 0, expires_utc INTEGER DEFAULT 0)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			t.Fatal(err)
 		}
 	}
 	for _, c := range cookies {
-		if _, err := db.Exec(`INSERT INTO cookies VALUES (?, ?, '', ?, 1)`, c[0], c[1], encryptChromium(t, "chrome-pw", c[0], c[2])); err != nil {
+		if _, err := db.Exec(`INSERT INTO cookies (host_key, name, value, encrypted_value, last_access_utc) VALUES (?, ?, '', ?, 1)`, c[0], c[1], encryptChromium(t, "chrome-pw", c[0], c[2])); err != nil {
 			t.Fatal(err)
 		}
 	}

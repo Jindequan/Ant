@@ -30,6 +30,8 @@ func TestAlerts(t *testing.T) {
 			{Name: "5 hours", UsedPercent: ptr(50.0), ResetsAt: at(time.Hour)},   // would be "lose it", but the pace uses it up
 			{Name: "Week", UsedPercent: ptr(60.0), ResetsAt: at(48 * time.Hour)}, // runs out in 3h: running out
 		}},
+		{ID: "perplexity", Name: "Perplexity", Status: StatusOK, SessionEndsAt: at(50 * time.Hour)}, // sign-in ends in 2 days
+		{ID: "seaart", Name: "SeaArt", Status: StatusOK, SessionEndsAt: at(9 * 24 * time.Hour)},     // ends later: nothing yet
 		{ID: "kling", Name: "Kling AI", Status: StatusOK, Windows: []Window{
 			{Name: "Daily free credits", Left: ptr(66.0), Limit: ptr(66.0), Unit: "credits", ResetsAt: at(10 * time.Hour), Expires: true},
 		}},
@@ -47,7 +49,7 @@ func TestAlerts(t *testing.T) {
 		"deepseek": {{Currency: "CNY", Outlook: "runs_out", At: at(40 * time.Hour)}},
 	}
 	got := keys(alerts(accounts, insights, map[string]Price{"copilot": {Amount: "10", Currency: "USD", Period: "month"}}, testNow))
-	want := "Claude · 5 hours resets soon | Z.ai · 5 hours is running out | Z.ai · Week is running out | Kling AI · Daily free credits expires soon | " +
+	want := "Claude · 5 hours resets soon | Z.ai · 5 hours is running out | Z.ai · Week is running out | Perplexity sign-in ends soon | Kling AI · Daily free credits expires soon | " +
 		"DeepSeek balance is running low | Copilot renews soon | Figma ends soon | Suno is signed out"
 	if got != want {
 		t.Fatalf("alerts:\n got %s\nwant %s", got, want)

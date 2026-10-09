@@ -386,13 +386,13 @@ func TestSunoCookieIsFoundInChromeProfile(t *testing.T) {
 	for _, q := range []string{
 		`CREATE TABLE meta (key TEXT, value TEXT)`,
 		`INSERT INTO meta VALUES ('version', '24')`,
-		`CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB, last_access_utc INTEGER)`,
+		`CREATE TABLE cookies (host_key TEXT, name TEXT, value TEXT, encrypted_value BLOB, last_access_utc INTEGER, has_expires INTEGER DEFAULT 0, expires_utc INTEGER DEFAULT 0)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.Exec(`INSERT INTO cookies VALUES (?, '__client', '', ?, 13400000000000000)`,
+	if _, err := db.Exec(`INSERT INTO cookies (host_key, name, value, encrypted_value, last_access_utc) VALUES (?, '__client', '', ?, 13400000000000000)`,
 		"auth.suno.com", encryptChromium(t, "chrome-pw", "auth.suno.com", "client-cookie")); err != nil {
 		t.Fatal(err)
 	}

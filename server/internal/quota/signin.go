@@ -34,6 +34,9 @@ type SignIn struct {
 	// those cookies, that the user is signed in.
 	Domain string                          `json:"-"`
 	Done   func(cookies []siteCookie) bool `json:"-"`
+	// Session names the cookies that hold the session, first choice first:
+	// when they expire, the sign-in ends.
+	Session []string `json:"-"`
 	// Login, when set, is the provider's own sign-in instead of a window:
 	// it returns the values that connect the account (Alibaba Cloud's
 	// console-login hands back a token).
@@ -89,11 +92,12 @@ func antProfile(l Local, key string) string {
 	return l.path(".config", "ant", "browsers", key)
 }
 
-// profileCookies reads the cookies a sign-in's profile holds for domain.
-func profileCookies(ctx context.Context, l Local, domain, key string) ([]siteCookie, error) {
+// profileCookies reads the cookies a sign-in's profile holds for domain,
+// and when they expire.
+func profileCookies(ctx context.Context, l Local, domain, key string) ([]siteCookie, map[string]time.Time, error) {
 	_, keychain, err := findChrome(l)
 	if err != nil {
-		return nil, errNoCookie
+		return nil, nil, errNoCookie
 	}
 	for _, f := range []string{"Default/Cookies", "Default/Network/Cookies"} {
 		p := filepath.Join(antProfile(l, key), filepath.FromSlash(f))
@@ -101,15 +105,15 @@ func profileCookies(ctx context.Context, l Local, domain, key string) ([]siteCoo
 			return readSiteCookies(ctx, p, domain, func() ([]byte, error) { return chromiumKey(keychain) })
 		}
 	}
-	return nil, errNoCookie
+	return nil, nil, errNoCookie
 }
 
 // signedInSession is the session of a signed-in connection: the cookies
 // its profile holds now (Chrome keeps them fresh), else those kept when
 // signing in.
 func signedInSession(ctx context.Context, l Local, s SignIn, stored, key string) (browserSession, bool) {
-	if cs, err := profileCookies(ctx, l, s.Domain, key); err == nil && s.Done(cs) {
-		return browserSession{cookies: cs, source: "Signed in with Ant"}, true
+	if cs, ends, err := profileCookies(ctx, l, s.Domain, key); err == nil && s.Done(cs) {
+		return browserSession{cookies: cs, source: "Signed in with Ant", ends: ends}, true
 	}
 	return decodeSession(stored)
 }
@@ -228,7 +232,7 @@ func runSignIn(ctx context.Context, l Local, s SignIn, key string) ([]siteCookie
 		}
 	}
 	signedIn := func() ([]siteCookie, bool) {
-		cs, err := profileCookies(ctx, l, s.Domain, key)
+		cs, _, err := profileCookies(ctx, l, s.Domain, key)
 		return cs, err == nil && s.Done(cs)
 	}
 

@@ -23,7 +23,7 @@ const (
 
 var errSunoChanged = errors.New("Suno's billing reply changed; Ant needs an update to read it")
 
-var sunoSignIn = &SignIn{URL: "https://suno.com/sign-in", Domain: "suno.com", Done: func(cs []siteCookie) bool {
+var sunoSignIn = &SignIn{URL: "https://suno.com/sign-in", Domain: "suno.com", Session: []string{"__client"}, Done: func(cs []siteCookie) bool {
 	// Clerk: __client is the session, __client_uat is "0" until signed in
 	uat := cookieValue(cs, "__client_uat")
 	return cookieValue(cs, "__client") != "" && uat != "" && uat != "0"

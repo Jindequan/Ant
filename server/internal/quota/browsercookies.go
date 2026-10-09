@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"ant/server/internal/quota/cookiestore"
 )
@@ -140,10 +141,36 @@ type siteCookie struct {
 }
 
 // browserSession is every cookie a browser profile holds for a site, from
-// the profile where the user signed in most recently.
+// the profile where the user signed in most recently, and when each of
+// them expires (by name; unknown or session-long ones left out).
 type browserSession struct {
 	cookies []siteCookie
 	source  string
+	ends    map[string]time.Time
+}
+
+// endsAt is when the session ends: when its marker cookie expires; nil
+// when that isn't known (no marker, a cookie that lasts as long as the
+// browser, a session kept from signing in).
+func (s browserSession) endsAt(marker string) *time.Time {
+	if t, ok := s.ends[marker]; ok && marker != "" {
+		return &t
+	}
+	return nil
+}
+
+// expiries collects cookie expiries by name, the latest for a name kept.
+func expiries(rows []cookiestore.Cookie) map[string]time.Time {
+	out := map[string]time.Time{}
+	for _, r := range rows {
+		if r.Expires <= 0 {
+			continue
+		}
+		if t := time.Unix(r.Expires, 0).UTC(); t.After(out[r.Name]) {
+			out[r.Name] = t
+		}
+	}
+	return out
 }
 
 // header is the Cookie header the browser would send to host.
@@ -212,25 +239,26 @@ func (l Local) findBrowserSession(ctx context.Context, domain, marker string) (b
 		return browserSession{}, errNoCookie
 	}
 	var cookies []siteCookie
+	var ends map[string]time.Time
 	var err error
 	if best.firefox {
-		cookies, err = readFirefoxSite(ctx, best.file, domain)
+		cookies, ends, err = readFirefoxSite(ctx, best.file, domain)
 	} else {
 		keychain := best.keychain
-		cookies, err = readSiteCookies(ctx, best.file, domain, func() ([]byte, error) { return chromiumKey(keychain) })
+		cookies, ends, err = readSiteCookies(ctx, best.file, domain, func() ([]byte, error) { return chromiumKey(keychain) })
 	}
 	if err != nil {
 		return browserSession{}, err
 	}
-	return browserSession{cookies: cookies, source: best.source}, nil
+	return browserSession{cookies: cookies, source: best.source, ends: ends}, nil
 }
 
 // readSiteCookies reads a Chromium cookie store's cookies for domain,
-// decrypting them with the key key gives.
-func readSiteCookies(ctx context.Context, file, domain string, key func() ([]byte, error)) ([]siteCookie, error) {
+// decrypting them with the key key gives, and when they expire.
+func readSiteCookies(ctx context.Context, file, domain string, key func() ([]byte, error)) ([]siteCookie, map[string]time.Time, error) {
 	rows, version, err := cookiestore.ChromiumSite(ctx, file, domain)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var out []siteCookie
 	for _, r := range rows {
@@ -238,7 +266,7 @@ func readSiteCookies(ctx context.Context, file, domain string, key func() ([]byt
 		if c.value == "" && len(r.Encrypted) > 0 {
 			k, err := key()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if c.value, err = decryptChromium(r.Encrypted, k, version); err != nil {
 				continue // one unreadable cookie doesn't spoil the session
@@ -246,19 +274,19 @@ func readSiteCookies(ctx context.Context, file, domain string, key func() ([]byt
 		}
 		out = append(out, c)
 	}
-	return out, nil
+	return out, expiries(rows), nil
 }
 
-func readFirefoxSite(ctx context.Context, file, domain string) ([]siteCookie, error) {
+func readFirefoxSite(ctx context.Context, file, domain string) ([]siteCookie, map[string]time.Time, error) {
 	rows, err := cookiestore.FirefoxSite(ctx, file, domain)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	out := make([]siteCookie, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, siteCookie{host: r.Host, name: r.Name, value: r.Value})
 	}
-	return out, nil
+	return out, expiries(rows), nil
 }
 
 func profileName(root, file string) string {

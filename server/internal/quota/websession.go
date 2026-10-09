@@ -33,6 +33,9 @@ func newWebSite(provider, name, domain, host, marker, signInURL, pasteHelp strin
 		}
 		return cookieValue(cs, marker) != ""
 	}}
+	if marker != "" {
+		w.signIn.Session = []string{marker}
+	}
 	return w
 }
 

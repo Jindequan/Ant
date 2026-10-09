@@ -21,7 +21,7 @@ import (
 
 const mimoPlatform = "https://platform.xiaomimimo.com"
 
-var mimoSignIn = &SignIn{URL: mimoPlatform + "/token-plan", Domain: "xiaomimimo.com", Done: func(cs []siteCookie) bool {
+var mimoSignIn = &SignIn{URL: mimoPlatform + "/token-plan", Domain: "xiaomimimo.com", Session: []string{"serviceToken", "api-platform_serviceToken"}, Done: func(cs []siteCookie) bool {
 	return cookieValue(cs, "userId") != "" && (cookieValue(cs, "serviceToken") != "" || cookieValue(cs, "api-platform_serviceToken") != "")
 }}
 

@@ -5,6 +5,29 @@ const HUES = {
   deepseek: 214, openrouter: 240, siliconflow: 280, stepfun: 190, suno: 8,
   manus: 30, perplexity: 186, poe: 262, kling: 150, leonardo: 290, seaart: 205, sdweb: 312, elevenlabs: 0, figma: 12, stitch: 120,
 };
+// ICON is a small set of line icons, in the ant's own line style.
+const ICON = {
+  key: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2.5 2.5M14 9l2 2"/></svg>',
+  clock: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  alert: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg>',
+  open: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  edit: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  pause: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>',
+  play: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>',
+  trash: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>',
+};
+const SESSION_WARN_DAYS = 7;
+
+// sessionBadge is a sign-in's end: a key, amber when it's near.
+function sessionBadge(a, full) {
+  const t = time(a.sessionEndsAt);
+  if (!t || t < Date.now()) return "";
+  const near = t - Date.now() < SESSION_WARN_DAYS * 864e5;
+  if (!near && !full) return "";
+  const title = `Sign-in ends ${dayFmt.format(t)}`;
+  return `<span class="sess ${near ? "near" : ""}" title="${esc(title)}">${ICON.key}${full ? esc(title) : until(t)}</span>`;
+}
+
 // LOGOS are the providers whose own icon is bundled with the page
 // (webui/static/logos, fetched once from each provider's site); the others
 // show their initial.
@@ -344,20 +367,20 @@ function renderAccount(a) {
         ${mark(a.provider, a.name)}
         <span class="a-who"><b>${esc(a.label || a.name)}</b>${paused ? ' <span class="tag off">Paused</span>' : ""}<span class="a-sub">${a.label ? `${esc(a.name)} · ` : ""}${sub}</span></span>
         <span class="a-val">${headline(a)}</span>
-        <span class="a-next">${nextOf(a)}</span>
+        <span class="a-next">${sessionBadge(a, false)}${nextOf(a)}</span>
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </summary>
       <div class="a-detail">
         <div class="body">${cardBody(a)}</div>
         <div class="a-foot">
-          <span class="src"><i class="dot ${esc(a.status)}"></i><span>${facts}</span></span>
+          <span class="src"><i class="dot ${esc(a.status)}"></i><span>${facts}</span>${sessionBadge(a, true)}</span>
           ${life || cost ? `<span class="${ends && a.autoRenew === false ? "ending" : ""}">${[life, cost].filter(Boolean).join(" · ")}</span>` : ""}
         </div>
         <div class="a-actions">
-          ${a.link ? `<a class="btn sm" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Open ${esc(a.name)} ↗</a>` : ""}
-          <button type="button" class="btn sm" data-edit="${esc(a.id)}">Edit</button>
-          ${routable(a) ? `<button type="button" class="btn sm" data-pause="${esc(a.id)}" data-paused="${paused ? "0" : "1"}">${paused ? "Resume routing" : "Pause routing"}</button>` : ""}
-          <button type="button" class="btn sm quiet" data-remove-card="${esc(a.id)}">${a.origin === "found" ? "Hide" : "Remove"}</button>
+          ${a.link ? `<a class="btn sm" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">${ICON.open}Open</a>` : ""}
+          <button type="button" class="btn sm" data-edit="${esc(a.id)}">${ICON.edit}Edit</button>
+          ${routable(a) ? `<button type="button" class="btn sm" data-pause="${esc(a.id)}" data-paused="${paused ? "0" : "1"}" title="${paused ? "Use it for routes again" : "Leave it out of routes"}">${paused ? ICON.play + "Resume" : ICON.pause + "Pause"}</button>` : ""}
+          <button type="button" class="btn sm quiet" data-remove-card="${esc(a.id)}" title="${a.origin === "found" ? "Hide" : "Remove"}" aria-label="${a.origin === "found" ? "Hide" : "Remove"}">${ICON.trash}</button>
         </div>
       </div>
     </details>`;

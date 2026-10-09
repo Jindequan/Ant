@@ -65,12 +65,14 @@ func demoAccounts(conns []Connection, now time.Time) []Account {
 	read := now.Add(-2 * time.Minute)
 	samples := map[string]func(Account) Account{
 		"demo-manus": func(a Account) Account {
+			a.SessionEndsAt = at(26 * 24 * time.Hour)
 			a.Balances = []Balance{{Label: "Credits", Currency: "credits", Amount: "1300"}}
 			a.Windows = []Window{{Name: "Refresh · day", Left: ptr(180.0), Limit: ptr(300.0), Unit: "credits", ResetsAt: midnight}}
 			a.Groups = []Group{{Title: "Kept credits", Note: "They don't renew; spent after the refresh and plan credits.", Balances: []Balance{{Label: "Free", Currency: "credits", Amount: "1000"}}}}
 			return a
 		},
 		"demo-kling": func(a Account) Account {
+			a.SessionEndsAt = at(2*24*time.Hour + 5*time.Hour) // a browser sign-in about to end
 			a.Balances = []Balance{{Label: "Credits", Currency: "credits", Amount: "166"}}
 			a.Windows = []Window{
 				{Name: "Daily free credits", Left: ptr(66.0), Unit: "credits", ResetsAt: midnight, Expires: true},

@@ -146,7 +146,7 @@ h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 /* an account: one row, its detail when open */
 .acct + .acct { border-top: 1px solid var(--line); }
 .a-row {
-  display: grid; grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 1fr) 128px 14px; align-items: center; gap: 14px;
+  display: grid; grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 1fr) minmax(128px, auto) 14px; align-items: center; gap: 14px;
   padding: 13px 16px; cursor: pointer; list-style: none;
 }
 .a-row::-webkit-details-marker { display: none; }
@@ -164,7 +164,7 @@ h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .a-amt { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
 .a-state { font-weight: 500; }
 .a-state.bad { color: var(--low); }
-.a-next { font-size: 12.5px; color: var(--faint); text-align: right; white-space: nowrap; }
+.a-next { font-size: 12.5px; color: var(--faint); text-align: right; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; }
 .chev { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .acct[open] .chev { transform: rotate(90deg); }
 .acct.attn .mark { background: var(--surface-2); color: var(--muted); }
@@ -176,6 +176,12 @@ h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
 .a-foot .src { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .a-foot .ending { color: var(--warn); }
 .a-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.ic { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn.sm .ic { width: 14px; height: 14px; }
+.sess { display: inline-flex; align-items: center; gap: 4px; color: var(--faint); margin-right: 8px; font-size: 12px; }
+.sess .ic { width: 13px; height: 13px; }
+.sess.near { color: var(--warn); font-weight: 600; }
+.a-foot .sess { margin: 0 0 0 10px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--good); }
 .dot.signed_out, .dot.error { background: var(--low); }
 .dot.not_connected { background: var(--faint); }

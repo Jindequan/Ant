@@ -25,6 +25,7 @@ const (
 	balanceWithin  = 72 * time.Hour // a balance lasting less than this
 	renewWithin    = 24 * time.Hour
 	endingWithin   = 72 * time.Hour // a plan ending, auto-renew off
+	sessionWithin  = 72 * time.Hour // a website sign-in ending
 	notifyInterval = time.Minute
 )
 
@@ -42,6 +43,10 @@ func alerts(accounts []Account, insights map[string][]Insight, prices map[string
 		}
 		if a.Status != StatusOK {
 			continue
+		}
+		if e := a.SessionEndsAt; e != nil && e.After(now) && e.Sub(now) <= sessionWithin {
+			out = append(out, Alert{Key: a.ID + "|session|" + e.UTC().Format("2006-01-02"), Title: name + " sign-in ends soon",
+				Body: fmt.Sprintf("In %s. Open %s once in your browser to keep it, or sign in again in Ant.", span(e.Sub(now)), name)})
 		}
 		ins := insightsFor(a, insights)
 		for _, w := range allWindowsOf(a) {

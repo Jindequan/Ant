@@ -26,6 +26,9 @@ type Cookie struct {
 	Host, Name, Value string
 	Encrypted         []byte
 	Access            int64
+	// Expires is when the browser drops the cookie, in Unix seconds; 0 for
+	// a cookie that lasts only as long as the browser is open.
+	Expires int64
 }
 
 // unixToWindowsMicros is the distance between 1970 and 1601 in µs.
@@ -82,7 +85,7 @@ func ChromiumSite(ctx context.Context, file, domain string) ([]Cookie, int, erro
 	}
 	defer db.Close()
 	version := chromiumVersion(ctx, db)
-	rows, err := db.QueryContext(ctx, `SELECT host_key, name, value, encrypted_value, last_access_utc FROM cookies
+	rows, err := db.QueryContext(ctx, `SELECT host_key, name, value, encrypted_value, last_access_utc, has_expires, expires_utc FROM cookies
 		WHERE host_key = ? OR host_key LIKE ? ORDER BY length(host_key), name`, domain, likeSubdomains(domain))
 	if err != nil {
 		return nil, 0, err
@@ -91,8 +94,14 @@ func ChromiumSite(ctx context.Context, file, domain string) ([]Cookie, int, erro
 	var out []Cookie
 	for rows.Next() {
 		var c Cookie
-		if err := rows.Scan(&c.Host, &c.Name, &c.Value, &c.Encrypted, &c.Access); err != nil {
+		var hasExpires int64
+		if err := rows.Scan(&c.Host, &c.Name, &c.Value, &c.Encrypted, &c.Access, &hasExpires, &c.Expires); err != nil {
 			return nil, 0, err
+		}
+		if hasExpires == 0 || c.Expires <= 0 {
+			c.Expires = 0
+		} else {
+			c.Expires = (c.Expires - unixToWindowsMicros) / 1_000_000 // µs since 1601 → Unix seconds
 		}
 		out = append(out, c)
 	}
@@ -128,7 +137,7 @@ func FirefoxSite(ctx context.Context, file, domain string) ([]Cookie, error) {
 		return nil, err
 	}
 	defer db.Close()
-	rows, err := db.QueryContext(ctx, `SELECT host, name, value, lastAccessed FROM moz_cookies WHERE host = ? OR host LIKE ?`,
+	rows, err := db.QueryContext(ctx, `SELECT host, name, value, lastAccessed, expiry FROM moz_cookies WHERE host = ? OR host LIKE ?`,
 		domain, likeSubdomains(domain))
 	if err != nil {
 		return nil, err
@@ -137,8 +146,11 @@ func FirefoxSite(ctx context.Context, file, domain string) ([]Cookie, error) {
 	var out []Cookie
 	for rows.Next() {
 		var c Cookie
-		if err := rows.Scan(&c.Host, &c.Name, &c.Value, &c.Access); err != nil {
+		if err := rows.Scan(&c.Host, &c.Name, &c.Value, &c.Access, &c.Expires); err != nil {
 			return nil, err
+		}
+		if c.Expires > 1e11 { // newer Firefox keeps milliseconds
+			c.Expires /= 1000
 		}
 		c.Access += unixToWindowsMicros
 		out = append(out, c)

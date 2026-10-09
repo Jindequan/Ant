@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 sign-in expiry warnings: Ant reads when each website sign-in ends (its session cookie's expiry, from Ant's own profile for that sign-in or from the everyday Chrome/Firefox store), shows it as a key — grey with the date in the account, amber on the row within 7 days — and notifies 3 days before. Row actions became icons (open, edit, pause, remove). Tested (Chromium µs-since-1601 and Firefox ms expiries; session-long and pasted cookies say nothing; the alert). Gates pass.
+
 2026-10-09 each sign-in through Ant's window has its own Chrome profile (~/.config/ant/browsers/<key>), so two accounts of one site keep two sessions; signing in again opens that account's profile; sign-ins made before keep the shared profile. Fixes a bug the many-accounts change exposed (a second sign-in replaced the first one's cookies). Tested. Gates pass.
 
 2026-10-09 many accounts per provider (user: "I can have many accounts per provider, but now only 1 for 1"): a sign-in through Ant's window now adds an account instead of replacing the last one (signing in again renews that account); Claude no longer folds every account into one card (only this Mac's Claude Code login, read two ways, is one card); Bailian free quota is grouped by its own grants, not a constant; ChatGPT and Gemini CLI take further accounts from their own sign-in folders (CODEX_HOME). Also fixed: provider logos were invisible in the Add panel (percentage padding resolves against the parent's width). Tests for each. Gates pass.

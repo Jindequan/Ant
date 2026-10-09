@@ -317,7 +317,12 @@ func Read(ctx context.Context, providers []Provider, local Local, c Connection) 
 		return Account{ID: c.ID, Provider: c.Provider, Name: c.Provider, Status: StatusError, Origin: c.Origin,
 			Message: "Ant no longer knows this kind of account. Remove it.", ReadAt: local.Now()}
 	}
-	return m.Read(ctx, local, c)
+	a := m.Read(ctx, local, c)
+	if a.SessionEndsAt == nil && (a.Status == StatusOK || a.Status == StatusSignedOut) {
+		full, _ := p.mode(c.Mode)
+		a.SessionEndsAt = sessionEnds(ctx, local, full, c)
+	}
+	return a
 }
 
 // KeepRenewed saves what a reader renewed into the connection's stored
