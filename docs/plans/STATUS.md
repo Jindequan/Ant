@@ -1,5 +1,7 @@
 # Work Items and Decision Status
 
+2026-10-09 [design 14](../design/14-SUPPLY-FOUNDATION.md): the supply foundation the router stands on — nine promises of the supply store (only what exists, removed stays removed, many accounts per provider, one identity, exact readings, routable means usable, a model's own meters, sealed keys with small failures, lasting sign-ins), each held by a named test; and the gaps before the router (offers for 4 of 27 providers first). Gates pass.
+
 2026-10-09 router foundation: every discovery now retires stored credentials it no longer finds (removed by the user, gone from this Mac) — status hidden, offers dropped — so a removed account is never routed or previewed; found again, it's back (test). On the user's store: the four removed/hidden credentials became hidden with 0 offers. Menu panel: it re-asks every 2 s while the first read runs (it was empty for a minute), reloads when opened, says 'Reading your accounts…' instead of an empty list; the menu bar shows the ant alone. Gates pass.
 
 2026-10-09 a module's card carries the account the provider names (Bailian's Token Plan instance), so the same instance reached two ways (the module's token, an old browser session) shows as one card — found on the user's Mac after the repair. Their accounts: all 11 load; Copilot reads (the proxy); the old Bailian record migrated into deletable records. Gates pass.
