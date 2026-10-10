@@ -18,3 +18,11 @@ Release scope: configuration, provider-native observations and read-only route p
 Published application is the notarized Xcode export, not the original pre-export build. SHA256SUMS is generated after packaging. The DMG container is Developer ID signed; the application inside carries the Apple notarization ticket.
 
 GitHub push protection detected a hardcoded Google installed-application OAuth client pair that the initial pattern list did not cover. The official Gemini CLI source identifies that pair as publicly distributed installed-app credentials, but Ant now resolves it from the installed CLI or an explicit complete environment pair. New tests cover installed-module discovery, missing-client refusal before token transmission and fresh-token behavior. The public branch history is sanitized without bypassing GitHub protection; a private local pre-sanitization Git bundle is retained outside the repository. Release binaries are rebuilt and re-notarized after this change.
+
+Final rebuild after Gemini cleanup: quota package uncached race tests and vet passed; Xcode final upload and notarized export succeeded; final packaged app passed codesign/stapler/Gatekeeper both before and after DMG mounting. Both architectures still target macOS 13. Public history scan covered 1,507 blobs and included Google OAuth client ID/secret patterns: no matches. Public main pushed successfully without a protection bypass. The pre-publication private backup is retained under `.git/publication-backups/`.
+
+Final asset checksums:
+```text
+90068c2c9e11faf00c071b9cb7e6281fc1348ea4ff4e34c691b8bff68a0b496d  Ant-0.1.0-universal.dmg
+0a1a785502838b70c1327dc09ce4ad58aeaefe0957e7d1b93ca99db9202657f7  Ant-0.1.0-universal.zip
+```
