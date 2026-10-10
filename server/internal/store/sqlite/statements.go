@@ -26,8 +26,9 @@ type queryer interface {
 // writerTx carries the command's budget context: every statement respects the
 // whole-command deadline, and an expired budget aborts the transaction.
 type writerTx struct {
-	ctx context.Context
-	tx  queryer // stmtTx: the command's *sql.Tx behind the statement cache
+	*readerTx // promote the same-transaction supply reads for atomic validation
+	ctx       context.Context
+	tx        queryer // stmtTx: the command's *sql.Tx behind the statement cache
 }
 
 // CommandContext exposes the command-wide deadline context so a callback can
@@ -38,7 +39,7 @@ func (w *writerTx) CommandContext() context.Context { return w.ctx }
 // readerTx is a consistent snapshot on the query-only pool.
 type readerTx struct {
 	ctx context.Context
-	tx  *sql.Tx
+	tx  queryer
 }
 
 // jsonParam adapts a Go []byte JSON column value to the STRICT schema: []byte

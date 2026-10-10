@@ -215,6 +215,7 @@ final class Model: ObservableObject {
     @Published var glance: Glance?
     @Published var refreshedAt: Date?
     @Published var reading = false
+    @Published var loadIssue: String?
     @Published var openAtLogin = fm.fileExists(atPath: launchAgent.path)
     let server = Server()
     var timer: Timer?
@@ -229,6 +230,13 @@ final class Model: ObservableObject {
     }
     var needsYou: [Account] { let by = byID; return (glance?.needsYou ?? []).compactMap { by[$0] } }
     var ok: [Account] { accounts.filter { $0.status == "ok" } }
+    // Every API account must stay visible even if a newer server status or
+    // package kind has not been added to the panel's named sections yet.
+    var otherOK: [Account] { ok.filter { !["subscription", "free", "api"].contains($0.kind ?? "api") } }
+    var unclassified: [Account] {
+        let covered = Set(ok.map(\.id) + needsYou.map(\.id))
+        return accounts.filter { !covered.contains($0.id) }
+    }
     // status says how old what's shown is, and whether Ant is reading again
     var status: String {
         switch (reading, refreshedAt) {
@@ -248,14 +256,18 @@ final class Model: ObservableObject {
         reading = snap.refreshing ?? false
     }
 
-    func keep(_ data: Data) {
+    func keep(_ data: Data) throws {
         let dir = cacheFile.deletingLastPathComponent()
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        _ = fm.createFile(atPath: cacheFile.path, contents: data, attributes: [.posixPermissions: 0o600])
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+        try data.write(to: cacheFile, options: .atomic)
+        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: cacheFile.path)
     }
 
     func boot() {
-        if let data = try? Data(contentsOf: cacheFile), let snap = try? JSONDecoder().decode(Snapshot.self, from: data) {
+        if let data = try? Data(contentsOf: cacheFile),
+           let snap = try? JSONDecoder().decode(Snapshot.self, from: data),
+           let at = date(snap.refreshedAt), at.timeIntervalSince1970 > 0 {
             show(snap)
             reading = true // until Ant answers
             if ProcessInfo.processInfo.environment["ANT_DEBUG"] == "1" { print("kept: accounts=\(accounts.count) use-first=\(urgentNow.count)"); fflush(stdout) }
@@ -265,7 +277,12 @@ final class Model: ObservableObject {
             let url = server.start()
             await MainActor.run {
                 self.base = url
-                self.load()
+                if url == nil {
+                    self.loadIssue = "Ant couldn't start. Check the app installation, then try again."
+                    self.reading = false
+                } else {
+                    self.load()
+                }
                 self.timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in Task { @MainActor in self.load() } }
             }
         }
@@ -285,10 +302,32 @@ final class Model: ObservableObject {
         fetching = true
         Task {
             defer { fetching = false }
-            guard let (data, _) = try? await URLSession.shared.data(for: r),
-                  let snap = try? JSONDecoder().decode(Snapshot.self, from: data) else { return }
-            show(snap)
-            if refreshedAt != nil { keep(data) }
+            do {
+                let (data, response) = try await URLSession.shared.data(for: r)
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    throw URLError(.badServerResponse)
+                }
+                let snap = try JSONDecoder().decode(Snapshot.self, from: data)
+                // A zero-time snapshot is Ant's startup placeholder, not an
+                // empty result. Keep any saved rows until the first read ends.
+                let completed = date(snap.refreshedAt).map { $0.timeIntervalSince1970 > 0 } ?? false
+                if completed {
+                    show(snap)
+                    loadIssue = nil
+                } else {
+                    reading = true
+                }
+                if completed, snap.refreshing != true {
+                    do { try keep(data) }
+                    catch { loadIssue = "Couldn't save this reading for next time. Your current list is still available." }
+                }
+            } catch {
+                loadIssue = accounts.isEmpty
+                    ? "Couldn't load your accounts. Check Ant's connection, then try again."
+                    : "Couldn't refresh your accounts. Showing the last saved list; try again."
+                reading = false
+                return
+            }
             // Ant is still reading: look again soon, not in a minute
             if (reading || refreshedAt == nil) && soon < 90 {
                 if !again {
@@ -307,6 +346,23 @@ final class Model: ObservableObject {
                 print("base=\(base?.absoluteString ?? "-") accounts=\(accounts.count) use-first=\(urgentNow.count) needs-you=\(needsYou.count) prepaid=\(prepaid)")
                 for u in urgentNow.prefix(3) { print("  use first: \(u.account.title) · \(u.window.name) \(leftText(u.window)) · \(until(u.at))") }
                 fflush(stdout)
+            }
+        }
+    }
+
+    func retry() {
+        loadIssue = nil
+        if base != nil { load(); return }
+        let server = self.server
+        Task.detached {
+            let url = server.start()
+            await MainActor.run {
+                self.base = url
+                if url == nil {
+                    self.loadIssue = "Ant couldn't start. Check the app installation, then try again."
+                } else {
+                    self.load()
+                }
             }
         }
     }
@@ -347,13 +403,7 @@ final class Model: ObservableObject {
 
 // MARK: - the panel
 
-extension Color {
-    static let antGood = Color(red: 0.18, green: 0.62, blue: 0.40)
-    static let antWarn = Color(red: 0.90, green: 0.56, blue: 0.08)
-    static let antLow = Color(red: 0.86, green: 0.30, blue: 0.22)
-}
-
-func level(_ p: Double?) -> Color { guard let p else { return .secondary }; return p < 20 ? .antLow : p < 50 ? .antWarn : .antGood }
+func level(_ p: Double?) -> Color { guard let p else { return .secondary }; return p < 20 ? PanelPalette.danger : p < 50 ? PanelPalette.warning : PanelPalette.good }
 
 // logos are the page's own (server/internal/webui/static/logos), copied
 // into the app, so they draw at once, server or not
@@ -387,10 +437,10 @@ struct Bar: View {
     var percent: Double?
     var body: some View {
         ZStack(alignment: .leading) {
-            Capsule().fill(Color.primary.opacity(0.09))
-            if let p = percent { Capsule().fill(level(p)).frame(width: max(4, 52 * p / 100)) }
+            Capsule().fill(PanelPalette.track)
+            if let p = percent { Capsule().fill(level(p)).frame(width: max(4, 64 * p / 100)) }
         }
-        .frame(width: 52, height: 5)
+        .frame(width: 64, height: 6)
     }
 }
 
@@ -404,7 +454,7 @@ struct Chip: View {
             Text(text).font(.system(size: 11.5, weight: .semibold)).lineLimit(1)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Capsule().fill(color.opacity(0.15)))
+        .background(Capsule().fill(color.opacity(0.14)))
         .foregroundStyle(color)
     }
 }
@@ -416,7 +466,7 @@ struct SectionTitle: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon).font(.system(size: 10, weight: .bold))
-            Text(text.uppercased()).font(.system(size: 10.5, weight: .bold)).kerning(0.6)
+            Text(text).font(.system(size: 12, weight: .semibold))
         }
         .foregroundStyle(color)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -450,7 +500,7 @@ struct Row<Trailing: View>: View {
                 Logo(provider: account.provider, name: account.name)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(account.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                    if !detail.isEmpty { Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1) }
+                    if !detail.isEmpty { Text(detail).font(.system(size: 11)).foregroundStyle(PanelPalette.secondary).lineLimit(1) }
                 }
                 Spacer(minLength: 8)
                 if showBar { Bar(percent: percent) }
@@ -473,22 +523,29 @@ struct Panel: View {
             scroll {
                 VStack(spacing: 0) {
                     if model.base == nil && model.accounts.isEmpty {
-                        VStack(spacing: 8) {
-                            ProgressView().controlSize(.small)
-                            Text("Ant is starting…").font(.system(size: 12)).foregroundStyle(.secondary)
-                        }
-                        .padding(36)
+                        emptyState
+                    } else if model.accounts.isEmpty, model.loadIssue != nil {
+                        emptyState
                     } else if model.accounts.isEmpty {
                         VStack(spacing: 8) {
                             if model.reading || model.refreshedAt == nil { ProgressView().controlSize(.small) }
                             Text(model.reading || model.refreshedAt == nil ? "Reading your accounts…" : "No accounts yet. Open Ant to add one.")
-                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                                .font(.system(size: 12)).foregroundStyle(PanelPalette.secondary)
                         }
                         .padding(36)
                     } else {
+                        if let issue = model.loadIssue {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(PanelPalette.warning)
+                                Text(issue).font(.system(size: 11.5)).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
+                                Button("Try again") { model.retry() }.buttonStyle(.borderless).tint(PanelPalette.action)
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 8)
+                        }
                         useFirst
                         needsYou
                         everyAccount
+                        unclassifiedAccounts
                     }
                 }
                 .padding(.bottom, 10)
@@ -496,18 +553,40 @@ struct Panel: View {
             Divider().opacity(0.6)
             footer
         }
-        .frame(width: 370)
+        // MenuBarExtra's window can otherwise size itself to the header and
+        // footer, leaving its ScrollView with a few points of height. Give
+        // the live panel a real viewport; on shorter displays the scroll
+        // area can still shrink to the space the system provides.
+        .frame(width: 370, height: picture ? nil : 420)
+        .background(PanelPalette.surface)
+        .tint(PanelPalette.action)
         .onAppear { model.load() } // fresh each time it opens
     }
 
+    var emptyState: some View {
+        VStack(spacing: 9) {
+            if model.loadIssue == nil { ProgressView().controlSize(.small) }
+            Text(model.loadIssue ?? "Ant is starting…")
+                .font(.system(size: 12.5, weight: .medium)).foregroundStyle(.primary)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            if model.loadIssue != nil {
+                Button("Try again") { model.retry() }.buttonStyle(.borderedProminent).controlSize(.small)
+            }
+        }
+        .padding(36)
+    }
+
     @ViewBuilder func scroll<C: View>(@ViewBuilder _ c: () -> C) -> some View {
-        if picture { c() } else { ScrollView { c() }.frame(maxHeight: 480) }
+        // The live panel owns a fixed-height viewport above; this lets the
+        // list fill the available middle space and scroll instead of allowing
+        // MenuBarExtra to collapse it while header counts remain visible.
+        if picture { c() } else { ScrollView { c() }.frame(maxWidth: .infinity, maxHeight: .infinity) }
     }
 
     // icon is a header or footer control, drawn plain in a picture
     @ViewBuilder func control(_ systemName: String, _ help: String, _ action: @escaping () -> Void) -> some View {
         let img = Image(systemName: systemName).font(.system(size: 13, weight: .semibold))
-        if picture { img.foregroundStyle(.secondary) } else { Button(action: action) { img }.buttonStyle(.borderless).help(help) }
+        if picture { img.foregroundStyle(PanelPalette.secondary) } else { Button(action: action) { img }.buttonStyle(.borderless).help(help) }
     }
 
     var header: some View {
@@ -519,18 +598,17 @@ struct Panel: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Ant").font(.system(size: 15, weight: .semibold))
                     Text(model.status)
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .font(.system(size: 11)).foregroundStyle(PanelPalette.secondary)
                 }
                 Spacer()
                 control("arrow.clockwise", "Read every account again") { model.refresh() }
-                control("arrow.up.forward.app", "Open Ant") { model.open() }
             }
             if model.base != nil || !model.accounts.isEmpty {
                 HStack(spacing: 6) {
-                    if !model.urgentNow.isEmpty { Chip(icon: "hourglass", text: "\(model.urgentNow.count) use first", color: .antWarn) }
-                    if !model.needsYou.isEmpty { Chip(icon: "exclamationmark.triangle.fill", text: "\(model.needsYou.count) need you", color: .antLow) }
-                    if !model.prepaid.isEmpty { Chip(icon: "creditcard.fill", text: model.prepaid, color: .antGood) }
-                    if model.urgentNow.isEmpty && model.needsYou.isEmpty { Chip(icon: "checkmark.circle.fill", text: "All good", color: .antGood) }
+                    if !model.urgentNow.isEmpty { Chip(icon: "hourglass", text: "\(model.urgentNow.count) use first", color: PanelPalette.warning) }
+                    if !model.needsYou.isEmpty { Chip(icon: "exclamationmark.triangle.fill", text: "\(model.needsYou.count) need you", color: PanelPalette.danger) }
+                    if !model.prepaid.isEmpty { Chip(icon: "creditcard.fill", text: model.prepaid, color: PanelPalette.good) }
+                    if model.urgentNow.isEmpty && model.needsYou.isEmpty { Chip(icon: "checkmark.circle.fill", text: "All good", color: PanelPalette.good) }
                 }
             }
         }
@@ -539,18 +617,18 @@ struct Panel: View {
 
     @ViewBuilder var useFirst: some View {
         if !model.urgentNow.isEmpty {
-            SectionTitle(icon: "hourglass", text: "Use first", color: .antWarn)
+            SectionTitle(icon: "hourglass", text: "Use first", color: PanelPalette.warning)
             ForEach(model.urgentNow.prefix(6)) { u in
                 Row(model: model, account: u.account, detail: u.window.name, percent: percentLeft(u.window)) {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(leftText(u.window)).font(.system(size: 12.5, weight: .semibold)).monospacedDigit()
-                        Text(until(u.at)).font(.system(size: 10.5, weight: .semibold)).foregroundStyle(Color.antWarn)
+                        Text(until(u.at)).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(PanelPalette.warning)
                     }
                     .frame(width: 88, alignment: .trailing)
                 }
             }
             if model.urgentNow.count > 6 {
-                Text("\(model.urgentNow.count - 6) more in Ant").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("\(model.urgentNow.count - 6) more in Ant").font(.system(size: 11)).foregroundStyle(PanelPalette.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.top, 2)
             }
         }
@@ -558,11 +636,11 @@ struct Panel: View {
 
     @ViewBuilder var needsYou: some View {
         if !model.needsYou.isEmpty {
-            SectionTitle(icon: "exclamationmark.triangle.fill", text: "Needs you", color: .antLow)
+            SectionTitle(icon: "exclamationmark.triangle.fill", text: "Needs you", color: PanelPalette.danger)
             ForEach(model.needsYou) { a in
                 Row(model: model, account: a, detail: a.status == "signed_out" ? "Signed out · sign in again" : (a.message ?? "Couldn't read"), percent: nil, showBar: false) {
                     Image(systemName: a.status == "signed_out" ? "key.slash.fill" : "wifi.exclamationmark")
-                        .foregroundStyle(Color.antLow).font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(PanelPalette.danger).font(.system(size: 12, weight: .semibold))
                 }
             }
         }
@@ -573,8 +651,23 @@ struct Panel: View {
         ForEach([("subscription", "Subscriptions", "repeat"), ("free", "Free", "gift.fill"), ("api", "Balances", "creditcard.fill")], id: \.0) { kind, title, icon in
             let list = model.ok.filter { ($0.kind ?? "api") == kind }
             if !list.isEmpty {
-                SectionTitle(icon: icon, text: "\(title) · \(list.count)", color: .secondary)
+                SectionTitle(icon: icon, text: "\(title) · \(list.count)", color: PanelPalette.section)
                 ForEach(list) { a in accountRow(a) }
+            }
+        }
+        if !model.otherOK.isEmpty {
+            SectionTitle(icon: "square.stack.3d.up.fill", text: "Other accounts · \(model.otherOK.count)", color: PanelPalette.section)
+            ForEach(model.otherOK) { a in accountRow(a) }
+        }
+    }
+
+    @ViewBuilder var unclassifiedAccounts: some View {
+        if !model.unclassified.isEmpty {
+            SectionTitle(icon: "questionmark.circle.fill", text: "Account status · \(model.unclassified.count)", color: PanelPalette.warning)
+            ForEach(model.unclassified) { a in
+                Row(model: model, account: a, detail: a.message ?? "This account needs a fresh read.", percent: nil, showBar: false) {
+                    Image(systemName: "exclamationmark.circle.fill").foregroundStyle(PanelPalette.warning).font(.system(size: 12, weight: .semibold))
+                }
             }
         }
     }
@@ -598,26 +691,31 @@ struct Panel: View {
     // value is a row's number, in one column so the bars line up
     func value(_ text: String, quiet: Bool = false) -> some View {
         Text(text).font(.system(size: 12.5, weight: quiet ? .regular : .semibold)).monospacedDigit()
-            .foregroundStyle(quiet ? Color.secondary : Color.primary).lineLimit(1)
+            .foregroundStyle(quiet ? PanelPalette.secondary : Color.primary).lineLimit(1)
             .frame(width: 88, alignment: .trailing)
     }
 
     var footer: some View {
         HStack(spacing: 10) {
             if picture {
-                Label("Open Ant", systemImage: "arrow.up.forward.app").font(.system(size: 12, weight: .medium)).foregroundStyle(.white)
-                    .padding(.horizontal, 10).padding(.vertical, 4).background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor))
+                Label("Open Ant", systemImage: "arrow.up.forward.app").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 5).background(RoundedRectangle(cornerRadius: 6).fill(PanelPalette.action))
                 Spacer()
-                Text("Open at login").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Open at login").font(.system(size: 11)).foregroundStyle(PanelPalette.secondary)
                 Capsule().fill(model.openAtLogin ? Color.accentColor : Color.primary.opacity(0.15)).frame(width: 26, height: 15)
                     .overlay(Circle().fill(.white).padding(2), alignment: model.openAtLogin ? .trailing : .leading)
-                Image(systemName: "power").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                Image(systemName: "power").font(.system(size: 12, weight: .semibold)).foregroundStyle(PanelPalette.secondary)
             } else {
-                Button { model.open() } label: { Label("Open Ant", systemImage: "arrow.up.forward.app") }
-                    .buttonStyle(.borderedProminent).controlSize(.small)
+                Button { model.open() } label: {
+                    Label("Open Ant", systemImage: "arrow.up.forward.app")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(PanelPalette.action))
+                }
+                .buttonStyle(.plain)
                 Spacer()
                 Toggle(isOn: Binding(get: { model.openAtLogin }, set: { model.setOpenAtLogin($0) })) {
-                    Text("Open at login").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text("Open at login").font(.system(size: 11)).foregroundStyle(PanelPalette.secondary)
                 }
                 .toggleStyle(.switch).controlSize(.mini)
                 Button { NSApp.terminate(nil) } label: { Image(systemName: "power").font(.system(size: 12, weight: .semibold)) }

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -325,6 +326,62 @@ FROM supply_offers WHERE namespace=? AND model_id=? ORDER BY credential_id,endpo
 		out = append(out, o)
 	}
 	return out, rows.Err()
+}
+
+func (r *readerTx) GetSupplyRouteOrder(ns domain.ID, modelID string) (store.SupplyRouteOrderRecord, bool, error) {
+	var rec store.SupplyRouteOrderRecord
+	var raw string
+	err := r.tx.QueryRowContext(r.ctx, `SELECT namespace,model_id,revision,offer_ids_json,updated_at
+FROM supply_route_orders WHERE namespace=? AND model_id=?`, string(ns), modelID).
+		Scan(&rec.Namespace, &rec.ModelID, &rec.Revision, &raw, &rec.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return store.SupplyRouteOrderRecord{Namespace: ns, ModelID: modelID, OfferIDs: []domain.ID{}}, false, nil
+	}
+	if err != nil {
+		return store.SupplyRouteOrderRecord{}, false, err
+	}
+	if err := json.Unmarshal([]byte(raw), &rec.OfferIDs); err != nil {
+		return store.SupplyRouteOrderRecord{}, false, err
+	}
+	if rec.OfferIDs == nil {
+		rec.OfferIDs = []domain.ID{}
+	}
+	return rec, true, nil
+}
+
+func (w *writerTx) ReplaceSupplyRouteOrder(ns domain.ID, modelID string, offerIDs []domain.ID, expectedRevision int64, at domain.Millis) (int64, error) {
+	if ns == "" || modelID == "" || len(modelID) > 256 || expectedRevision < 0 {
+		return 0, store.ErrSupplyRouteOrderInvalid
+	}
+	seen := make(map[domain.ID]bool, len(offerIDs))
+	for _, id := range offerIDs {
+		if id == "" || seen[id] {
+			return 0, store.ErrSupplyRouteOrderInvalid
+		}
+		seen[id] = true
+	}
+	var current int64
+	err := w.tx.QueryRowContext(w.ctx, `SELECT revision FROM supply_route_orders WHERE namespace=? AND model_id=?`, string(ns), modelID).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
+		current = 0
+	} else if err != nil {
+		return 0, err
+	}
+	if current != expectedRevision {
+		return current, store.ErrSupplyRouteOrderConflict
+	}
+	raw, err := json.Marshal(offerIDs)
+	if err != nil {
+		return 0, err
+	}
+	next := current + 1
+	_, err = w.tx.ExecContext(w.ctx, `INSERT INTO supply_route_orders(namespace,model_id,revision,offer_ids_json,updated_at)
+VALUES(?,?,?,?,?) ON CONFLICT(namespace,model_id) DO UPDATE SET revision=excluded.revision,offer_ids_json=excluded.offer_ids_json,updated_at=excluded.updated_at`,
+		string(ns), modelID, next, string(raw), int64(at))
+	if err != nil {
+		return 0, err
+	}
+	return next, nil
 }
 
 func (w *writerTx) ReplaceSupplyOffers(ns, credentialID domain.ID, offers []store.SupplyOfferRecord) error {

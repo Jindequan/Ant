@@ -26,7 +26,10 @@ var (
 	ErrSupplyReadingOutOfOrder = errors.New("store: supply reading is not newer than the latest reading")
 	// ErrCollectorRunNotOpen: the run does not exist, is already finished,
 	// or would finish before it started.
-	ErrCollectorRunNotOpen = errors.New("store: collector run is not open")
+	ErrCollectorRunNotOpen      = errors.New("store: collector run is not open")
+	ErrSupplyRouteOrderConflict = errors.New("store: supply route order version conflict")
+	ErrSupplyRouteOrderInvalid  = errors.New("store: invalid supply route order")
+	ErrSupplyCandidatesChanged  = errors.New("store: eligible supply routes changed")
 )
 
 // SupplyCredentialRecord is one way Ant authenticates to a provider. A found
@@ -61,6 +64,17 @@ type SupplyOfferRecord struct {
 	ModelID       string
 	DrawsJSON     []byte
 	VerifiedAt    domain.Millis
+}
+
+// SupplyRouteOrderRecord is a per-model user preference. It orders offers
+// only; current route eligibility is independently recalculated on every
+// preview and cannot be changed by this record.
+type SupplyRouteOrderRecord struct {
+	Namespace domain.ID
+	ModelID   string
+	Revision  int64
+	OfferIDs  []domain.ID
+	UpdatedAt domain.Millis
 }
 
 // SupplyAccountRecord is one provider account: Q1 v3 VerifiedScope{kind: account}.
@@ -147,19 +161,27 @@ type SupplyCardRecord struct {
 	ReadAt       domain.Millis
 }
 
-// SupplyReaderTx reads the supply store of one namespace.
-type SupplyReaderTx interface {
-	ReaderTx
+// SupplyRoutePreviewTx reads every durable fact used to qualify a route.
+// It is also available on the writer transaction so an order can validate
+// the candidate set atomically with saving its preference.
+type SupplyRoutePreviewTx interface {
 	ListSupplyCredentials(namespace domain.ID) ([]SupplyCredentialRecord, error)
 	ListSupplyResources(namespace domain.ID) ([]SupplyResourceRecord, error)
 	LatestSupplyReading(namespace, resourceID domain.ID) (SupplyReadingRecord, bool, error)
-	GetSupplyReading(namespace, readingID domain.ID) (SupplyReadingRecord, bool, error)
 	ListSupplyPackages(namespace domain.ID) ([]SupplyPackageRecord, error)
 	// ListSupplyReadings returns a resource's readings observed at or after
 	// since, oldest first.
 	ListSupplyReadings(namespace, resourceID domain.ID, since domain.Millis) ([]SupplyReadingRecord, error)
 	// ListSupplyOffers returns the offers of a canonical model.
 	ListSupplyOffers(namespace domain.ID, modelID string) ([]SupplyOfferRecord, error)
+	GetSupplyRouteOrder(namespace domain.ID, modelID string) (SupplyRouteOrderRecord, bool, error)
+}
+
+// SupplyReaderTx reads the supply store of one namespace.
+type SupplyReaderTx interface {
+	ReaderTx
+	SupplyRoutePreviewTx
+	GetSupplyReading(namespace, readingID domain.ID) (SupplyReadingRecord, bool, error)
 	// ListSupplyCards returns every kept card, by credential id.
 	ListSupplyCards(namespace domain.ID) ([]SupplyCardRecord, error)
 }
@@ -167,6 +189,7 @@ type SupplyReaderTx interface {
 // SupplyWriterTx is the supply engine's write surface.
 type SupplyWriterTx interface {
 	WriterTx
+	SupplyRoutePreviewTx
 	// EnsureLocalOwner creates the principal that owns the secrets added on
 	// the local page, when it doesn't exist yet. Ant has no login (ruling
 	// R8): this is an ownership record for secret_refs, nothing more.
@@ -188,6 +211,8 @@ type SupplyWriterTx interface {
 	// SetSupplyPaused pauses or resumes credentials' part in routing; it
 	// reports how many credentials it changed.
 	SetSupplyPaused(namespace domain.ID, credentialIDs []domain.ID, paused bool) (int, error)
+	// ReplaceSupplyRouteOrder saves one whole per-model preference with CAS.
+	ReplaceSupplyRouteOrder(namespace domain.ID, modelID string, offerIDs []domain.ID, expectedRevision int64, at domain.Millis) (int64, error)
 	// PutSupplyCard keeps a credential's card, replacing the last one;
 	// DeleteSupplyCard removes it.
 	PutSupplyCard(SupplyCardRecord) error

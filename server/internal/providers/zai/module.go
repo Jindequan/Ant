@@ -69,7 +69,8 @@ func inventory(q Quota) observed.Inventory {
 		return observed.Inventory{Note: "This key has no coding plan; it's billed pay-as-you-go.",
 			Packages: []observed.PackageReading{{TemplateRef: "zai/pay-as-you-go", Kind: "payg", Basis: "observed", Plan: "API key"}}}
 	}
-	p := observed.PackageReading{TemplateRef: "zai/coding-plan", Kind: "subscription", Basis: "observed", Plan: q.Level}
+	p := observed.PackageReading{TemplateRef: "zai/coding-plan", Kind: "subscription", Basis: "observed", Plan: q.Level,
+		RouteConstraints: []string{MeterShort, MeterWeek}}
 	var resets []string
 	for _, l := range q.Limits {
 		ref := map[string]string{"hours": MeterShort, "week": MeterWeek, "mcp": MeterMCP}[l.Kind]

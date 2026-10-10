@@ -42,12 +42,16 @@ const MEDIA_LABEL = { text: "Text", image: "Image", video: "Video", music: "Musi
 const MEDIA_ORDER = Object.keys(MEDIA_LABEL);
 const KIND_LABEL = { subscription: "Subscription", api: "API balance", free: "Free" };
 
-const state = { snap: null, providers: [], insights: {}, view: "cards", sort: "soon", q: "", busy: false, open: new Set() };
+const state = { snap: null, providers: [], insights: {}, view: "cards", sort: "soon", q: "", busy: false, open: new Set(), routePending: new Map() };
 const PREFS = ["view"];
 try { for (const k of PREFS) state[k] = localStorage.getItem(`ant.${k}`) || state[k]; } catch { /* storage off */ }
 function savePref(k) { try { localStorage.setItem(`ant.${k}`, state[k]); } catch { /* storage off */ } }
 
 const $ = (id) => document.getElementById(id);
+function setPendingRoute(model, pending) {
+  if (pending) state.routePending.set(model, pending);
+  else state.routePending.delete(model);
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const time = (s) => { const t = s ? Date.parse(s) : NaN; return Number.isFinite(t) && t > 946684800000 ? t : null; };
 const num = (n) => Number(n).toLocaleString();
@@ -456,25 +460,9 @@ function sections(accounts) {
 // "anthropic/claude-x" is claude-x.
 const modelKey = (id) => norm(id).split("/").pop();
 
-// route is one account's way to a model: the allowance that applies (the
-// model's own, else the account's tightest) and its cost class.
-function route(a, id, media) {
-  const own = allWindows(a).filter((w) => w.model && modelKey(w.model) === modelKey(id));
-  const shared = (a.windows || []).filter((w) => !w.aside && !w.model);
-  const ws = own.length ? own : shared;
-  const ps = ws.map(percentLeft).filter((p) => p != null);
-  const p = ps.length ? Math.min(...ps) : null;
-  const w = ws.find((x) => percentLeft(x) === p) || ws[0] || null;
-  const expiring = ws.some((x) => x.expires || urgency(x, a));
-  const pays = a.kind === "api" || (!ws.length && allBalances(a).length);
-  const cls = p === 0 ? 9 : expiring || a.kind === "free" ? 0 : pays ? 2 : 1;
-  return { a, id, media, w, p, cls, t: w ? time(w.resetsAt) : null, pays };
-}
-
-// routes is every model any shown account can call, each with its
-// accounts best first: what would be lost first, then plans with the most
-// left, then pay-as-you-go, then what is used up.
-function routes(accounts) {
+// models groups the names accounts report. It does not rank accounts or
+// decide what Ant would route; /api/route is the only source for that.
+function models(accounts) {
   const by = new Map();
   for (const a of accounts) {
     if (a.status !== "ok") continue;
@@ -483,55 +471,28 @@ function routes(accounts) {
       const k = modelKey(id);
       if (!id || seen.has(k)) return;
       seen.add(k);
-      if (!by.has(k)) by.set(k, { id, media: media || "text", via: [] });
-      by.get(k).via.push(route(a, id, media));
+      if (!by.has(k)) by.set(k, { id, media: media || "text", accounts: [] });
+      by.get(k).accounts.push(a);
     };
     for (const m of a.models || []) add(m.id, m.media);
     for (const w of allWindows(a)) if (w.model) add(w.model, mediaOf(w, a));
   }
-  const rank = (x, y) => x.cls - y.cls || (x.cls === 0 ? (x.t || 9e15) - (y.t || 9e15) : 0) || (y.p ?? 50) - (x.p ?? 50);
-  const out = [...by.values()];
-  for (const r of out) { r.via.sort(rank); r.best = r.via[0]; }
-  const sorts = {
-    soon: (x, y) => x.best.cls - y.best.cls || (x.best.t || 9e15) - (y.best.t || 9e15),
-    least: (x, y) => (x.best.p ?? 200) - (y.best.p ?? 200),
-    most: (x, y) => (y.best.p ?? -1) - (x.best.p ?? -1),
-    renewal: (x, y) => (x.best.t || 9e15) - (y.best.t || 9e15),
-    name: () => 0,
-  };
-  return out.sort((x, y) => (sorts[state.sort] || sorts.soon)(x, y) || x.id.localeCompare(y.id));
-}
-
-function routeLeft(r) {
-  const w = r.w;
-  if (w && w.left != null) return `${short(w.left)}${w.limit ? ` / ${short(w.limit)}` : ""} ${esc(w.unit || "")}`;
-  if (r.p != null) return `${Math.round(r.p)}%`;
-  const b = allBalances(r.a)[0];
-  return b ? money(b.currency, b.amount) : "—";
-}
-
-function routeRow(r) {
-  const level = r.p == null ? "" : r.p < 20 ? "low" : r.p < 50 ? "warn" : "";
-  const why = r.cls === 9 ? "Used up" : r.pays ? "Pay as you go" : r.w && urgency(r.w, r.a) ? urgency(r.w, r.a) : "";
-  return `<span class="r-acct" style="--hue:${HUES[r.a.provider] ?? 30}">${mark(r.a.provider, r.a.name)}${esc(r.a.label || r.a.name)}${r.a.modeName ? ` · ${esc(r.a.modeName)}` : ""}</span>
-    <span class="m-left"><span class="meter small ${r.p == null ? "unknown" : ""}">${r.p == null ? "" : `<i class="${level}" style="width:${r.p.toFixed(1)}%"></i>`}</span>${routeLeft(r)}</span>
-    <span class="m-when">${why ? `<span class="tag ${r.cls === 9 ? "off" : ""}">${esc(why)}</span>` : r.t ? `${r.w?.expires ? "Expires" : "Resets"} ${until(r.t)}` : ""}</span>`;
+  return [...by.values()].sort((x, y) => x.id.localeCompare(y.id));
 }
 
 function renderModels(accounts) {
-  const rs = routes(accounts);
+  const rs = models(accounts);
   if (!rs.length) return '<p class="empty">No account here lists its models yet. Accounts read with an API key or an agent\'s sign-in list theirs.</p>';
-  return `<p class="sheet-lead models-lead">${rs.length} models. Open one to see which account Ant would use for it, and why.</p>
+  return `<p class="sheet-lead models-lead">${rs.length} models. Ant's route preview decides which account it would use.</p>
   <div class="models" role="list">
-    <div class="m-row m-head"><span>Model</span><span>Type</span><span>Best account</span><span>Left</span><span></span></div>
-    ${rs.map((r) => `<details class="m-item" role="listitem" data-model="${esc(r.id)}" data-providers="${esc(JSON.stringify(r.via.map((v) => ({ provider: v.a.provider, name: v.a.label || v.a.name }))))}">
+    <div class="m-row m-head"><span>Model</span><span>Type</span><span>Accounts listing it</span></div>
+    ${rs.map((r) => `<details class="m-item" role="listitem" data-model="${esc(r.id)}" data-accounts="${esc(JSON.stringify(r.accounts.map((a) => ({ id: a.id, keys: a.keys || [], provider: a.provider, name: a.label || a.name, modeName: a.modeName }))))}">
       <summary class="m-row">
-        <span class="m-model"><code>${esc(r.id)}</code>${r.via.length > 1 ? `<span class="m-n">${r.via.length} accounts</span>` : ""}</span>
+        <span class="m-model"><code>${esc(r.id)}</code><span class="m-n">${r.accounts.length} ${r.accounts.length === 1 ? "account" : "accounts"}</span></span>
         <span class="m-type">${esc(MEDIA_LABEL[r.media] || r.media)}</span>
-        ${routeRow(r.best)}
+        <span class="m-n">Open for Ant's route preview</span>
       </summary>
       <div class="m-route"></div>
-      <div class="m-via">${r.via.map((v, i) => `<div class="m-row m-sub"><span class="m-rank">${i + 1}</span><span></span>${routeRow(v)}</div>`).join("")}</div>
     </details>`).join("")}
   </div>`;
 }
@@ -659,7 +620,12 @@ async function api(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Ant answered ${res.status}`);
+  if (!res.ok) {
+    const error = new Error(data.error || `Ant answered ${res.status}`);
+    error.outcome = data.outcome || (res.status >= 500 ? "unknown" : "not_committed");
+    error.responseReceived = true;
+    throw error;
+  }
   return data;
 }
 
@@ -1106,41 +1072,172 @@ const ROUTE_CLASS = { use_before_lost: "Use first", free: "Free", plan: "Plan", 
 async function routePreview(details) {
   const box = details.querySelector(".m-route");
   if (!box || box.dataset.loaded) return;
-  box.dataset.loaded = "1";
+  box.dataset.loaded = "loading";
   box.innerHTML = '<p class="muted">Working out the route…</p>';
   let p;
-  try { p = await api("GET", `/api/route?model=${encodeURIComponent(details.dataset.model)}`); } catch (e) {
-    box.innerHTML = `<p class="note problem">${esc(e.message)}</p>`;
+  try { p = await api("GET", `/api/route?model=${encodeURIComponent(details.dataset.model)}`); } catch {
+    box.dataset.loaded = "";
+    const pending = state.routePending.get(details.dataset.model);
+    const message = pending
+      ? "Couldn't confirm whether your order saved. Refresh to check; Ant keeps using its saved or default order, and no repeat save was sent."
+      : "Couldn't load this route preview. Check Ant's connection, then try again.";
+    box.innerHTML = `<div class="route-order-feedback" role="alert">${esc(message)} <button type="button" data-route-reload>${pending ? "Refresh status" : "Try again"}</button></div>`;
     return;
   }
-  const covered = new Set([...p.use, ...p.notUsed].map((c) => c.provider));
-  const others = JSON.parse(details.dataset.providers || "[]").filter((x) => !covered.has(x.provider));
+  box.dataset.loaded = "1";
+  const pending = state.routePending.get(details.dataset.model);
+  if (pending) {
+    const saved = Array.isArray(p.savedOfferIds) ? p.savedOfferIds : null;
+    const preferenceMatches = saved && (pending.manualOrder
+      ? pending.offerIds.every((id, index) => saved[index] === id)
+      : saved.length === 0);
+    const matches = p.orderVersion === pending.expectedVersion + 1
+      && p.manualOrder === pending.manualOrder
+      && preferenceMatches;
+    if (matches) {
+      setPendingRoute(details.dataset.model, null);
+      renderRoutePreview(details, p, "Saved and confirmed by refresh.");
+    } else if (p.orderVersion === pending.expectedVersion + 1 && saved === null) {
+      renderRoutePreview(details, p, "The route version advanced, but Ant didn't return the saved preference needed to confirm your change. Refresh status to check again; no repeat save was sent.");
+    } else if (p.orderVersion === pending.expectedVersion + 1) {
+      setPendingRoute(details.dataset.model, null);
+      renderRoutePreview(details, p, `Version ${p.orderVersion} contains a different saved preference, so your change wasn't saved. The current preference is shown; you can make a new change now.`);
+    } else if (p.orderVersion > pending.expectedVersion + 1) {
+      setPendingRoute(details.dataset.model, null);
+      renderRoutePreview(details, p, `The current preference is newer (version ${p.orderVersion}), so the earlier save can't be confirmed. This preview shows the current route; you can make a new change now.`);
+    } else {
+      renderRoutePreview(details, p, "Couldn't confirm whether the order saved yet. Refresh status to check again; Ant keeps using its saved or default order, and no repeat save was sent.");
+    }
+    return;
+  }
+  renderRoutePreview(details, p);
+}
+
+function renderRoutePreview(details, p, feedback = "") {
+  const box = details.querySelector(".m-route");
+  if (!box) return;
+  box.routePreview = p;
+  const pending = state.routePending.get(details.dataset.model);
+  const choices = [...p.use, ...p.notUsed];
+  const covered = new Set(choices.map((c) => c.id));
+  const others = JSON.parse(details.dataset.accounts || "[]").filter((a) => !covered.has(a.id) && !a.keys.some((k) => covered.has(k)));
+  const listed = others.length ? `<div class="m-listed"><div class="r-title">Also listed by these accounts</div><div class="m-listing">${others.map((a) => `<span class="r-acct" style="--hue:${HUES[a.provider] ?? 30}">${mark(a.provider, a.name)}${esc(a.name)}${a.modeName ? ` · ${esc(a.modeName)}` : ""}</span>`).join("")}</div></div>` : "";
+  const reset = p.manualOrder ? `<button type="button" class="route-reset" data-route-reset ${pending ? "disabled" : ""}>Use Ant's default order</button>` : "";
   if (!p.use.length && !p.notUsed.length) {
-    box.innerHTML = '<p class="muted route-note">Ant\'s route preview doesn\'t cover these accounts yet. Below: what the accounts themselves show.</p>';
+    box.innerHTML = `${feedback ? `<div class="route-order-feedback" role="alert">${esc(feedback)} <button type="button" data-route-reload>Refresh</button></div>` : ""}<div class="route-order-heading"><p class="muted route-note">Ant has no route for this model yet. These accounts list the model, but they are not available to the router.</p>${reset}</div>${listed}`;
     return;
   }
   details.classList.add("previewed");
-  // the row's "best account" is now the preview's first choice, not the page's guess
-  const best = details.querySelector("summary .r-acct");
-  if (best && p.use[0]) {
-    const a = (state.snap?.accounts || []).find((x) => x.id === p.use[0].id || (x.keys || []).includes(p.use[0].id));
-    best.style.setProperty("--hue", HUES[p.use[0].provider] ?? 30);
-    best.innerHTML = `${mark(p.use[0].provider, p.use[0].name)}${esc(p.use[0].name)}${a?.modeName ? ` · ${esc(a.modeName)}` : ""}`;
-  }
-  const row = (c, i) => `<li class="r-choice">${i != null ? `<span class="r-rank">${i + 1}</span>` : ""}
+  const row = (c, i, canMove = false) => {
+    const readings = (c.evidence || []).filter((e) => e.readingId);
+    const newest = readings.reduce((at, e) => Math.max(at, Number(e.observedAt) || 0), 0);
+    const evidence = [c.offerVerifiedAt ? `offer checked ${ago(Number(c.offerVerifiedAt))}` : "", readings.length ? `${readings.length} quota readings` : ""]
+      .filter(Boolean).join(" · ");
+    const rank = i != null ? `<span class="r-rank">${i + 1}</span>` : '<span class="r-rank"></span>';
+    const actions = canMove ? `<span class="r-actions"><button type="button" data-route-move="${esc(c.offerId)}" data-direction="up" aria-label="Move ${esc(c.name)} up" ${i === 0 || pending ? "disabled" : ""}>Up</button><button type="button" data-route-move="${esc(c.offerId)}" data-direction="down" aria-label="Move ${esc(c.name)} down" ${i === p.use.length - 1 || pending ? "disabled" : ""}>Down</button></span>` : "<span></span>";
+    return `<li class="r-choice">${rank}
     <span class="r-who"><b>${esc(c.name)}</b>${c.class ? ` <span class="tag ${c.class === "use_before_lost" || c.class === "free" ? "" : "off"}">${esc(ROUTE_CLASS[c.class] || c.class)}</span>` : ""}</span>
-    <span class="r-why">${esc(c.reason)}${c.stale ? ` <span class="muted">· ${esc(c.stale)}</span>` : ""}</span></li>`;
+    <span class="r-why">${esc(c.reason)}${c.stale ? ` <span class="muted">· ${esc(c.stale)}</span>` : ""}${evidence ? `<small class="r-evidence">${esc(evidence)}${newest ? ` · latest ${esc(ago(newest))}` : ""}</small>` : ""}</span>${actions}</li>`;
+  };
   box.innerHTML = `
-    <div class="r-title">What Ant would do</div>
-    ${p.use.length ? `<ol class="r-list">${p.use.map((c, i) => row(c, i)).join("")}</ol>` : '<p class="note problem">No account can serve it right now.</p>'}
+    ${feedback ? `<div class="route-order-feedback" role="alert">${esc(feedback)} <button type="button" data-route-reload>Refresh preview</button></div>` : ""}
+    <div class="route-order-heading"><div class="r-title">What Ant would do · ${p.manualOrder ? `Manual order v${p.orderVersion}` : "Default order"}</div>${reset}</div>
+    ${p.use.length ? `<ol class="r-list">${p.use.map((c, i) => row(c, i, true)).join("")}</ol>` : '<p class="note problem">No account can serve it right now.</p>'}
     ${p.notUsed.length ? `<div class="r-title">Not used</div><ul class="r-list">${p.notUsed.map((c) => row(c, null)).join("")}</ul>` : ""}
-    ${others.length ? `<p class="muted route-note">Also listed by ${others.map((x) => esc(x.name)).join(", ")}, not in the preview yet.</p>` : ""}
-    <p class="muted route-note">A preview: nothing is sent to any model.</p>`;
+    ${listed}
+    <p class="muted route-note">Order changes affect eligible choices only; they do not authorize paid use. This preview sends no model request.</p>`;
+}
+
+async function reorderRoute(details, offerId, direction) {
+  const box = details.querySelector(".m-route");
+  const p = box?.routePreview;
+  if (!p || state.routePending.has(details.dataset.model)) return;
+  const next = [...p.use];
+  const from = next.findIndex((c) => c.offerId === offerId);
+  const to = from + (direction === "up" ? -1 : 1);
+  if (from < 0 || to < 0 || to >= next.length) return;
+  [next[from], next[to]] = [next[to], next[from]];
+  box.querySelectorAll("[data-route-move]").forEach((button) => { button.disabled = true; });
+  const desired = next.map((c) => c.offerId);
+  const pending = { expectedVersion: p.orderVersion, manualOrder: true, offerIds: desired };
+  try {
+    const result = await api("POST", "/api/route/order", {
+      model: details.dataset.model,
+      expectedVersion: p.orderVersion,
+      offerIds: desired,
+    });
+    if (result.outcome === "committed" && result.preview) {
+      renderRoutePreview(details, result.preview, `Order saved as version ${result.orderVersion}.`);
+    } else if (result.outcome === "committed") {
+      box.routePreview = null;
+      box.innerHTML = `<div class="route-order-feedback" role="status">${esc(result.message || `Order saved as version ${result.orderVersion}, but the preview could not be refreshed.`)} <button type="button" data-route-reload>Refresh route</button></div>`;
+    } else {
+      setPendingRoute(details.dataset.model, pending);
+      box.dataset.loaded = "";
+      box.innerHTML = '<div class="route-order-feedback" role="status">Save result is unknown. Checking the saved route…</div>';
+      await routePreview(details);
+    }
+  } catch (e) {
+    if (e.outcome === "not_committed") {
+      renderRoutePreview(details, p, `${e.message} Your change was not saved. Refresh to see the current route.`);
+    } else {
+      setPendingRoute(details.dataset.model, pending);
+      box.dataset.loaded = "";
+      box.innerHTML = '<div class="route-order-feedback" role="status">Save result is unknown. Checking the saved route…</div>';
+      await routePreview(details);
+    }
+  }
+}
+
+async function resetRouteOrder(details) {
+  const box = details.querySelector(".m-route");
+  const p = box?.routePreview;
+  if (!p?.manualOrder || state.routePending.has(details.dataset.model)) return;
+  box.querySelectorAll("[data-route-move], [data-route-reset]").forEach((button) => { button.disabled = true; });
+  const pending = { expectedVersion: p.orderVersion, manualOrder: false, offerIds: [] };
+  try {
+    const result = await api("POST", "/api/route/order", {
+      model: details.dataset.model,
+      expectedVersion: p.orderVersion,
+      offerIds: [],
+    });
+    if (result.outcome === "committed" && result.preview) {
+      renderRoutePreview(details, result.preview, "Back to Ant's default order.");
+    } else if (result.outcome === "committed") {
+      box.routePreview = null;
+      box.innerHTML = `<div class="route-order-feedback" role="status">${esc(result.message || `Ant's default order was saved as version ${result.orderVersion}, but the preview could not be refreshed.`)} <button type="button" data-route-reload>Refresh route</button></div>`;
+    } else {
+      setPendingRoute(details.dataset.model, pending);
+      box.dataset.loaded = "";
+      box.innerHTML = '<div class="route-order-feedback" role="status">Save result is unknown. Checking the saved route…</div>';
+      await routePreview(details);
+    }
+  } catch (e) {
+    if (e.outcome === "not_committed") {
+      renderRoutePreview(details, p, `${e.message} Your change was not saved. Refresh to see the current route.`);
+    } else {
+      setPendingRoute(details.dataset.model, pending);
+      box.dataset.loaded = "";
+      box.innerHTML = '<div class="route-order-feedback" role="status">Save result is unknown. Checking the saved route…</div>';
+      await routePreview(details);
+    }
+  }
 }
 
 // ---------- wiring ----------
 
 $("cards").addEventListener("click", (e) => {
+  const move = e.target.closest("[data-route-move]");
+  if (move) return reorderRoute(move.closest("details.m-item"), move.dataset.routeMove, move.dataset.direction);
+  const reset = e.target.closest("[data-route-reset]");
+  if (reset) return resetRouteOrder(reset.closest("details.m-item"));
+  const reloadRoute = e.target.closest("[data-route-reload]");
+  if (reloadRoute) {
+    const details = reloadRoute.closest("details.m-item");
+    const box = details?.querySelector(".m-route");
+    if (box) { box.dataset.loaded = ""; box.routePreview = null; routePreview(details); }
+    return;
+  }
   const act = e.target.closest("[data-pause], [data-remove-card], [data-keepalive]");
   if (act) return accountAction(act);
   const b = e.target.closest("[data-edit]");

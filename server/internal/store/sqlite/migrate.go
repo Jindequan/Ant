@@ -39,6 +39,9 @@ var supplyOffersSQL string
 //go:embed 008_supply_cards.sql
 var supplyCardsSQL string
 
+//go:embed 009_supply_route_order.sql
+var supplyRouteOrderSQL string
+
 // SchemaSQL returns the embedded initial schema script (used by tests to
 // assert the embedded copy matches the canonical file).
 func SchemaSQL() string { return schemaSQL }
@@ -46,11 +49,11 @@ func SchemaSQL() string { return schemaSQL }
 const (
 	// schemaVersion is the version this package applies; it must never
 	// decrease relative to server/migrations.
-	schemaVersion = 8
+	schemaVersion = 9
 	// 34 initial tables, secret_refs (v2), supply_inventory added (v4) and
 	// dropped (v5), the six supply-store tables (v6), supply_offers (v7),
-	// and supply_cards (v8).
-	expectedTableCount = 43
+	// supply_cards (v8), and supply_route_orders (v9).
+	expectedTableCount = 44
 	// migrationLockWait bounds the BEGIN IMMEDIATE wait during migration.
 	// The configured busy timeout (10ms) is far too short for the losing
 	// side of an initializer race: it must wait out the winner's whole DDL
@@ -124,7 +127,7 @@ func (s *Store) migrateScript(ctx context.Context, script string) error {
 			"PRAGMA busy_timeout = "+strconv.FormatInt(s.cfg.BusyTimeout.Milliseconds(), 10))
 	}()
 
-	return s.applyMigration(ctx, conn, []migration{{version: 1, script: script}, {version: 2, script: secretOwnershipSQL}, {version: 3, script: decisionTraceSQL}, {version: 4, script: supplyInventorySQL}, {version: 5, script: dropSupplyInventorySQL}, {version: 6, script: supplyStoreSQL}, {version: 7, script: supplyOffersSQL}, {version: 8, script: supplyCardsSQL}})
+	return s.applyMigration(ctx, conn, []migration{{version: 1, script: script}, {version: 2, script: secretOwnershipSQL}, {version: 3, script: decisionTraceSQL}, {version: 4, script: supplyInventorySQL}, {version: 5, script: dropSupplyInventorySQL}, {version: 6, script: supplyStoreSQL}, {version: 7, script: supplyOffersSQL}, {version: 8, script: supplyCardsSQL}, {version: 9, script: supplyRouteOrderSQL}})
 }
 
 type migration struct {

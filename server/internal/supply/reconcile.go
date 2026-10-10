@@ -104,12 +104,13 @@ func (e *Engine) offerRecords(cred domain.ID, offers []observed.Offer, at domain
 	return out
 }
 
-// packageDefinition keeps what the provider said about the package beyond
-// its columns: whether it accepts calls now.
+// packageDefinition keeps provider facts beyond the package columns:
+// whether it accepts calls now and which resources are hard route guards.
 func packageDefinition(p observed.PackageReading) []byte {
-	if p.Usable == nil {
-		return []byte(`{}`)
-	}
-	b, _ := json.Marshal(map[string]bool{"usable": *p.Usable})
+	definition := struct {
+		Usable           *bool    `json:"usable,omitempty"`
+		RouteConstraints []string `json:"routeConstraints,omitempty"`
+	}{Usable: p.Usable, RouteConstraints: p.RouteConstraints}
+	b, _ := json.Marshal(definition)
 	return b
 }

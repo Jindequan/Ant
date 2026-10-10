@@ -34,6 +34,11 @@ once and reused.
 4. **The panel shows what it has, then what's new.** It keeps the last
    answer on disk and draws it at launch, before the server answers; opening
    the panel shows it and fetches new data in the background.
+   Cache replacement is atomic and only a completed read may replace the
+   saved answer. A zero-time startup response is not an empty result; a
+   failed refresh keeps the last rows visible and offers a retry.
+5. **One Open Ant action.** The panel keeps this action in its footer; the
+   header is reserved for status and refresh.
 
 ## Not now
 

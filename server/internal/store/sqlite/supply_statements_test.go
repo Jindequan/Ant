@@ -366,6 +366,86 @@ func TestSupplyOffersAndPause(t *testing.T) {
 	}
 }
 
+func TestSupplyRouteOrderUsesOptimisticRevisionAndPersists(t *testing.T) {
+	st := newSupplyStore(t)
+	seedSupply(t, st)
+	write := func(id string, offerIDs []domain.ID, version int64) (int64, error) {
+		var next int64
+		err := st.SubmitWrite(context.Background(), store.WriteCommand{ID: id, Run: func(tx store.WriterTx) error {
+			var e error
+			next, e = tx.(store.SupplyWriterTx).ReplaceSupplyRouteOrder("ns", "shared-model", offerIDs, version, 10+domain.Millis(version))
+			return e
+		}})
+		return next, err
+	}
+	if next, err := write("route-order-1", []domain.ID{"offer-b", "offer-a"}, 0); err != nil || next != 1 {
+		t.Fatalf("initial order = %d, %v", next, err)
+	}
+	if _, err := write("route-order-duplicate", []domain.ID{"offer-a", "offer-a"}, 1); !errors.Is(err, store.ErrSupplyRouteOrderInvalid) {
+		t.Fatalf("duplicate offer IDs accepted: %v", err)
+	}
+	if _, err := write("route-order-stale", []domain.ID{"offer-a", "offer-b"}, 0); !errors.Is(err, store.ErrSupplyRouteOrderConflict) {
+		t.Fatalf("stale order revision accepted: %v", err)
+	}
+	if next, err := write("route-order-2", []domain.ID{"offer-a", "offer-b"}, 1); err != nil || next != 2 {
+		t.Fatalf("replacement order = %d, %v", next, err)
+	}
+	err := st.Read(context.Background(), func(rx store.ReaderTx) error {
+		rec, ok, err := rx.(store.SupplyReaderTx).GetSupplyRouteOrder("ns", "shared-model")
+		if err != nil || !ok || rec.Revision != 2 || len(rec.OfferIDs) != 2 || rec.OfferIDs[0] != "offer-a" || rec.OfferIDs[1] != "offer-b" {
+			t.Fatalf("stored route order = %+v, %v, %v", rec, ok, err)
+		}
+		if _, ok, err := rx.(store.SupplyReaderTx).GetSupplyRouteOrder("ns", "another-model"); err != nil || ok {
+			t.Fatalf("route order leaked across models: %v %v", ok, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSupplyRouteOrderConcurrentCASHasOneWinner(t *testing.T) {
+	st := newSupplyStore(t)
+	seedSupply(t, st)
+	if err := supplyWrite(t, st, func(tx store.SupplyWriterTx) error {
+		_, err := tx.ReplaceSupplyRouteOrder("ns", "shared-model", []domain.ID{"offer-a", "offer-b"}, 0, 10)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	type result struct {
+		next int64
+		err  error
+	}
+	results := make(chan result, 2)
+	for i, ids := range [][]domain.ID{{"offer-b", "offer-a"}, {"offer-a", "offer-b"}} {
+		go func(i int, ids []domain.ID) {
+			var next int64
+			err := st.SubmitWrite(context.Background(), store.WriteCommand{ID: "route-order-race-" + string(rune('a'+i)), Run: func(tx store.WriterTx) error {
+				var e error
+				next, e = tx.(store.SupplyWriterTx).ReplaceSupplyRouteOrder("ns", "shared-model", ids, 1, 20)
+				return e
+			}})
+			results <- result{next, err}
+		}(i, ids)
+	}
+	passed, conflicted := 0, 0
+	for range 2 {
+		r := <-results
+		if r.err == nil && r.next == 2 {
+			passed++
+		} else if errors.Is(r.err, store.ErrSupplyRouteOrderConflict) {
+			conflicted++
+		} else {
+			t.Fatalf("unexpected concurrent order result: %+v", r)
+		}
+	}
+	if passed != 1 || conflicted != 1 {
+		t.Fatalf("CAS winners=%d conflicts=%d", passed, conflicted)
+	}
+}
+
 // A credential's card is kept, replaced by its next read, and removed; a
 // card needs its credential.
 func TestSupplyCardsKeepTheLastRead(t *testing.T) {

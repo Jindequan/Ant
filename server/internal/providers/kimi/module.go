@@ -153,6 +153,7 @@ func codeInventory(ws []Window) observed.Inventory {
 			r.WindowEnd, r.ResetBasis = &end, "reported"
 		}
 		p.Resources = append(p.Resources, r)
+		p.RouteConstraints = append(p.RouteConstraints, ref)
 	}
 	return observed.Inventory{Packages: []observed.PackageReading{p}}
 }

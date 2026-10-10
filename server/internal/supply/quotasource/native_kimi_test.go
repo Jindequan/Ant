@@ -16,7 +16,6 @@ import (
 
 	"ant/server/internal/providers/kimi"
 	"ant/server/internal/quota"
-	"ant/server/internal/runtime"
 	"ant/server/internal/store/sqlite"
 	"ant/server/internal/supply"
 	"ant/server/internal/transport"
@@ -69,7 +68,8 @@ func TestNativeModuleReadsKimi(t *testing.T) {
 	if err := os.WriteFile(auth, []byte(`{"moonshotai":{"type":"api","key":"sk-ai"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	local := quota.Local{Home: home, Getenv: func(k string) string { return env[k] }, HTTP: &http.Client{Transport: loopbackOnly{}}, Now: time.Now, URLs: map[string]string{}}
+	clock, fixtureNow := previewFixtureClock()
+	local := quota.Local{Home: home, Getenv: func(k string) string { return env[k] }, HTTP: &http.Client{Transport: loopbackOnly{}}, Now: func() time.Time { return fixtureNow }, URLs: map[string]string{}}
 	var providers []quota.Provider
 	for _, p := range quota.Providers() {
 		if p.ID == "kimi" {
@@ -79,7 +79,7 @@ func TestNativeModuleReadsKimi(t *testing.T) {
 	accounts := quota.NewStore("")
 	src := New(local, accounts, providers, Native{Module: m, Fetch: fetch})
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestNativeModuleReadsKimi(t *testing.T) {
 	if err := sqlite.Migrate(context.Background(), st); err != nil {
 		t.Fatal(err)
 	}
-	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+	engine := supply.NewEngine("local", st, src, clock, supply.DefaultPolicy(), nil)
 	reader := Reader{Source: src, Engine: engine}
 	page := quota.NewService(local, accounts, quota.Options{Reader: reader, Router: reader.Routes()})
 	h := page.Handler()

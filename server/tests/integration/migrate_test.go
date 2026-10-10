@@ -166,7 +166,7 @@ func TestMigrateUpgradesVersionOneDatabase(t *testing.T) {
 	execOK(t, db, "DROP TABLE secret_refs")
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4,5,6,7,8)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (2,3,4,5,6,7,8,9)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatalf("upgrade v1 to current: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestMigrateUpgradesVersionTwoDatabase(t *testing.T) {
 	db := openRawDB(t, path)
 	execOK(t, db, "ALTER TABLE decision_records DROP COLUMN trace_json")
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4,5,6,7,8)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9)")
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatalf("upgrade v2 to current: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestMigrateUpgradesVersionThreeThroughInventoryAndDrop(t *testing.T) {
 	st, path := openTestStore(t, testConfig())
 	db := openRawDB(t, path)
 	dropSupplyStore(t, db)
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (4,5,6,7,8)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (4,5,6,7,8,9)")
 	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('preserved','{"existing":"untouched"}',1)`)
 	if err := sqlite.Migrate(ctx, st); err != nil {
 		t.Fatal(err)
@@ -311,7 +311,7 @@ func TestMigrateDropsSupplyInventoryFromVersionFour(t *testing.T) {
 		t.Fatal(err)
 	}
 	execOK(t, db, string(v4))
-	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (5,6,7,8)")
+	execOK(t, db, "DELETE FROM schema_migrations WHERE version IN (5,6,7,8,9)")
 	execOK(t, db, `INSERT INTO supply_inventory(namespace,version,definition_json,updated_at) VALUES('ns',1,'{}',1)`)
 	execOK(t, db, `INSERT INTO config_revisions(revision,definition_json,created_at) VALUES('kept','{}',1)`)
 	if err := sqlite.Migrate(ctx, st); err != nil {
@@ -329,7 +329,7 @@ func TestMigrateDropsSupplyInventoryFromVersionFour(t *testing.T) {
 }
 
 func TestLaterMigrationCopiesMatchCanonicalFiles(t *testing.T) {
-	for _, name := range []string{"004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql", "007_supply_offers.sql", "008_supply_cards.sql"} {
+	for _, name := range []string{"004_supply_inventory.sql", "005_drop_supply_inventory.sql", "006_supply_store.sql", "007_supply_offers.sql", "008_supply_cards.sql", "009_supply_route_order.sql"} {
 		canonical, err := os.ReadFile("../../migrations/" + name)
 		if err != nil {
 			t.Fatal(err)
@@ -342,8 +342,8 @@ func TestLaterMigrationCopiesMatchCanonicalFiles(t *testing.T) {
 }
 
 const (
-	currentSchemaVersion = 8
-	currentTableCount    = 43
+	currentSchemaVersion = 9
+	currentTableCount    = 44
 )
 
 // dropSupplyStore removes everything v6 created (children first, then its
@@ -351,8 +351,9 @@ const (
 // like an older version.
 func dropSupplyStore(t *testing.T, db *sql.DB) {
 	t.Helper()
-	execOK(t, db, "DROP TABLE supply_cards")  // v8
-	execOK(t, db, "DROP TABLE supply_offers") // v7
+	execOK(t, db, "DROP TABLE supply_route_orders") // v9
+	execOK(t, db, "DROP TABLE supply_cards")        // v8
+	execOK(t, db, "DROP TABLE supply_offers")       // v7
 	for _, table := range []string{"supply_readings", "collector_runs", "supply_credentials", "supply_resources", "supply_packages", "supply_accounts"} {
 		execOK(t, db, "DROP TABLE "+table)
 	}

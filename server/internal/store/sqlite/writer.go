@@ -335,7 +335,8 @@ func (s *Store) runOnce(cmd store.WriteCommand, deadline time.Time) error {
 	if err != nil {
 		return budgetError(ctx, err)
 	}
-	if err := cmd.Run(&writerTx{ctx: ctx, tx: &stmtTx{tx: tx, cache: s.stmts}}); err != nil {
+	stx := &stmtTx{tx: tx, cache: s.stmts}
+	if err := cmd.Run(&writerTx{readerTx: &readerTx{ctx: ctx, tx: stx}, ctx: ctx, tx: stx}); err != nil {
 		_ = tx.Rollback()
 		return budgetError(ctx, err)
 	}

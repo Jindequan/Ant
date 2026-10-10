@@ -11,14 +11,23 @@ import (
 	"testing"
 	"time"
 
+	"ant/server/internal/domain"
 	"ant/server/internal/providers/deepseek"
 	"ant/server/internal/providers/zai"
 	"ant/server/internal/quota"
-	"ant/server/internal/runtime"
 	"ant/server/internal/store/sqlite"
 	"ant/server/internal/supply"
 	"ant/server/internal/transport"
 )
+
+type fixedPreviewClock struct{ now domain.Millis }
+
+func (c fixedPreviewClock) Now() domain.Millis { return c.now }
+
+func previewFixtureClock() (fixedPreviewClock, time.Time) {
+	now := time.Date(2026, 10, 6, 0, 0, 0, 0, time.UTC) // before the fixture's reported resets
+	return fixedPreviewClock{now: domain.Millis(now.UnixMilli())}, now
+}
 
 // Z.ai and DeepSeek are read through their modules: the cards, the stored
 // facts, and Z.ai's display-only grouping of two keys of one plan.
@@ -47,7 +56,8 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	home := t.TempDir()
 	env := map[string]string{"ZAI_API_KEY": "key-one", "Z_AI_API_KEY": "key-two", "DEEPSEEK_API_KEY": "sk-test"}
 	// the quota readers' own client reaches nothing: a card can only be OK through its module
-	local := quota.Local{Home: home, Getenv: func(k string) string { return env[k] }, HTTP: &http.Client{Transport: loopbackOnly{}}, Now: time.Now, URLs: map[string]string{}}
+	clock, fixtureNow := previewFixtureClock()
+	local := quota.Local{Home: home, Getenv: func(k string) string { return env[k] }, HTTP: &http.Client{Transport: loopbackOnly{}}, Now: func() time.Time { return fixtureNow }, URLs: map[string]string{}}
 	var providers []quota.Provider
 	for _, p := range quota.Providers() {
 		if p.ID == "zai" || p.ID == "deepseek" {
@@ -57,7 +67,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	accounts := quota.NewStore("")
 	src := New(local, accounts, providers, Native{Module: zm, Fetch: zf}, Native{Module: dm, Fetch: df})
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +75,7 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	if err := sqlite.Migrate(context.Background(), st); err != nil {
 		t.Fatal(err)
 	}
-	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+	engine := supply.NewEngine("local", st, src, clock, supply.DefaultPolicy(), nil)
 	reader := Reader{Source: src, Engine: engine}
 	page := quota.NewService(local, accounts, quota.Options{Reader: reader, Router: reader.Routes()})
 
@@ -143,6 +153,17 @@ func TestNativeModulesReadZaiAndDeepSeek(t *testing.T) {
 	if len(use) != 2 || len(notUsed) != 0 || use[0].(map[string]any)["class"] != "plan" || use[0].(map[string]any)["name"] != "Z.ai" ||
 		!strings.HasPrefix(use[0].(map[string]any)["reason"].(string), "Plan: 5 hours 88% left, Week 60% left") {
 		t.Fatalf("route = %v", route)
+	}
+	choice := use[0].(map[string]any)
+	facts, _ := choice["evidence"].([]any)
+	if choice["offerId"] == "" || choice["offerVerifiedAt"] == nil || len(facts) != 2 {
+		t.Fatalf("route evidence missing offer/readings: %v", choice)
+	}
+	for _, raw := range facts {
+		fact := raw.(map[string]any)
+		if fact["resourceId"] == "" || fact["readingId"] == "" || fact["observedAt"] == nil {
+			t.Fatalf("route observation version incomplete: %v", fact)
+		}
 	}
 	snap2 := call("POST", "/api/pause", `{"id":"`+z.ID+`","paused":true}`)
 	if paused := snap2["paused"].([]any); len(paused) != 1 || paused[0] != z.ID {

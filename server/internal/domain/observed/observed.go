@@ -38,8 +38,13 @@ type PackageReading struct {
 	AutoRenew   *bool
 	// Usable: whether the provider accepts calls on this package now (a
 	// balance too low to call is false); nil when it doesn't say.
-	Usable    *bool
-	Resources []ResourceReading
+	Usable *bool
+	// RouteConstraints names resource templates from this package that must
+	// remain usable for every route through the account, even when another
+	// package (for example a free grant) could pay for that request.
+	// Payment resources are not constraints unless the provider says so.
+	RouteConstraints []string
+	Resources        []ResourceReading
 }
 
 // ResourceReading is one meter and, for an observed package, its value now.

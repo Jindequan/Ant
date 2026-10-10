@@ -7,6 +7,7 @@ package quotasource
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"maps"
 	"slices"
 	"sync"
@@ -354,19 +355,58 @@ func (r Routes) Preview(ctx context.Context, model string) (quota.RoutePreview, 
 	if err != nil {
 		return quota.RoutePreview{}, err
 	}
-	out := quota.RoutePreview{Model: p.Model, Use: []quota.RouteChoice{}, NotUsed: []quota.RouteChoice{}}
+	out := quota.RoutePreview{Model: p.Model, OrderVersion: p.OrderVersion, ManualOrder: p.ManualOrder,
+		SavedOfferIDs: []string{}, Use: []quota.RouteChoice{}, NotUsed: []quota.RouteChoice{}}
+	for _, id := range p.OrderOfferIDs {
+		out.SavedOfferIDs = append(out.SavedOfferIDs, string(id))
+	}
 	for _, c := range p.Eligible {
-		out.Use = append(out.Use, r.choice(c.Route, c.Class, c.Reason, c.Stale))
+		out.Use = append(out.Use, r.choice(c.Route, c.Class, c.Reason, c.Stale, c.Evidence))
 	}
 	for _, x := range p.Excluded {
-		out.NotUsed = append(out.NotUsed, r.choice(x.Route, "", x.Reason, ""))
+		out.NotUsed = append(out.NotUsed, r.choice(x.Route, "", x.Reason, "", x.Evidence))
 	}
 	return out, nil
 }
 
-func (r Routes) choice(route supply.Route, class, reason, stale string) quota.RouteChoice {
+func (r Routes) Reorder(ctx context.Context, model string, offerIDs []string, expectedVersion int64) (quota.RouteOrderResult, error) {
+	model = observed.ModelID(model)
+	ids := make([]domain.ID, len(offerIDs))
+	for i, id := range offerIDs {
+		ids[i] = domain.ID(id)
+	}
+	next, err := r.Engine.SetRouteOrder(ctx, model, ids, expectedVersion)
+	switch {
+	case errors.Is(err, store.ErrSupplyRouteOrderConflict):
+		return quota.RouteOrderResult{}, quota.ErrRouteOrderConflict
+	case errors.Is(err, store.ErrSupplyCandidatesChanged):
+		return quota.RouteOrderResult{}, quota.ErrRouteCandidatesChanged
+	case errors.Is(err, store.ErrSupplyRouteOrderInvalid):
+		return quota.RouteOrderResult{}, quota.ErrRouteOrderInvalid
+	case errors.Is(err, supply.ErrWriteOutcomeUnknown):
+		return quota.RouteOrderResult{Outcome: "unknown", Model: model, OrderVersion: expectedVersion, ManualOrder: len(ids) > 0,
+			Message: "Ant stopped waiting before it received the save result. The order may still have been saved."}, nil
+	case err != nil:
+		return quota.RouteOrderResult{}, err
+	}
+	result := quota.RouteOrderResult{Outcome: "committed", Model: model, OrderVersion: next, ManualOrder: len(ids) > 0}
+	p, err := r.Preview(ctx, model)
+	if err != nil {
+		result.Message = "The order was saved, but Ant couldn't refresh the route preview."
+		return result, nil
+	}
+	result.Preview = &p
+	return result, nil
+}
+
+func (r Routes) choice(route supply.Route, class, reason, stale string, evidence []supply.RouteEvidence) quota.RouteChoice {
+	facts := make([]quota.RouteEvidence, 0, len(evidence))
+	for _, fact := range evidence {
+		facts = append(facts, quota.RouteEvidence{ResourceID: string(fact.ResourceID), ReadingID: string(fact.ReadingID), ObservedAt: int64(fact.ObservedAt)})
+	}
 	return quota.RouteChoice{ID: string(route.CredentialID), Provider: string(route.ProviderID), Name: r.Name(string(route.CredentialID)),
-		Endpoint: route.Endpoint, Model: route.UpstreamModel, Class: class, Reason: reason, Stale: stale}
+		Endpoint: route.Endpoint, Model: route.UpstreamModel, Class: class, Reason: reason, Stale: stale,
+		OfferID: string(route.OfferID), OfferVerifiedAt: int64(route.OfferVerifiedAt), Evidence: facts}
 }
 
 func (r Routes) SetPaused(ctx context.Context, ids []string, paused bool) error {

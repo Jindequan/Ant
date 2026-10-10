@@ -99,7 +99,7 @@ func (s *Service) Handler() http.Handler {
 			return
 		}
 		if s.router == nil {
-			writeJSON(w, http.StatusOK, RoutePreview{Model: model, Use: []RouteChoice{}, NotUsed: []RouteChoice{}})
+			writeJSON(w, http.StatusOK, RoutePreview{Model: model, SavedOfferIDs: []string{}, Use: []RouteChoice{}, NotUsed: []RouteChoice{}})
 			return
 		}
 		p, err := s.router.Preview(r.Context(), model)
@@ -109,6 +109,37 @@ func (s *Service) Handler() http.Handler {
 		}
 		writeJSON(w, http.StatusOK, p)
 	})
+	mux.HandleFunc("POST /api/route/order", s.change(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Model           string   `json:"model"`
+			OfferIDs        []string `json:"offerIds"`
+			ExpectedVersion *int64   `json:"expectedVersion"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		in.Model = strings.TrimSpace(in.Model)
+		if in.Model == "" || len(in.Model) > 256 || in.OfferIDs == nil || in.ExpectedVersion == nil || *in.ExpectedVersion < 0 {
+			writeError(w, http.StatusBadRequest, "Send the model, its complete eligible offer order, and the current order version.")
+			return
+		}
+		orderer, ok := s.router.(RouteOrderer)
+		if !ok {
+			writeError(w, http.StatusNotImplemented, "Supply route ordering isn't available here.")
+			return
+		}
+		p, err := orderer.Reorder(r.Context(), in.Model, in.OfferIDs, *in.ExpectedVersion)
+		switch {
+		case errors.Is(err, ErrRouteOrderInvalid):
+			writeRouteOrderError(w, http.StatusBadRequest, "The order must contain every eligible offer exactly once, or be empty to restore Ant's default.")
+		case errors.Is(err, ErrRouteOrderConflict), errors.Is(err, ErrRouteCandidatesChanged):
+			writeRouteOrderError(w, http.StatusConflict, "Eligible routes or their saved order changed. Refresh the preview before making another change.")
+		case err != nil:
+			writeRouteOrderError(w, http.StatusInternalServerError, "The order was not saved. Refresh the preview before trying again.")
+		default:
+			writeJSON(w, http.StatusOK, p)
+		}
+	}))
 	mux.HandleFunc("POST /api/keepalive", s.change(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			ID string `json:"id"`
@@ -292,4 +323,8 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 func writeError(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, map[string]string{"error": msg})
+}
+
+func writeRouteOrderError(w http.ResponseWriter, code int, msg string) {
+	writeJSON(w, code, map[string]string{"outcome": "not_committed", "error": msg})
 }

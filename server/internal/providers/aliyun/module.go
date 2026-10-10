@@ -142,6 +142,7 @@ func tokenPlan(ctx context.Context, g gateway) (observed.Inventory, error) {
 			r.WindowEnd, r.ResetBasis = &end, "reported"
 		}
 		p.Resources = append(p.Resources, r)
+		p.RouteConstraints = append(p.RouteConstraints, w.Ref())
 	}
 	var addons Addons
 	if err := g.call(ctx, APIAddons, nil, &addons); err == nil {

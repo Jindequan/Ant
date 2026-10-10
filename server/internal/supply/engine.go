@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"math"
 	"strconv"
@@ -520,6 +521,11 @@ func (e *Engine) poke() {
 }
 
 var errNoSupplyStore = store.ErrUnavailable
+
+// ErrWriteOutcomeUnknown means the writer accepted a command but the caller
+// stopped waiting before it received the transaction result. The command may
+// still commit, so callers must inspect durable state and must not retry it.
+var ErrWriteOutcomeUnknown = errors.New("supply: write outcome unknown")
 
 func (e *Engine) write(ctx context.Context, id string, fn func(store.SupplyWriterTx) error) error {
 	return e.st.SubmitWrite(ctx, store.WriteCommand{ID: id, Run: func(tx store.WriterTx) error {

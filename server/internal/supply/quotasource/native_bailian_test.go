@@ -15,7 +15,6 @@ import (
 
 	"ant/server/internal/providers/aliyun"
 	"ant/server/internal/quota"
-	"ant/server/internal/runtime"
 	"ant/server/internal/store/sqlite"
 	"ant/server/internal/supply"
 	"ant/server/internal/transport"
@@ -110,7 +109,7 @@ func TestNativeModuleReadsBailian(t *testing.T) {
 	}
 	writeProfile("tok")
 	env := map[string]string{"ALIBABA_CLOUD_ACCESS_KEY_ID": "LTAIx", "ALIBABA_CLOUD_ACCESS_KEY_SECRET": "s"}
-	at := time.Date(2026, 10, 9, 8, 0, 0, 0, time.UTC)
+	clock, at := previewFixtureClock()
 	local := quota.Local{Home: home, Getenv: func(k string) string { return env[k] }, HTTP: &http.Client{Transport: loopbackOnly{}}, Now: func() time.Time { return at }, URLs: map[string]string{}}
 	var providers []quota.Provider
 	for _, p := range quota.Providers() {
@@ -120,7 +119,7 @@ func TestNativeModuleReadsBailian(t *testing.T) {
 	}
 	src := New(local, quota.NewStore(""), providers, Native{Module: m, Fetch: fetch})
 	path := filepath.Join(t.TempDir(), "ant.db")
-	st, err := sqlite.Open(path, sqlite.Config{Clock: runtime.NewClock(), CommandBudget: fixtureCommandBudget})
+	st, err := sqlite.Open(path, sqlite.Config{Clock: clock, CommandBudget: fixtureCommandBudget})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +127,7 @@ func TestNativeModuleReadsBailian(t *testing.T) {
 	if err := sqlite.Migrate(context.Background(), st); err != nil {
 		t.Fatal(err)
 	}
-	engine := supply.NewEngine("local", st, src, runtime.NewClock(), supply.DefaultPolicy(), nil)
+	engine := supply.NewEngine("local", st, src, clock, supply.DefaultPolicy(), nil)
 	reader := Reader{Source: src, Engine: engine}
 	page := quota.NewService(local, quota.NewStore(""), quota.Options{Reader: reader, Router: reader.Routes()})
 	snap := page.Refresh(context.Background())

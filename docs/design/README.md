@@ -23,3 +23,11 @@ This directory expands [DESIGN](../DESIGN.md) and follows the PRD and I01–I10.
 The backend uses the Go 1.27 series with the standard library net/http/database/sql; the SQLite single-host reference Store chooses modernc.org/sqlite; the frontend is React + TypeScript strict + Vite. Dependency patch versions are locked at T1. The Web build can be served as same-origin static hosting by Go; frontend and backend remain separate projects with separate tests. Production multi-host requires a shared transaction Store, not replicated local balances.
 
 The first version must deliver the resource configuration UI, resource pools, and server-side dispatch; outbound call evidence for two providers on one real domain is the first acceptance slice, without limiting the configuration model to a single domain. Unimplemented/unverified adapters may save drafts but cannot be activated for execution. Real accounts, upper bounds, plans, and initial state are still being evidenced in T0; the technical engineering and configuration closed loop can start first.
+
+## Product design slices
+
+- [15 — One view, kept](15-ONE-VIEW-KEPT.md): one shared quota view and a fast, persistent first paint.
+- [16 — The router owns the choice](16-ROUTER-OWNS-THE-CHOICE.md): model discovery stays in the page; route decisions come from the server preview.
+- [17 — User-chosen supply route order](17-SUPPLY-ROUTE-ORDER.md): persisted per-model ordering over eligible candidates, protected by revision conflicts and independent of spend authorization.
+- [Route-order acceptance — 2026-10-10](../evidence/WORK/ROUTE-ORDER/README.md): atomic candidate validation, default reset, race/API coverage, and browser interaction evidence.
+- [Router gaps — 2026-10-10](../plans/ROUTER-GAPS-2026-10-10.md): verified supply eligibility, evidence versions, and persisted ordering; consumption remains a separate future step.

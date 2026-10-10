@@ -3,6 +3,7 @@ package supply
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -13,6 +14,22 @@ import (
 	"ant/server/internal/domain/observed"
 	"ant/server/internal/store"
 )
+
+type interleavingStore struct {
+	store.Store
+	beforeRouteWrite func() error
+	interleaved      bool
+}
+
+func (s *interleavingStore) SubmitWrite(ctx context.Context, cmd store.WriteCommand) error {
+	if !s.interleaved && strings.HasPrefix(cmd.ID, "route-order-") {
+		s.interleaved = true
+		if err := s.beforeRouteWrite(); err != nil {
+			return err
+		}
+	}
+	return s.Store.SubmitWrite(ctx, cmd)
+}
 
 // scriptedSource answers each credential with a prepared result.
 type scriptedSource struct {
@@ -135,6 +152,110 @@ func TestRoutePreview(t *testing.T) {
 	}
 	if none, err := e.Preview(context.Background(), "nobody-serves-this"); err != nil || len(none.Eligible)+len(none.Excluded) != 0 {
 		t.Fatalf("unknown model = %+v %v", none, err)
+	}
+}
+
+func TestRouteOrderRevalidatesCandidatesInsideCommitTransaction(t *testing.T) {
+	cases := []string{"pause", "offer removal", "observation refresh", "window expiry"}
+	for _, name := range cases {
+		t.Run(name, func(t *testing.T) {
+			src := &scriptedSource{creds: []Credential{found("race-candidate")}, results: map[domain.ID]Result{}}
+			e, _, clock := newTestEngine(t, src, DefaultPolicy())
+			now := clock.Now()
+			endsIn := domain.Millis(4 * hour)
+			weekEndsIn := domain.Millis(72 * hour)
+			if name == "window expiry" {
+				endsIn = 1
+				weekEndsIn = 1
+			}
+			src.results["race-candidate"] = zaiResult("glm-race", planWindow("window/short", "5 hours", 80, endsIn, now), planWindow("window/week", "Week", 80, weekEndsIn, now))
+			if err := e.RunNow(context.Background(), nil); err != nil {
+				t.Fatal(err)
+			}
+			preview, err := e.Preview(context.Background(), "glm-race")
+			if err != nil || len(preview.Eligible) != 1 {
+				t.Fatalf("pre-interleaving preview = %+v, %v", preview, err)
+			}
+			offerID := preview.Eligible[0].OfferID
+			mutate := func(id string, fn func(store.SupplyWriterTx) error) {
+				t.Helper()
+				if err := e.st.SubmitWrite(context.Background(), store.WriteCommand{ID: id, Run: func(tx store.WriterTx) error {
+					return fn(tx.(store.SupplyWriterTx))
+				}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before := func() error { return nil }
+			switch name {
+			case "pause":
+				before = func() error {
+					mutate("interleave-pause", func(tx store.SupplyWriterTx) error {
+						_, err := tx.SetSupplyPaused("local", []domain.ID{"race-candidate"}, true)
+						return err
+					})
+					return nil
+				}
+			case "offer removal":
+				before = func() error {
+					mutate("interleave-remove-offer", func(tx store.SupplyWriterTx) error {
+						return tx.ReplaceSupplyOffers("local", "race-candidate", nil)
+					})
+					return nil
+				}
+			case "observation refresh":
+				var reading store.SupplyReadingRecord
+				if err := e.st.Read(context.Background(), func(rx store.ReaderTx) error {
+					sx := rx.(store.SupplyReaderTx)
+					resources, err := sx.ListSupplyResources("local")
+					if err != nil {
+						return err
+					}
+					for _, resource := range resources {
+						if resource.TemplateRef == "window/short" {
+							reading, _, err = sx.LatestSupplyReading("local", resource.ResourceID)
+							return err
+						}
+					}
+					return fmt.Errorf("short-window resource not found")
+				}); err != nil {
+					t.Fatal(err)
+				}
+				before = func() error {
+					at := reading.ObservedAt + 1
+					clock.now.Store(int64(at))
+					reading.ReadingID, reading.ObservedAt = "race-refresh-reading", at
+					zero := domain.Units(0)
+					reading.Remaining = &zero
+					mutate("interleave-reading", func(tx store.SupplyWriterTx) error {
+						_, err := tx.AppendSupplyReadingIfChanged(reading)
+						return err
+					})
+					return nil
+				}
+			case "window expiry":
+				before = func() error { clock.now.Add(1); return nil }
+			}
+			e.st = &interleavingStore{Store: e.st, beforeRouteWrite: before}
+			next, err := e.SetRouteOrder(context.Background(), "glm-race", []domain.ID{offerID}, preview.OrderVersion)
+			if !errors.Is(err, store.ErrSupplyCandidatesChanged) {
+				t.Fatalf("candidate changed before commit: revision=%d error=%v; want candidate-set conflict", next, err)
+			}
+			if next != preview.OrderVersion {
+				t.Fatalf("failed update returned revision %d, want unchanged %d", next, preview.OrderVersion)
+			}
+			if err := e.st.Read(context.Background(), func(rx store.ReaderTx) error {
+				order, ok, err := rx.(store.SupplyReaderTx).GetSupplyRouteOrder("local", "glm-race")
+				if err != nil {
+					return err
+				}
+				if ok || order.Revision != preview.OrderVersion {
+					t.Fatalf("failed update persisted order: %+v exists=%t", order, ok)
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
@@ -355,6 +476,136 @@ func TestRoutePreviewFreeGrants(t *testing.T) {
 	}
 	if len(p.Excluded) != 1 || p.Excluded[0].CredentialID != "spent" || p.Excluded[0].Reason != "qwen3-max used up" {
 		t.Fatalf("excluded = %+v", p.Excluded)
+	}
+}
+
+// A free grant changes the payment source, but it cannot override a hard
+// account-wide window. Package dates and a reported reset are also gates:
+// positive remaining from an expired/future fact is not current capacity.
+func TestRoutePreviewFreeGrantHonorsHardWindowsAndPackageDates(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	const day = 24 * hour
+	add := func(id string, plan observed.PackageReading, extra ...observed.PackageReading) {
+		grantReading := grant("qwen3-max", 500, 1000, 10*day, now)
+		pkgs := append([]observed.PackageReading{plan, grantPkg(now, grantReading)}, extra...)
+		src.creds = append(src.creds, found(id))
+		src.results[domain.ID(id)] = Result{Outcome: OutcomeOK, Inventory: &observed.Inventory{Packages: pkgs},
+			Offers: []observed.Offer{{Endpoint: "https://dashscope.example/v1", Protocol: "openai-chat", UpstreamModel: "qwen3-max", ModelID: "qwen3-max", Draws: []string{observed.DrawModelScope}}}}
+	}
+	activeConstraint := func(left int64, endsIn domain.Millis) observed.PackageReading {
+		return observed.PackageReading{TemplateRef: "x/plan", Kind: "subscription", Basis: "observed", RouteConstraints: []string{"window/short"},
+			Resources: []observed.ResourceReading{planWindow("window/short", "5 hours", left, endsIn, now)}}
+	}
+	add("hard-window-used", activeConstraint(0, 2*hour))
+	add("hard-window-expired", activeConstraint(50, -hour))
+	add("hard-window-open", activeConstraint(50, 2*hour))
+	futureWindow := activeConstraint(50, 2*hour)
+	windowStart := now + hour
+	futureWindow.Resources[0].WindowStart = &windowStart
+	add("hard-window-not-started", futureWindow)
+	future := activeConstraint(50, 2*hour)
+	starts := now + day
+	future.StartsAt = &starts
+	add("plan-not-started", future)
+	ended := activeConstraint(50, 2*hour)
+	ends := now
+	ended.EndsAt = &ends
+	add("plan-ended", ended)
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Preview(context.Background(), "qwen3-max")
+	if err != nil {
+		t.Fatal(err)
+	}
+	eligible := map[string]bool{}
+	for _, c := range p.Eligible {
+		eligible[string(c.CredentialID)] = true
+	}
+	if !eligible["hard-window-open"] {
+		t.Fatalf("open hard window should allow the free grant: %+v", p)
+	}
+	if len(eligible) != 1 {
+		t.Fatalf("only the route with a current open hard window should be eligible: %+v", p)
+	}
+	wantReasons := map[string]string{
+		"hard-window-used":        "5 hours used up",
+		"hard-window-expired":     "5 hours reading expired; refresh before routing",
+		"hard-window-not-started": "5 hours window starts in 1h; refresh before routing",
+		"plan-not-started":        "Package starts in 1 day",
+		"plan-ended":              "Package has ended",
+	}
+	for _, x := range p.Excluded {
+		if want, ok := wantReasons[string(x.CredentialID)]; ok && x.Reason != want {
+			t.Errorf("%s reason = %q, want %q", x.CredentialID, x.Reason, want)
+		}
+		delete(wantReasons, string(x.CredentialID))
+	}
+	if len(wantReasons) != 0 {
+		t.Errorf("expected exclusions not found: %v; preview %+v", wantReasons, p)
+	}
+}
+
+func TestRoutePreviewPAYGFallbackRequiresActiveObservedPackage(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	add := func(id string, pkg observed.PackageReading) {
+		src.creds = append(src.creds, found(id))
+		src.results[domain.ID(id)] = Result{Outcome: OutcomeOK, Inventory: &observed.Inventory{Packages: []observed.PackageReading{pkg}},
+			Offers: []observed.Offer{{Endpoint: "https://dashscope.example/v1", Protocol: "openai-chat", UpstreamModel: "qwen3-max", ModelID: "qwen3-max", Draws: []string{"missing/window"}}}}
+	}
+	add("payg-open", observed.PackageReading{TemplateRef: "x/payg", Kind: "payg", Basis: "observed"})
+	future := observed.PackageReading{TemplateRef: "x/payg", Kind: "payg", Basis: "observed"}
+	starts := now + hour
+	future.StartsAt = &starts
+	add("payg-future", future)
+	expired := observed.PackageReading{TemplateRef: "x/payg", Kind: "payg", Basis: "observed"}
+	ends := now
+	expired.EndsAt = &ends
+	add("payg-ended", expired)
+	add("payg-declared", observed.PackageReading{TemplateRef: "x/payg", Kind: "payg", Basis: "declared"})
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Preview(context.Background(), "qwen3-max")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Eligible) != 1 || p.Eligible[0].CredentialID != "payg-open" || p.Eligible[0].Class != ClassPayg {
+		t.Fatalf("inactive PAYG package revived a route: %+v", p)
+	}
+	want := map[string]string{"payg-future": "Package starts in 1h", "payg-ended": "Package has ended", "payg-declared": "Only declared, never read"}
+	for _, x := range p.Excluded {
+		if reason, ok := want[string(x.CredentialID)]; ok && x.Reason != reason {
+			t.Errorf("%s reason = %q, want %q", x.CredentialID, x.Reason, reason)
+		}
+		delete(want, string(x.CredentialID))
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing PAYG exclusions %v: %+v", want, p)
+	}
+}
+
+// A positive balance from a grant whose own expiry has passed must not be
+// treated as capacity. This also protects against assuming an expired reset
+// window replenished itself without a fresh provider observation.
+func TestRoutePreviewRejectsExpiredGrantReading(t *testing.T) {
+	src := &scriptedSource{results: map[domain.ID]Result{}}
+	e, _, clock := newTestEngine(t, src, DefaultPolicy())
+	now := clock.Now()
+	expired := grant("qwen3-max", 500, 1000, -hour, now)
+	src.creds = []Credential{found("expired")}
+	src.results["expired"] = Result{Outcome: OutcomeOK, Inventory: &observed.Inventory{Packages: []observed.PackageReading{grantPkg(now, expired)}},
+		Offers: []observed.Offer{{Endpoint: "https://dashscope.example/v1", Protocol: "openai-chat", UpstreamModel: "qwen3-max", ModelID: "qwen3-max", Draws: []string{observed.DrawModelScope}}}}
+	if err := e.RunNow(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Preview(context.Background(), "qwen3-max")
+	if err != nil || len(p.Eligible) != 0 || len(p.Excluded) != 1 || p.Excluded[0].Reason != "qwen3-max reading expired; refresh before routing" {
+		t.Fatalf("expired positive grant preview = %+v, %v", p, err)
 	}
 }
 
