@@ -17,5 +17,5 @@ Rebuild the PNGs and the `.icns` after changing an SVG: `sh scripts/brand.sh` (n
 `rsvg-convert`; `iconutil` comes with macOS). The page embeds the mark and the favicon inline
 (it loads nothing from elsewhere).
 
-There is no menu bar app yet; `menubar/` is ready for one (an `NSStatusItem` image named
-`AntTemplate`).
+The SwiftUI menu bar app uses `menubar/` as its macOS template image named
+`AntTemplate`. The public download page uses the same approved walking-ant mark.
