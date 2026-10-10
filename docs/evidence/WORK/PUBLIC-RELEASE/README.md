@@ -26,3 +26,5 @@ Final asset checksums:
 90068c2c9e11faf00c071b9cb7e6281fc1348ea4ff4e34c691b8bff68a0b496d  Ant-0.1.0-universal.dmg
 0a1a785502838b70c1327dc09ce4ad58aeaefe0957e7d1b93ca99db9202657f7  Ant-0.1.0-universal.zip
 ```
+
+Publication acceptance: GitHub v0.1.0 is public (prerelease, not draft), with DMG, ZIP and SHA256SUMS assets. Native Sites deployment succeeded at https://ant-subscriptions.johnanderson254.chatgpt.site, public access. Anonymous HTTPS downloads of both packages passed SHA256SUMS. Clicking the production website download action saved the DMG to the browser Downloads folder; its checksum matches the published manifest. Production screenshot: published.png.
