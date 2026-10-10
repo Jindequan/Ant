@@ -16,3 +16,5 @@ Release scope: configuration, provider-native observations and read-only route p
 - Website illustration is explicitly labeled illustrative. Its social image is a screenshot of the same public page, not a claimed live account screenshot.
 
 Published application is the notarized Xcode export, not the original pre-export build. SHA256SUMS is generated after packaging. The DMG container is Developer ID signed; the application inside carries the Apple notarization ticket.
+
+GitHub push protection detected a hardcoded Google installed-application OAuth client pair that the initial pattern list did not cover. The official Gemini CLI source identifies that pair as publicly distributed installed-app credentials, but Ant now resolves it from the installed CLI or an explicit complete environment pair. New tests cover installed-module discovery, missing-client refusal before token transmission and fresh-token behavior. The public branch history is sanitized without bypassing GitHub protection; a private local pre-sanitization Git bundle is retained outside the repository. Release binaries are rebuilt and re-notarized after this change.

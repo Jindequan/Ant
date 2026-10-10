@@ -19,6 +19,8 @@ Ant 0.1.0 configures and observes resources and provides read-only model route p
 
 Download the universal DMG from [v0.1.0](https://github.com/Jindequan/Ant/releases/tag/v0.1.0), open it, drag Ant into Applications and launch it. Requires macOS 13 or later; includes Apple Silicon and Intel builds. A ZIP and SHA256SUMS are also available. The application is Developer ID signed, notarized by Apple and includes a stapled ticket. The published app passed macOS Gatekeeper assessment.
 
+Gemini CLI token refresh reads the OAuth client from the installed CLI on PATH; Ant does not embed Google OAuth client credentials. If the CLI is unavailable, its fresh access token can still be read, while expired-token refresh reports an actionable error. A complete `GEMINI_OAUTH_CLIENT_ID` / `GEMINI_OAUTH_CLIENT_SECRET` environment pair can override discovery.
+
 The app can discover supported local sign-ins and make read-only usage/balance requests. Use its account management to connect supported credentials. Configuration and database files live in `~/.config/ant`; a cached panel reading lives under `~/Library/Caches/local.ant.app`. No account database is included in the download. The website has no credential form or analytics.
 
 Quit Ant and remove the application to uninstall. Your local data remains until you deliberately remove it. Never attach credentials, cookies, tokens or unredacted account exports to an issue.

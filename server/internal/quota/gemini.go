@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -21,11 +24,7 @@ import (
 // CLI), never written back. loadCodeAssist names the account's project and
 // tier; retrieveUserQuota its buckets.
 
-const (
-	geminiClientID     = ""
-	geminiClientSecret = ""
-	codeAssistBase     = "https://cloudcode-pa.googleapis.com"
-)
+const codeAssistBase = "https://cloudcode-pa.googleapis.com"
 
 func geminiProvider() Provider {
 	return Provider{ID: "gemini", Name: "Gemini CLI", Link: "https://aistudio.google.com/usage", Modes: []Mode{{
@@ -61,7 +60,11 @@ func geminiToken(ctx context.Context, l Local, c geminiCreds) (string, error) {
 	if c.AccessToken != "" && time.UnixMilli(c.Expiry).After(l.Now().Add(2*time.Minute)) {
 		return c.AccessToken, nil
 	}
-	form := url.Values{"grant_type": {"refresh_token"}, "refresh_token": {c.RefreshToken}, "client_id": {geminiClientID}, "client_secret": {geminiClientSecret}}
+	clientID, clientSecret, err := geminiOAuthClient(l)
+	if err != nil {
+		return "", err
+	}
+	form := url.Values{"grant_type": {"refresh_token"}, "refresh_token": {c.RefreshToken}, "client_id": {clientID}, "client_secret": {clientSecret}}
 	b, err := l.fetch(ctx, http.MethodPost, l.url("google.token", "https://oauth2.googleapis.com/token"),
 		map[string]string{"Content-Type": "application/x-www-form-urlencoded"}, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -106,6 +109,9 @@ func readGemini(ctx context.Context, l Local, c Connection) Account {
 	token, err := geminiToken(ctx, l, creds)
 	if err != nil {
 		a.Status, a.Message = StatusSignedOut, "Gemini CLI's Google sign-in has ended. Run gemini and sign in again."
+		if errors.Is(err, errGeminiClientUnavailable) {
+			a.Status, a.Message = StatusError, "Ant could not read the installed Gemini CLI OAuth client. Install or update Gemini CLI, then refresh this account."
+		}
 		return a
 	}
 	meta := map[string]any{"ideType": "IDE_UNSPECIFIED", "platform": "PLATFORM_UNSPECIFIED", "pluginType": "GEMINI"}
@@ -170,3 +176,66 @@ func readGemini(ctx context.Context, l Local, c Connection) Account {
 }
 
 var errGeminiSignedOut = errors.New("gemini signed out")
+
+// Gemini CLI publishes its installed-application client in its own distribution.
+// Read that installed code rather than shipping another copy of the credentials.
+// No CLI is executed and no token file is modified. Environment overrides must
+// be a complete pair; never combine two different OAuth clients.
+var errGeminiClientUnavailable = errors.New("gemini OAuth client unavailable")
+var geminiClientIDPattern = regexp.MustCompile(`(?:const|let|var)\s+OAUTH_CLIENT_ID(?:_?\d+)?\s*=\s*['"]([^'"\r\n]+)['"]`)
+var geminiClientSecretPattern = regexp.MustCompile(`(?:const|let|var)\s+OAUTH_CLIENT_SECRET(?:_?\d+)?\s*=\s*['"]([^'"\r\n]+)['"]`)
+
+func geminiOAuthClient(l Local) (string, string, error) {
+	if l.Getenv == nil {
+		return "", "", errGeminiClientUnavailable
+	}
+	id, secret := strings.TrimSpace(l.Getenv("GEMINI_OAUTH_CLIENT_ID")), strings.TrimSpace(l.Getenv("GEMINI_OAUTH_CLIENT_SECRET"))
+	if id != "" || secret != "" {
+		if id == "" || secret == "" {
+			return "", "", errGeminiClientUnavailable
+		}
+		return id, secret, nil
+	}
+	for _, dir := range filepath.SplitList(l.Getenv("PATH")) {
+		if !filepath.IsAbs(dir) {
+			continue
+		}
+		entry, err := filepath.EvalSymlinks(filepath.Join(dir, "gemini"))
+		if err != nil {
+			continue
+		}
+		files := []string{entry}
+		root := filepath.Dir(entry)
+		for n := 0; n < 6; n++ {
+			files = append(files,
+				filepath.Join(root, "node_modules", "@google", "gemini-cli-core", "dist", "src", "code_assist", "oauth2.js"),
+				filepath.Join(root, "gemini-cli-core", "dist", "src", "code_assist", "oauth2.js"))
+			parent := filepath.Dir(root)
+			if parent == root {
+				break
+			}
+			root = parent
+		}
+		for _, path := range files {
+			f, err := os.Open(path)
+			if err != nil {
+				continue
+			}
+			stat, statErr := f.Stat()
+			if statErr != nil || !stat.Mode().IsRegular() || stat.Size() > 64<<20 {
+				f.Close()
+				continue
+			}
+			b, readErr := io.ReadAll(io.LimitReader(f, 64<<20))
+			f.Close()
+			if readErr != nil {
+				continue
+			}
+			ids, secrets := geminiClientIDPattern.FindSubmatch(b), geminiClientSecretPattern.FindSubmatch(b)
+			if len(ids) == 2 && len(secrets) == 2 {
+				return string(ids[1]), string(secrets[1]), nil
+			}
+		}
+	}
+	return "", "", errGeminiClientUnavailable
+}

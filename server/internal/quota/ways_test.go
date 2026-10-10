@@ -142,7 +142,7 @@ func TestGeminiCodeAssist(t *testing.T) {
 		switch r.URL.Path {
 		case "/token":
 			r.ParseForm()
-			if r.Form.Get("refresh_token") != "rt" || r.Form.Get("client_id") != geminiClientID {
+			if r.Form.Get("refresh_token") != "rt" || r.Form.Get("client_id") != "fixture-client" || r.Form.Get("client_secret") != "fixture-secret" {
 				w.WriteHeader(400)
 				return
 			}
@@ -161,7 +161,7 @@ func TestGeminiCodeAssist(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	l := testLocal(t, nil)
+	l := testLocal(t, map[string]string{"GEMINI_OAUTH_CLIENT_ID": "fixture-client", "GEMINI_OAUTH_CLIENT_SECRET": "fixture-secret"})
 	l.URLs["google.token"] = srv.URL + "/token"
 	l.URLs["google.codeassist"] = srv.URL
 	writeFile(t, l.path(".gemini", "oauth_creds.json"), `{"access_token":"old","refresh_token":"rt","expiry_date":1}`)
